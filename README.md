@@ -11,7 +11,7 @@ The goal is twofold:
 ## Build and Run
 
 ### Requirements
-- C++20 compatible compiler (GCC, Clang, or MSVC on Windows)
+- C++17 compatible compiler (GCC, Clang, or MSVC on Windows)
 - [CMake](https://cmake.org/) (>= 3.18 recommended)
 - Package manager: Conan, Vcpkg, or CMake-CPM
 
