@@ -16,3 +16,4 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Subprojects
 add_subdirectory(Src/Client)
 add_subdirectory(Src/Server)
+add_subdirectory(R-Engine)
