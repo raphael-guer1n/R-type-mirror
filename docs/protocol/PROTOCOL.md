@@ -2,82 +2,82 @@
 
 ## 1. Introduction
 
-Ce document définit le protocole réseau utilisé par **R-Type**.  
+This document defines the network protocol used by **R-Type**.  
 
 - **Transport** : UDP (User Datagram Protocol)  
-- **Format** : binaire (pas de JSON/texte)  
-- **Autorité** : le serveur est la source de vérité  
-- **Rôle du client** : envoyer ses inputs, afficher les snapshots reçus  
+- **Format** : binary (no JSON/text)
+- **Authority** : the server is the single source of truth 
+- **Client role** : send its inputs, display the received snapshots 
 
 ---
 
-## 2. Header commun
+## 2. Common Header
 
-Tous les paquets commencent par un header de **8 octets** :
+All packets start with an **8-byte** header:
 
 ```
 #pragma pack(push, 1)
 struct PacketHeader {
-    uint16_t type;   -> identifiant du paquet (enum)
-    uint16_t size;   -> taille du payload en octets
-    uint32_t seq;    -> numéro de séquence
+    uint16_t type;   -> packet identifier (enum)
+    uint16_t size;   -> payload size in bytes
+    uint32_t seq;    -> sequence number
 };
 #pragma pack(pop)
 
 ```
 
-type : identifiant du paquet (enum).
-size : taille du payload en octets.
-seq : numéro de séquence, incrémenté par l’émetteur.
+- type: packet identifier (enum)
+- size: payload size in bytes
+- seq: sequence number, incremented by the sender
 
-## 3. Types de paquets
+## 3. Packet Types
 
-### 3.1 CONNECT_REQ (Client → Serveur)
+### 3.1 CONNECT_REQ (Client → Server)
 Type = 1
 Payload :
 
 ```
 
 struct ConnectReq {
-    uint32_t clientId;  -> identifiant temporaire choisi par le client
+    uint32_t clientId;  -> temporary identifier chosen by the client
 };
 ```
 
-But : demander une connexion au serveur.
+Purpose: request a connection to the server.
 
-### 3.2 CONNECT_ACK (Serveur → Client)
+### 3.2 CONNECT_ACK (Server → Client)
 Type = 2
 Payload :
 ```
 
 struct ConnectAck {
-    uint32_t serverId;   -> identifiant attribué par le serveur
-    uint32_t tickRate;   -> fréquence du serveur (Hz, ex: 60)
+    uint32_t serverId;   -> identifier assigned by the server
+    uint32_t tickRate;   -> server frequency (Hz, e.g. 60)
 };
 ```
 
-But : confirmer la connexion et transmettre paramètres initiaux.
+Purpose: confirm connection and provide initial parameters.
 
-### 3.3 INPUT (Client → Serveur)
+### 3.3 INPUT (Client → Server)
 Type = 3
 Payload :
 ```
 
 struct InputPacket {
-    uint32_t clientId;  -> id du joueur
-    uint32_t tick;      -> tick local au moment de l’input
-    uint8_t  keys;      -> bitmap des touches
+    uint32_t clientId;  -> player id
+    uint32_t tick;      -> local tick when input was sent
+    uint8_t  keys;      -> key bitmap
 };
 ```
 
-Mapping des touches (exemple) :
+Key mapping (example):
 bit 0 = UP
 bit 1 = DOWN
 bit 2 = LEFT
 bit 3 = RIGHT
 bit 4 = SHOOT
 
-### 3.4 SNAPSHOT (Serveur → Client)
+### 3.4 SNAPSHOT (Server → Client)
 Type = 4
 Payload :
 ```
@@ -86,22 +86,22 @@ struct EntityState {
     uint32_t entityId;
     float    x, y;
     float    vx, vy;
-    uint8_t  type;    -> joueur, ennemi, projectile…
+    uint8_t  type;    -> player, enemy, projectile…
     uint8_t  hp;
 };
 
 struct Snapshot {
-    uint32_t tick;          -> tick du serveur
-    uint16_t entityCount;   -> nombre d’entités
-    EntityState entities[]; -> tableau variable
+    uint32_t tick;          -> server tick
+    uint16_t entityCount;   -> number of entities
+    EntityState entities[]; ->  variable-sized array
 };
 ```
 
-But : envoyer l’état du monde pour ce tick.
+Purpose: send the world state for this tick.
 
-### 3.5 EVENT (Serveur → Client)
+### 3.5 EVENT (Server → Client)
 Type = 5
-Payload générique :
+Generic payload:
 ```
 
 struct EventPacket {
@@ -111,7 +111,7 @@ struct EventPacket {
 };
 ```
 
-But : signaler un événement ponctuel.
+Purpose: signal a punctual event.
 
 ### 3.6 PING / PONG
 Type = 6 / 7
@@ -123,35 +123,35 @@ struct PingPacket {
 };
 ```
 
-But : mesurer la latence et maintenir la connexion active.
+Purpose: measure latency and keep the connection alive.
 
-## 4. Exemple binaire
-Exemple d’un paquet INPUT :
+## 4. Binary Example
+Example of an INPUT packet:
 - Header :
     - type = 0x0003 (INPUT)
-    - size = 0x0009 (9 octets payload)
+    - size = 0x0009 (9 bytes payload)
     - seq = 0x00000005
 
 - Payload :
     - clientId = 0x00000001
-    - tick = 0x0000003C (60 décimal)
+    - tick = 0x0000003C (decimal 60)
     - keys = 0b00010000 (tir)
 ```
-Représentation hex :
+Hex representation :
 03 00 09 00 05 00 00 00  01 00 00 00  3C 00 00 00  10
 ```
 
-## 5. Fiabilité
+## 5. Reliability
 
-- Le protocole repose sur UDP (pas de garantie).
-- Les paquets critiques (connexion) doivent être réémis si pas de réponse (timeout).
-- Les autres paquets (inputs, snapshots) sont envoyés très fréquemment → perte tolérable.
+- The protocol relies on UDP (no delivery guarantee).
+- Critical packets (connection) must be retransmitted if no response (timeout).
+- Other packets (inputs, snapshots) are sent frequently → loss is tolerable.
 
-## 6. Règles générales
+## 6. General Rules
 
-- Le serveur est autoritaire : seule sa vision fait foi.
-- Le client doit :
-    - envoyer ses inputs régulièrement (~60 Hz),
-    - afficher les snapshots reçus,
-    - gérer la fluidité via interpolation/prédiction locale.
-- Toute donnée inconnue doit être ignorée (robustesse).
+- The server is authoritative: only its state is valid.
+- The client must:
+    - send inputs regularly (~60 Hz),
+    - display received snapshots,
+    - ensure smoothness with interpolation/prediction.
+- Any unknown data must be ignored (robustness).
