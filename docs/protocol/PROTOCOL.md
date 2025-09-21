@@ -23,7 +23,6 @@ struct PacketHeader {
     uint32_t seq;    -> sequence number
 };
 #pragma pack(pop)
-
 ```
 
 - type: packet identifier (enum)
@@ -37,7 +36,6 @@ Type = 1
 Payload :
 
 ```
-
 struct ConnectReq {
     uint32_t clientId;  -> temporary identifier chosen by the client
 };
@@ -49,7 +47,6 @@ Purpose: request a connection to the server.
 Type = 2
 Payload :
 ```
-
 struct ConnectAck {
     uint32_t serverId;   -> identifier assigned by the server
     uint32_t tickRate;   -> server frequency (Hz, e.g. 60)
@@ -62,7 +59,6 @@ Purpose: confirm connection and provide initial parameters.
 Type = 3
 Payload :
 ```
-
 struct InputPacket {
     uint32_t clientId;  -> player id
     uint32_t tick;      -> local tick when input was sent
@@ -81,7 +77,6 @@ bit 4 = SHOOT
 Type = 4
 Payload :
 ```
-
 struct EntityState {
     uint32_t entityId;
     float    x, y;
@@ -103,7 +98,6 @@ Purpose: send the world state for this tick.
 Type = 5
 Generic payload:
 ```
-
 struct EventPacket {
     uint32_t tick;
     uint16_t eventType;   -> ex: 1=PlayerDeath, 2=Spawn, 3=PowerUp
@@ -117,7 +111,6 @@ Purpose: signal a punctual event.
 Type = 6 / 7
 Payload :
 ```
-
 struct PingPacket {
     uint64_t timestamp;
 };
