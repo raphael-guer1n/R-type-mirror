@@ -15,7 +15,7 @@ Ce document définit le protocole réseau utilisé par **R-Type**.
 
 Tous les paquets commencent par un header de **8 octets** :
 
-```cpp
+```
 #pragma pack(push, 1)
 struct PacketHeader {
     uint16_t type;   -> identifiant du paquet (enum)
@@ -35,7 +35,8 @@ seq : numéro de séquence, incrémenté par l’émetteur.
 ### 3.1 CONNECT_REQ (Client → Serveur)
 Type = 1
 Payload :
-```cpp
+
+```
 
 struct ConnectReq {
     uint32_t clientId;  -> identifiant temporaire choisi par le client
@@ -47,7 +48,7 @@ But : demander une connexion au serveur.
 ### 3.2 CONNECT_ACK (Serveur → Client)
 Type = 2
 Payload :
-```cpp
+```
 
 struct ConnectAck {
     uint32_t serverId;   -> identifiant attribué par le serveur
@@ -60,7 +61,7 @@ But : confirmer la connexion et transmettre paramètres initiaux.
 ### 3.3 INPUT (Client → Serveur)
 Type = 3
 Payload :
-```cpp
+```
 
 struct InputPacket {
     uint32_t clientId;  -> id du joueur
@@ -79,7 +80,7 @@ bit 4 = SHOOT
 ### 3.4 SNAPSHOT (Serveur → Client)
 Type = 4
 Payload :
-```cpp
+```
 
 struct EntityState {
     uint32_t entityId;
@@ -101,7 +102,7 @@ But : envoyer l’état du monde pour ce tick.
 ### 3.5 EVENT (Serveur → Client)
 Type = 5
 Payload générique :
-```cpp
+```
 
 struct EventPacket {
     uint32_t tick;
@@ -115,7 +116,7 @@ But : signaler un événement ponctuel.
 ### 3.6 PING / PONG
 Type = 6 / 7
 Payload :
-```cpp
+```
 
 struct PingPacket {
     uint64_t timestamp;
@@ -126,29 +127,31 @@ But : mesurer la latence et maintenir la connexion active.
 
 ## 4. Exemple binaire
 Exemple d’un paquet INPUT :
-Header :
-type = 0x0003 (INPUT)
-size = 0x0009 (9 octets payload)
-seq = 0x00000005
+- Header :
+    - type = 0x0003 (INPUT)
+    - size = 0x0009 (9 octets payload)
+    - seq = 0x00000005
 
-Payload :
-clientId = 0x00000001
-tick = 0x0000003C (60 décimal)
-keys = 0b00010000 (tir)
+- Payload :
+    - clientId = 0x00000001
+    - tick = 0x0000003C (60 décimal)
+    - keys = 0b00010000 (tir)
+```
 Représentation hex :
 03 00 09 00 05 00 00 00  01 00 00 00  3C 00 00 00  10
+```
 
 ## 5. Fiabilité
 
-Le protocole repose sur UDP (pas de garantie).
-Les paquets critiques (connexion) doivent être réémis si pas de réponse (timeout).
-Les autres paquets (inputs, snapshots) sont envoyés très fréquemment → perte tolérable.
+- Le protocole repose sur UDP (pas de garantie).
+- Les paquets critiques (connexion) doivent être réémis si pas de réponse (timeout).
+- Les autres paquets (inputs, snapshots) sont envoyés très fréquemment → perte tolérable.
 
 ## 6. Règles générales
 
-Le serveur est autoritaire : seule sa vision fait foi.
-Le client doit :
-envoyer ses inputs régulièrement (~60 Hz),
-afficher les snapshots reçus,
-gérer la fluidité via interpolation/prédiction locale.
-Toute donnée inconnue doit être ignorée (robustesse).
+- Le serveur est autoritaire : seule sa vision fait foi.
+- Le client doit :
+    - envoyer ses inputs régulièrement (~60 Hz),
+    - afficher les snapshots reçus,
+    - gérer la fluidité via interpolation/prédiction locale.
+- Toute donnée inconnue doit être ignorée (robustesse).
