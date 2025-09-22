@@ -148,3 +148,29 @@ Hex representation :
     - display received snapshots,
     - ensure smoothness with interpolation/prediction.
 - Any unknown data must be ignored (robustness).
+
+## 7. Diagram
+
+   ┌─────────────┐                         ┌─────────────┐
+   │   CLIENT    │                         │   SERVER    │
+   │ (Graphic)   │                         │ (Authority) │
+   └──────┬──────┘                         └──────┬──────┘
+          │                                     │
+          │ 1. CONNECT_REQ (UDP)                │
+          ├────────────────────────────────────>│
+          │                                     │
+          │ 2. CONNECT_ACK (UDP)                │
+          │<────────────────────────────────────┤
+          │                                     │
+          │ 3. INPUT (UDP, 60 Hz)               │
+          ├────────────────────────────────────>│
+          │                                     │
+          │ 4. SNAPSHOT (UDP, 20–60 Hz)         │
+          │<────────────────────────────────────┤
+          │                                     │
+          │ 5. EVENT (ex: mort, spawn boss)     │
+          │<────────────────────────────────────┤
+          │                                     │
+          │ 6. PING → PONG (keep-alive, RTT)    │
+          ├────────────────────────────────────>│
+          │<────────────────────────────────────┤
