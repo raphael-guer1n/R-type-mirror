@@ -1,7 +1,7 @@
 #include "R_Graphic/Window.hpp"
 #include <iostream>
 
-Window::Window(const std::string &title, int width, int height)
+R_Graphic::Window::Window(const std::string &title, int width, int height)
     : _window(nullptr), _renderer(nullptr), _isOpen(true)
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -22,17 +22,17 @@ Window::Window(const std::string &title, int width, int height)
     }
 }
 
-Window::~Window() {
+R_Graphic::Window::~Window() {
     if (_renderer) SDL_DestroyRenderer(_renderer);
     if (_window) SDL_DestroyWindow(_window);
     SDL_Quit();
 }
 
-bool Window::isOpen() const {
+bool R_Graphic::Window::isOpen() const {
     return _isOpen;
 }
 
-void Window::pollEvents(bool &running) {
+void R_Graphic::Window::pollEvents(bool &running) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT)
@@ -40,12 +40,12 @@ void Window::pollEvents(bool &running) {
     }
 }
 
-SDL_Window *Window::getWindow() const
+SDL_Window *R_Graphic::Window::getWindow() const
 {
     return _window;
 }
 
-SDL_Renderer *Window::getRenderer() const
+SDL_Renderer *R_Graphic::Window::getRenderer() const
 {
     return _renderer;
 }

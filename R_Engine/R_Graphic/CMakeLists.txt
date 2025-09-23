@@ -7,6 +7,7 @@ add_library(R_Graphic
     Src/Sprite.cpp
     Src/Texture.cpp
     Src/Background.cpp
+    Src/App.cpp
 )
 
 target_include_directories(R_Graphic 
