@@ -57,4 +57,5 @@ Choose one or several:
 - Alexis Constantinopoulos
 - Liza Goulmot
 - Maryse Katary
+- Kevin Poly
 License: MIT
