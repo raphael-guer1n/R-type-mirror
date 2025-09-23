@@ -7,6 +7,7 @@
 #include "R_Graphic/Window.hpp"
 #include "R_Graphic/Renderer.hpp"
 #include "R_Graphic/Background.hpp"
+#include <chrono>
 
 int main() {
     Window window("R-Type", 800, 600);
