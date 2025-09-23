@@ -1,6 +1,5 @@
+add_executable(r-type_server Main.cpp)
 
-add_executable(r-type_server
-    Main.cpp
+target_include_directories(r-type_server PRIVATE
+    ${CMAKE_SOURCE_DIR}/shared
 )
-
-set_target_properties(r-type_server PROPERTIES FOLDER "apps")
