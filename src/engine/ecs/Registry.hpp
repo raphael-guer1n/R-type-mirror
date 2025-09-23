@@ -106,7 +106,7 @@ namespace engine
         {
             for (auto &system : _systems)
                 system(*this);
-        }
+        }   
 
     private:
         std::unordered_map<std::type_index, std::any> _components_arrays;

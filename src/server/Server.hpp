@@ -1,0 +1,44 @@
+#pragma once
+#include <asio.hpp>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <random>
+#include "engine/ecs/Registry.hpp"
+#include "common/Components.hpp"
+#include "common/Packets.hpp"
+#include "engine/network/Udpsocket.hpp"
+
+class server
+{
+public:
+    server(asio::io_context &ctx, unsigned short port = 4242);
+    void run();
+    void stop();
+
+private:
+    void setup_systems();
+    void wait_for_players();
+    void process_network_inputs();
+    void broadcast_snapshot();
+    void game_handler();
+private:
+    bool _running = true;
+    engine::registry _registry;
+
+    engine::net::UdpSocket _socket;
+    asio::io_context &_io;
+    unsigned short _port;
+
+    struct PlayerInfo
+    {
+        asio::ip::udp::endpoint endpoint;
+        engine::entity_t entityId;
+    };
+    std::vector<PlayerInfo> _players;
+
+    uint32_t _tick = 0;
+
+    std::random_device rd;
+    std::mt19937 _gen{rd()}; // ✅ correct seeding
+};
