@@ -20,7 +20,7 @@ namespace engine
         using const_iterator = typename container_t::const_iterator;
 
     public:
-        // Constructors
+
         sparse_array() = default;
         sparse_array(sparse_array const &) = default;
         sparse_array(sparse_array &&) noexcept = default;
@@ -28,11 +28,9 @@ namespace engine
         sparse_array &operator=(sparse_array &&) noexcept = default;
         ~sparse_array() = default;
 
-        // Element access
         reference_type operator[](size_t idx) { return _data[idx]; }
         const_reference_type operator[](size_t idx) const { return _data[idx]; }
 
-        // Iterators
         iterator begin() { return _data.begin(); }
         const_iterator begin() const { return _data.begin(); }
         const_iterator cbegin() const { return _data.cbegin(); }
@@ -41,10 +39,8 @@ namespace engine
         const_iterator end() const { return _data.end(); }
         const_iterator cend() const { return _data.cend(); }
 
-        // Capacity
         size_type size() const { return _data.size(); }
 
-        // Modifiers
         reference_type insert_at(size_type pos, Component const &c)
         {
             if (pos >= _data.size())
