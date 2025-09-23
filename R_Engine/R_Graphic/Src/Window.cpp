@@ -40,8 +40,12 @@ void Window::pollEvents(bool &running) {
     }
 }
 
-SDL_Renderer* Window::getRenderer() const {
-    return _renderer;
+SDL_Window *Window::getWindow() const
+{
+    return _window;
 }
 
-
+SDL_Renderer *Window::getRenderer() const
+{
+    return _renderer;
+}

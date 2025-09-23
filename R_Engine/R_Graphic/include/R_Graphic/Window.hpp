@@ -9,7 +9,7 @@ class Window {
         SDL_Renderer* getRenderer() const;
         bool isOpen() const;
         void pollEvents(bool &running);
-
+        SDL_Window* getWindow() const;
     private:
         SDL_Window* _window;
         SDL_Renderer* _renderer;
