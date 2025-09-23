@@ -4,7 +4,6 @@
 ** File description:
 ** Main.cpp
 */
-#include <chrono>
 #include "Rtype.hpp"
 
 int main() {
