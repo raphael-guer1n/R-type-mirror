@@ -2,7 +2,10 @@ find_package(SDL2 CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
 
 add_library(R_Graphic
-    Src/Graphic.cpp
+    Src/Window.cpp
+    Src/Renderer.cpp
+    Src/Sprite.cpp
+    Src/Texture.cpp
 )
 
 target_include_directories(R_Graphic 
