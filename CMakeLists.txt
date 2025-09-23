@@ -14,5 +14,5 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Subprojects
-add_subdirectory(src/Client)
-add_subdirectory(src/Server)
+add_subdirectory(Src/Client)
+add_subdirectory(Src/Server)
