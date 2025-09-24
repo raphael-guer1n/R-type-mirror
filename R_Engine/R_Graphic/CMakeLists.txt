@@ -6,7 +6,6 @@ add_library(R_Graphic
     Src/Renderer.cpp
     Src/Sprite.cpp
     Src/Texture.cpp
-    Src/Background.cpp
     Src/App.cpp
 )
 
