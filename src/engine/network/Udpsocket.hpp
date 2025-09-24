@@ -48,30 +48,32 @@ namespace engine
             {
                 std::array<uint8_t, 1500> buf{};
                 asio::error_code ec;
-                size_t bytes =
-                    socket_.receive_from(asio::buffer(buf), sender, 0, ec);
-                if (ec)
-                {
-                    if (ec == asio::error::would_block)
+            
+                size_t bytes = socket_.receive_from(asio::buffer(buf), sender, 0, ec);
+            
+                if (ec) {
+                    if (ec == asio::error::would_block || ec == asio::error::try_again) {
+                        return std::nullopt; // no packet this tick
+                    } else {
+                        std::cerr << "UDP receive error: " << ec.message() << "\n";
                         return std::nullopt;
-                    std::cerr << "receive error: " << ec.message() << "\n";
+                    }
+                }
+            
+                if (bytes < sizeof(PacketHeader)) {
+                    std::cerr << "UDP packet too small\n";
                     return std::nullopt;
                 }
-                if (bytes < sizeof(PacketHeader))
-                    return std::nullopt;
-
-                PacketHeader hdr{};
+            
+                PacketHeader hdr;
                 std::memcpy(&hdr, buf.data(), sizeof(PacketHeader));
-
+            
                 std::vector<uint8_t> payload;
-                if (bytes > sizeof(PacketHeader))
-                {
-                    payload.resize(bytes - sizeof(PacketHeader));
-                    std::memcpy(payload.data(),
-                                buf.data() + sizeof(PacketHeader),
-                                payload.size());
-                }
-                return std::make_pair(hdr, payload);
+                payload.resize(bytes - sizeof(PacketHeader));
+                if (!payload.empty())
+                    std::memcpy(payload.data(), buf.data() + sizeof(PacketHeader), payload.size());
+            
+                return std::make_pair(hdr, std::move(payload));
             }
 
         private:

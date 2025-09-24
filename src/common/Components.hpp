@@ -41,7 +41,8 @@ namespace component
     // Components.hpp
     // Client-only drawable lives in Components_client_sfml.hpp
     // Marqueur de contrÃ´le clavier
-    struct controllable {
+    struct controllable
+    {
         int inputX = 0; // -1 = left, +1 = right
         int inputY = 0; // -1 = up, +1 = down
         bool shoot = false;
@@ -93,6 +94,11 @@ namespace component
     struct spawn_request
     {
         std::function<void(engine::registry &, engine::entity_t)> factory;
+    };
+
+    struct damage_cooldown
+    {
+        uint32_t last_hit_tick{0};
     };
 
 } // namespace component

@@ -31,6 +31,7 @@ struct ConnectAck
 {
     uint32_t serverId;
     uint32_t tickRate;
+    uint32_t playerEntityId;
 };
 struct InputPacket
 {
@@ -46,6 +47,7 @@ struct EntityState
     float vx, vy;
     uint8_t type;
     uint8_t hp;
+    uint8_t collided;
 };
 
 struct Snapshot

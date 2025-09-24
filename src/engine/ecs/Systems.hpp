@@ -1,8 +1,8 @@
 #pragma once
-#include "Registry.hpp"
-#include "Components.hpp"
-#include "iterator/Zipper.hpp"
-#include "iterator/Indexed_zipper.hpp"
+#include "engine/ecs/Registry.hpp"
+#include "common/Components.hpp"
+#include "engine/ecs/iterator/Zipper.hpp"
+#include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include <algorithm>
 
 using namespace engine;
