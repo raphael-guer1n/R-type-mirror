@@ -45,6 +45,13 @@ SDL_Window *R_Graphic::Window::getWindow() const
     return _window;
 }
 
+R_Graphic::intVec2 R_Graphic::Window::getSize()
+{
+    int width, height;
+
+    SDL_GetWindowSize(_window, &width, &height);
+    return intVec2(width, height);
+}
 SDL_Renderer *R_Graphic::Window::getRenderer() const
 {
     return _renderer;

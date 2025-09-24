@@ -2,6 +2,7 @@
 #include <memory>
 #include <functional>
 #include "R_Graphic/Background.hpp"
+#include "R_Graphic/Texture.hpp"
 #include "R_Graphic/App.hpp"
 
 namespace R_Type
@@ -16,6 +17,7 @@ namespace R_Type
             R_Graphic::App& getApp();
         private:
             R_Graphic::App _app;
-            std::unique_ptr<R_Graphic::Background> _background;
+            std::unique_ptr<R_Graphic::Texture> _background;
+            std::unique_ptr<R_Graphic::Texture> _background_bis;
     };
 }

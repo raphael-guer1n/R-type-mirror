@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL.h>
 #include <string>
+#include "Vectors.hpp"
 
 namespace R_Graphic
 {
@@ -12,6 +13,7 @@ namespace R_Graphic
             bool isOpen() const;
             void pollEvents(bool &running);
             SDL_Window* getWindow() const;
+            intVec2 getSize();
         private:
             SDL_Window* _window;
             SDL_Renderer* _renderer;
