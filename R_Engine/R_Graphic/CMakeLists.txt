@@ -12,6 +12,7 @@ add_library(R_Graphic
 target_include_directories(R_Graphic 
     PUBLIC 
         include
+        ../R_Ecs/include/
     PRIVATE 
         Src
 )

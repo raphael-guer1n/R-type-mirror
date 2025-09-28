@@ -1,6 +1,7 @@
 add_executable(r-type_client
-    Main.cpp
-    Rtype.cpp
+    src/Main.cpp
+    src/Rtype.cpp
+    src/Background.cpp
 )
 
 target_include_directories(r-type_client PRIVATE

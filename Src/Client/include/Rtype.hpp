@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
-#include <functional>
-#include "R_Graphic/Background.hpp"
 #include "R_Graphic/Texture.hpp"
 #include "R_Graphic/App.hpp"
+#include "R_Ecs/Registry.hpp"
+#include "Background.hpp"
 
 namespace R_Type
 {
@@ -15,9 +15,11 @@ namespace R_Type
             void update(float deltaTime);
             void draw();
             R_Graphic::App& getApp();
+            R_Ecs::Registry& getRegistry();
         private:
             R_Graphic::App _app;
-            std::unique_ptr<R_Graphic::Texture> _background;
-            std::unique_ptr<R_Graphic::Texture> _background_bis;
+            R_Ecs::Registry _registry;
+            std::unique_ptr<Background> _background;
+            std::unique_ptr<R_Graphic::Texture> _player;
     };
 }

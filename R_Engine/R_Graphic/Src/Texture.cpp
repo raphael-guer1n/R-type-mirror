@@ -23,13 +23,16 @@ R_Graphic::Texture::Texture(R_Graphic::Window& window,
     _size = size;
 }
 
-void R_Graphic::Texture::draw(R_Graphic::Window& window, SDL_Rect* srcrect)
+void R_Graphic::Texture::draw(R_Graphic::Window& window, textureRect* srcrect)
 {
     SDL_Rect dst = {static_cast<int>(position.x), 0, _size.x, _size.y};
     if (!srcrect)
         SDL_RenderCopy(window.getRenderer(), _texture, nullptr, &dst);
-    else
-        SDL_RenderCopy(window.getRenderer(), _texture, srcrect, &dst);
+    else {
+        SDL_Rect rect = {srcrect->pos.x, srcrect->pos.y,
+            srcrect->size.x, srcrect->size.y};
+        SDL_RenderCopy(window.getRenderer(), _texture, &rect, &dst);
+    }
 }
 
 R_Graphic::Texture::~Texture()
