@@ -1,4 +1,3 @@
-#include "R_Graphic/App.hpp"
 #include "R_Graphic/Error.hpp"
 #include "R_Graphic/App.hpp"
 #include <iostream>

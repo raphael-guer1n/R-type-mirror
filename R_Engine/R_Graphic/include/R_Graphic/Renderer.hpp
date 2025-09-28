@@ -1,5 +1,6 @@
 #pragma once
 #include "Window.hpp"
+#include <vector>
 
 namespace R_Graphic
 {

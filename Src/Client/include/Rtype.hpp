@@ -17,6 +17,7 @@ namespace R_Type
             R_Graphic::App& getApp();
             R_Ecs::Registry& getRegistry();
         private:
+            void handleInput(float dt); 
             R_Graphic::App _app;
             R_Ecs::Registry _registry;
             std::unique_ptr<Background> _background;
