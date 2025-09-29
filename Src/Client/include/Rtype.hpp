@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "R_Graphic/Texture.hpp"
+#include "Player.hpp"
 #include "R_Graphic/App.hpp"
 #include "R_Ecs/Registry.hpp"
 #include "Background.hpp"
@@ -17,10 +17,9 @@ namespace R_Type
             R_Graphic::App& getApp();
             R_Ecs::Registry& getRegistry();
         private:
-            void handleInput(float dt); 
             R_Graphic::App _app;
             R_Ecs::Registry _registry;
             std::unique_ptr<Background> _background;
-            std::unique_ptr<R_Graphic::Texture> _player;
+            std::unique_ptr<Player> _player;
     };
 }

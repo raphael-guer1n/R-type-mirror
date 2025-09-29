@@ -25,10 +25,12 @@ namespace R_Ecs
         // Components.hpp
         struct drawable
         {
+            R_Graphic::textureRect rect;
             std::shared_ptr<R_Graphic::Texture> texture;
 
             drawable() = default;
-            drawable(std::shared_ptr<R_Graphic::Texture> tex) : texture(std::move(tex)) {}
+            drawable(std::shared_ptr<R_Graphic::Texture> tex,
+             R_Graphic::textureRect r = R_Graphic::textureRect()) : rect(r), texture(std::move(tex)) {}
         };
         // Marqueur de contrÃ´le clavier
         struct controllable
@@ -36,7 +38,9 @@ namespace R_Ecs
             int inputX = 0; // -1 = left, +1 = right
             int inputY = 0; // -1 = up, +1 = down
             bool shoot = false;
+            bool enabled = true;
         };
+        struct player_tag {};
 
     }
 }

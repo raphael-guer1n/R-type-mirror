@@ -19,7 +19,12 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
         R_Graphic::doubleVec2(0.0, 0.0),
         rtype.getApp().getWindow().getSize()
     );
-    registry.emplace_component<R_Ecs::Component::drawable>(e, tex);
+    R_Graphic::textureRect rect(0, 0,
+    rtype.getApp().getWindow().getSize().x,
+    rtype.getApp().getWindow().getSize().y
+    );
+    registry.emplace_component<R_Ecs::Component::drawable>(e, tex, rect);
+
     auto e1 = registry.spawn_entity();
     registry.add_component(e1, R_Ecs::Component::position{static_cast<float>(pos.x), 0.0f});
     registry.add_component(e1, R_Ecs::Component::velocity{-100.0f, 0.0f});
@@ -30,7 +35,11 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
         R_Graphic::doubleVec2(0.0, 0.0),
         rtype.getApp().getWindow().getSize()
     );
-    registry.emplace_component<R_Ecs::Component::drawable>(e1, tex1);
+    R_Graphic::textureRect rect1(0, 0,
+    rtype.getApp().getWindow().getSize().x,
+    rtype.getApp().getWindow().getSize().y
+    );
+    registry.emplace_component<R_Ecs::Component::drawable>(e1, tex1, rect1);
 }
 
 void R_Type::Background::update(R_Graphic::App& app, R_Ecs::Registry& reg, float deltaTime)
