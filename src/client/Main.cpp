@@ -154,34 +154,25 @@ int main() {
                     for (size_t i = 0; i < n; ++i) {
                         const EntityState& es = entities[i];
 
-                        // Ensure indices exist
-                        if (es.entityId >= positions.size())
-                            positions.insert_at(es.entityId, component::position{});
-                        if (es.entityId >= velocities.size())
-                            velocities.insert_at(es.entityId, component::velocity{});
-                        if (es.entityId >= drawables.size())
-                            drawables.insert_at(es.entityId,
-                                component::drawable{{40,40}, sf::Color::White});
-                        if (es.entityId >= kinds.size())
-                            kinds.insert_at(es.entityId, component::entity_kind{});
-                        if (es.entityId >= collisions.size())
-                            collisions.insert_at(es.entityId, component::collision_state{});
+                        auto ensure_slot = [](auto &arr, std::size_t idx, auto &&value) {
+                            if (idx >= arr.size()) {
+                                arr.insert_at(idx, std::forward<decltype(value)>(value));
+                            } else if (!arr[idx]) {
+                                arr.insert_at(idx, std::forward<decltype(value)>(value));
+                            }
+                        };
+
+                        ensure_slot(positions, es.entityId, component::position{});
+                        ensure_slot(velocities, es.entityId, component::velocity{});
+                        ensure_slot(drawables, es.entityId, component::drawable{{40,40}, sf::Color::White});
+                        ensure_slot(kinds, es.entityId, component::entity_kind{});
+                        ensure_slot(collisions, es.entityId, component::collision_state{});
 
                         // Apply updates
-                        if (positions[es.entityId]) {
-                            positions[es.entityId]->x = es.x;
-                            positions[es.entityId]->y = es.y;
-                        }
-                        if (kinds[es.entityId]) {
-                            kinds[es.entityId] =
-                                static_cast<component::entity_kind>(es.type);
-                        } else {
-                            kinds[es.entityId].emplace(
-                                static_cast<component::entity_kind>(es.type));
-                        }
-                        if (collisions[es.entityId]) {
-                            collisions[es.entityId]->collided = (es.collided != 0);
-                        }
+                        positions[es.entityId]->x = es.x;
+                        positions[es.entityId]->y = es.y;
+                        kinds[es.entityId] = static_cast<component::entity_kind>(es.type);
+                        collisions[es.entityId]->collided = (es.collided != 0);
                     }
                 }
             }
