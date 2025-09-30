@@ -30,23 +30,7 @@ int main() {
     client.send(hdr, buf, serverEndpoint);
     std::cout << "Sent CONNECT_REQ\n";
 
-    uint32_t myEntity = 0;
-    asio::ip::udp::endpoint sender;
-    bool connected = false;
-    while (!connected) {
-        if (auto pkt_opt = client.receive(sender)) {
-            auto [recvHdr, payload] = *pkt_opt;
-            if (recvHdr.type == CONNECT_ACK && payload.size() >= sizeof(ConnectAck)) {
-                ConnectAck ack{};
-                std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
-                myEntity = ack.playerEntityId;
-                std::cout << "I am entity: " << myEntity << "\n";
-                connected = true;
-            }
-        }
-    }
-
-    // --- STEP 2: Setup ECS ---
+    // ECS Setup (register components now, needed for bootstrapping)
     engine::registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::velocity>();
@@ -56,14 +40,56 @@ int main() {
 
     reg.add_system<component::position, component::velocity>(position_system);
 
-    // --- STEP 3: Window ---
+    uint32_t myEntity = 0;
+    asio::ip::udp::endpoint sender;
+    bool connected = false;
+
+    while (!connected) {
+        if (auto pkt_opt = client.receive(sender)) {
+            auto [recvHdr, payload] = *pkt_opt;
+            if (recvHdr.type == CONNECT_ACK &&
+                payload.size() >= sizeof(ConnectAck)) {
+                ConnectAck ack{};
+                std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
+                myEntity = ack.playerEntityId;
+                std::cout << "I am entity: " << myEntity << "\n";
+                connected = true;
+
+                // --- Bootstrap my entity locally ---
+                auto& positions  = reg.get_components<component::position>();
+                auto& velocities = reg.get_components<component::velocity>();
+                auto& drawables  = reg.get_components<component::drawable>();
+                auto& kinds      = reg.get_components<component::entity_kind>();
+                auto& collisions = reg.get_components<component::collision_state>();
+
+                if (myEntity >= positions.size())
+                    positions.insert_at(myEntity,
+                                        component::position{100.f, 100.f});
+
+                if (myEntity >= velocities.size())
+                    velocities.insert_at(myEntity, component::velocity{});
+
+                if (myEntity >= drawables.size())
+                    drawables.insert_at(myEntity,
+                        component::drawable{{40.f, 40.f}, sf::Color::Green});
+
+                if (myEntity >= kinds.size())
+                    kinds.insert_at(myEntity, component::entity_kind::player);
+
+                if (myEntity >= collisions.size())
+                    collisions.insert_at(myEntity, component::collision_state{});
+            }
+        }
+    }
+
+    // --- STEP 2: Window ---
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-Type Client");
     window.setFramerateLimit(60);
 
     uint32_t tick = 0;
     uint8_t keys = 0;
 
-    // --- STEP 4: Main Loop ---
+    // --- STEP 3: Main Loop ---
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -85,7 +111,7 @@ int main() {
             }
         }
 
-        // Send input each frame when focused
+        // --- Send input each frame when focused ---
         if (window.hasFocus()) {
             InputPacket inp{};
             inp.clientId = myEntity;
@@ -101,11 +127,13 @@ int main() {
         // --- Receive snapshots ---
         while (auto pkt_opt = client.receive(sender)) {
             auto [shdr, spayload] = *pkt_opt;
-            if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot)) {
+            if (shdr.type == SNAPSHOT &&
+                spayload.size() >= sizeof(Snapshot)) {
                 Snapshot snap{};
                 std::memcpy(&snap, spayload.data(), sizeof(Snapshot));
 
                 auto& positions  = reg.get_components<component::position>();
+                auto& velocities = reg.get_components<component::velocity>();
                 auto& drawables  = reg.get_components<component::drawable>();
                 auto& kinds      = reg.get_components<component::entity_kind>();
                 auto& collisions = reg.get_components<component::collision_state>();
@@ -117,21 +145,31 @@ int main() {
 
                     for (size_t i = 0; i < n; ++i) {
                         const EntityState& es = entities[i];
-                        if (es.entityId >= positions.size()) {
-                            auto e = reg.spawn_entity();
-                            reg.add_component(e, component::position{});
-                            reg.add_component(e, component::velocity{});
-                            reg.add_component(e, component::drawable{{40,40}, sf::Color::White});
-                            reg.add_component(e, component::entity_kind{});
-                            reg.add_component(e, component::collision_state{});
-                        }
+
+                        // Ensure indices exist
+                        if (es.entityId >= positions.size())
+                            positions.insert_at(es.entityId, component::position{});
+                        if (es.entityId >= velocities.size())
+                            velocities.insert_at(es.entityId, component::velocity{});
+                        if (es.entityId >= drawables.size())
+                            drawables.insert_at(es.entityId,
+                                component::drawable{{40,40}, sf::Color::White});
+                        if (es.entityId >= kinds.size())
+                            kinds.insert_at(es.entityId, component::entity_kind{});
+                        if (es.entityId >= collisions.size())
+                            collisions.insert_at(es.entityId, component::collision_state{});
+
+                        // Apply updates
                         if (positions[es.entityId]) {
                             positions[es.entityId]->x = es.x;
                             positions[es.entityId]->y = es.y;
                         }
                         if (kinds[es.entityId]) {
-                            kinds[es.entityId] = component::entity_kind{
-                                static_cast<component::entity_kind>(es.type) };
+                            kinds[es.entityId] =
+                                static_cast<component::entity_kind>(es.type);
+                        } else {
+                            kinds[es.entityId].emplace(
+                                static_cast<component::entity_kind>(es.type));
                         }
                         if (collisions[es.entityId]) {
                             collisions[es.entityId]->collided = (es.collided != 0);
@@ -141,26 +179,28 @@ int main() {
             }
         }
 
-        // run local systems if any
+        // --- Run systems ---
         reg.run_systems();
 
-        // Color update
+        // --- Update colors dynamically ---
         auto& drawables  = reg.get_components<component::drawable>();
         auto& kinds      = reg.get_components<component::entity_kind>();
         auto& collisions = reg.get_components<component::collision_state>();
 
-        for (size_t i=0; i<drawables.size(); ++i) {
-            if (!drawables[i] || !kinds[i]) continue;
-            auto &dr = drawables[i].value();
+        for (size_t i = 0; i < drawables.size(); ++i) {
+            if (i >= kinds.size() || !drawables[i] || !kinds[i]) continue;
+
+            auto& dr = drawables[i].value();
 
             switch (kinds[i].value()) {
                 case component::entity_kind::player:
                     if (i == myEntity) {
-                        dr.color = sf::Color::Green;
-                        if (i < collisions.size() && collisions[i] && collisions[i]->collided)
+                        dr.color = sf::Color::Green; // Me
+                        if (i < collisions.size() && collisions[i] &&
+                            collisions[i]->collided)
                             dr.color = sf::Color::Magenta;
                     } else {
-                        dr.color = sf::Color::Yellow;
+                        dr.color = sf::Color::Yellow; // Other players
                     }
                     break;
                 case component::entity_kind::enemy:
@@ -180,8 +220,6 @@ int main() {
         auto& positions = reg.get_components<component::position>();
         draw_system(reg, positions, drawables, window);
         window.display();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     return 0;

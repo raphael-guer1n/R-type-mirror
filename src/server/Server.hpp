@@ -1,6 +1,7 @@
 #pragma once
 #include <asio.hpp>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <vector>
 #include <random>
@@ -35,6 +36,8 @@ private:
         asio::ip::udp::endpoint endpoint;
         engine::entity_t entityId;
     };
+
+    std::unordered_set<uint32_t> _live_entities;
     std::vector<PlayerInfo> _players;
 
     uint32_t _tick = 0;
