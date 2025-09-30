@@ -96,17 +96,25 @@ int main() {
             if (event.type == sf::Event::Closed)
                 window.close();
             if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::Q) keys |= 0x01;
-                if (event.key.code == sf::Keyboard::D) keys |= 0x02;
-                if (event.key.code == sf::Keyboard::Z) keys |= 0x04;
-                if (event.key.code == sf::Keyboard::S) keys |= 0x08;
+                if (event.key.code == sf::Keyboard::Q
+                    || event.key.code == sf::Keyboard::Left) keys |= 0x01;
+                if (event.key.code == sf::Keyboard::D
+                    || event.key.code == sf::Keyboard::Right) keys |= 0x02;
+                if (event.key.code == sf::Keyboard::Z
+                    || event.key.code == sf::Keyboard::Up) keys |= 0x04;
+                if (event.key.code == sf::Keyboard::S
+                    || event.key.code == sf::Keyboard::Down) keys |= 0x08;
                 if (event.key.code == sf::Keyboard::Space) keys |= 0x10;
             }
             if (event.type == sf::Event::KeyReleased) {
-                if (event.key.code == sf::Keyboard::Q) keys &= ~0x01;
-                if (event.key.code == sf::Keyboard::D) keys &= ~0x02;
-                if (event.key.code == sf::Keyboard::Z) keys &= ~0x04;
-                if (event.key.code == sf::Keyboard::S) keys &= ~0x08;
+                if (event.key.code == sf::Keyboard::Q
+                    || event.key.code == sf::Keyboard::Left) keys &= ~0x01;
+                if (event.key.code == sf::Keyboard::D
+                    || event.key.code == sf::Keyboard::Right) keys &= ~0x02;
+                if (event.key.code == sf::Keyboard::Z
+                    || event.key.code == sf::Keyboard::Up) keys &= ~0x04;
+                if (event.key.code == sf::Keyboard::S
+                    || event.key.code == sf::Keyboard::Down) keys &= ~0x08;
                 if (event.key.code == sf::Keyboard::Space) keys &= ~0x10;
             }
         }
