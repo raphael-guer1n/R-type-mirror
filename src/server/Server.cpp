@@ -9,31 +9,32 @@
 
 namespace {
 
-// ---------- Collision helpers ----------
 static void resolve_block(
-    std::size_t p,
-    std::size_t wall,
+    std::size_t playerIdx,
+    std::size_t wallIdx,
     engine::sparse_array<component::position> &positions,
     engine::sparse_array<component::hitbox> &hitboxes,
     engine::sparse_array<component::collision_state> &collisions,
     engine::sparse_array<component::velocity> &velocities)
 {
-    if (p >= collisions.size() || !collisions[p] || !positions[p] || !hitboxes[p] || wall >= positions.size() || !positions[wall] || !hitboxes[wall])
+    if (playerIdx >= collisions.size() || !collisions[playerIdx] || !positions[playerIdx] || !hitboxes[playerIdx] ||
+        wallIdx >= positions.size() || !positions[wallIdx] || !hitboxes[wallIdx])
         return;
-    collisions[p]->collided = true;
-    auto &ppos = positions[p].value();
-    const auto &phb = hitboxes[p].value();
-    const auto &opos = positions[wall].value();
-    const auto &ohb = hitboxes[wall].value();
 
-    float ax1 = ppos.x + phb.offset_x;
-    float ay1 = ppos.y + phb.offset_y;
-    float ax2 = ax1 + phb.width;
-    float ay2 = ay1 + phb.height;
-    float bx1 = opos.x + ohb.offset_x;
-    float by1 = opos.y + ohb.offset_y;
-    float bx2 = bx1 + ohb.width;
-    float by2 = by1 + ohb.height;
+    collisions[playerIdx]->collided = true;
+    auto &playerPos = positions[playerIdx].value();
+    const auto &playerHitbox = hitboxes[playerIdx].value();
+    const auto &wallPos = positions[wallIdx].value();
+    const auto &wallHitbox = hitboxes[wallIdx].value();
+
+    float ax1 = playerPos.x + playerHitbox.offset_x;
+    float ay1 = playerPos.y + playerHitbox.offset_y;
+    float ax2 = ax1 + playerHitbox.width;
+    float ay2 = ay1 + playerHitbox.height;
+    float bx1 = wallPos.x + wallHitbox.offset_x;
+    float by1 = wallPos.y + wallHitbox.offset_y;
+    float bx2 = bx1 + wallHitbox.width;
+    float by2 = by1 + wallHitbox.height;
 
     float overlapX = std::min(ax2, bx2) - std::max(ax1, bx1);
     float overlapY = std::min(ay2, by2) - std::max(ay1, by1);
@@ -47,41 +48,45 @@ static void resolve_block(
     float bcy = (by1 + by2) * 0.5f;
 
     if (overlapX < overlapY) {
-        if (acx < bcx) ppos.x -= overlapX; else ppos.x += overlapX;
-        if (p < velocities.size() && velocities[p]) velocities[p]->vx = 0.f;
+        if (acx < bcx) playerPos.x -= overlapX;
+            else playerPos.x += overlapX;
+        if (playerIdx < velocities.size() && velocities[playerIdx]) velocities[playerIdx]->vx = 0.f;
     } else {
-        if (acy < bcy) ppos.y -= overlapY; else ppos.y += overlapY;
-        if (p < velocities.size() && velocities[p]) velocities[p]->vy = 0.f;
+        if (acy < bcy) playerPos.y -= overlapY;
+            else playerPos.y += overlapY;
+        if (playerIdx < velocities.size() && velocities[playerIdx]) velocities[playerIdx]->vy = 0.f;
     }
 }
 
 static void apply_damage_with_cooldown(
-    std::size_t p,
+    std::size_t entityIndex,
     uint32_t currentTick,
     engine::registry &reg,
     engine::sparse_array<component::damage> &damages,
     engine::sparse_array<component::damage_cooldown> &cooldowns,
     engine::sparse_array<component::collision_state> &collisions)
 {
-    if (p >= damages.size()) return;
-    uint32_t last = (p < cooldowns.size() && cooldowns[p]) ? cooldowns[p]->last_hit_tick : 0;
-    if (currentTick <= last + 60) return;
+    if (entityIndex >= damages.size())
+        return;
 
-    if (!damages[p])
-        reg.add_component(reg.entity_from_index(p), component::damage{1});
+    uint32_t lastHitTick = (entityIndex < cooldowns.size() && cooldowns[entityIndex]) ? cooldowns[entityIndex]->last_hit_tick : 0;
+    if (currentTick <= lastHitTick + 60)
+        return;
+
+    if (!damages[entityIndex])
+        reg.add_component(reg.entity_from_index(entityIndex), component::damage{1});
     else
-        damages[p]->amount += 1;
+        damages[entityIndex]->amount += 1;
 
-    if (p < cooldowns.size() && cooldowns[p])
-        cooldowns[p]->last_hit_tick = currentTick;
+    if (entityIndex < cooldowns.size() && cooldowns[entityIndex])
+        cooldowns[entityIndex]->last_hit_tick = currentTick;
     else
-        reg.add_component(reg.entity_from_index(p), component::damage_cooldown{currentTick});
+        reg.add_component(reg.entity_from_index(entityIndex), component::damage_cooldown{currentTick});
 
-    if (p < collisions.size() && collisions[p])
-        collisions[p]->collided = true;
+    if (entityIndex < collisions.size() && collisions[entityIndex])
+        collisions[entityIndex]->collided = true;
 }
 
-// ---------- Snapshot build helper ----------
 struct SnapshotBuilderContext {
     engine::sparse_array<component::position> &positions;
     engine::sparse_array<component::entity_kind> &kinds;
@@ -97,10 +102,13 @@ static void try_add_entity(
     std::unordered_set<uint32_t> &inserted,
     std::size_t limit)
 {
-    if (out.size() >= limit) return;
-    if (inserted.find(entityId) != inserted.end()) return;
+    if (out.size() >= limit)
+        return;
+    if (inserted.find(entityId) != inserted.end())
+        return;
     size_t idx = static_cast<size_t>(entityId);
-    if (idx >= ctx.positions.size() || !ctx.positions[idx]) return;
+    if (idx >= ctx.positions.size() || !ctx.positions[idx])
+        return;
 
     EntityState es{};
     es.entityId = entityId;
@@ -120,12 +128,11 @@ static void try_add_entity(
     inserted.insert(entityId);
 }
 
-} // anonymous namespace
+}
 
 server::server(asio::io_context &ctx, unsigned short port)
     : _socket(ctx, port), _io(ctx), _port(port)
 {
-    // Component registration
     _registry.register_component<component::position>();
     _registry.register_component<component::velocity>();
     _registry.register_component<component::drawable>();
@@ -140,7 +147,6 @@ server::server(asio::io_context &ctx, unsigned short port)
     _registry.register_component<component::controlled_by>();
     _registry.register_component<component::damage_cooldown>();
 
-    // Access arrays once to ensure they are created (optional but keeps parity with old code)
     (void)_registry.get_components<component::position>();
     (void)_registry.get_components<component::velocity>();
     (void)_registry.get_components<component::drawable>();
@@ -168,15 +174,11 @@ void server::run()
 
     auto last_tick = clock::now();
 
-    while (_running)
-    {
-        // Always process inputs as fast as possible
+    while (_running) {
         process_network_inputs();
 
         auto now = clock::now();
-        if (now - last_tick >= tick_duration)
-        {
-            // Only advance game state if 16ms passed
+        if (now - last_tick >= tick_duration) {
             game_handler();
             _registry.run_systems();
             broadcast_snapshot();
@@ -184,14 +186,9 @@ void server::run()
 
             last_tick += tick_duration;
 
-            // Optional catch-up if the server is late
-            if (now - last_tick >= tick_duration) {
-                // we fell behind, resync to current time
+            if (now - last_tick >= tick_duration)
                 last_tick = now;
-            }
         }
-
-        // No sleep here! Loop just runs fast and keeps receiving inputs.
     }
 }
 
@@ -205,11 +202,13 @@ void server::setup_systems()
     _registry.add_system<component::despawn_tag>([this](engine::registry &reg, engine::sparse_array<component::despawn_tag> &despawns) {
         auto &kinds = _registry.get_components<component::entity_kind>();
         for (auto &&[i, d] : indexed_zipper(despawns)) {
-            if (!d.now) continue;
+            if (!d.now)
+                continue;
             _live_entities.erase(static_cast<uint32_t>(i));
             if (i < kinds.size() && kinds[i] && kinds[i].value() == component::entity_kind::player) {
                 auto it = std::find_if(_players.begin(), _players.end(), [i](const PlayerInfo &p) { return static_cast<size_t>(p.entityId) == i; });
-                if (it != _players.end()) _players.erase(it);
+                if (it != _players.end())
+                    _players.erase(it);
             }
             reg.kill_entity(reg.entity_from_index(i));
         }
@@ -285,9 +284,7 @@ void server::wait_for_players()
 
                 _players.push_back(pi);
                 ConnectAck ack{1234, 60, static_cast<uint32_t>(eid)};
-                PacketHeader h{CONNECT_ACK,
-                               static_cast<uint16_t>(sizeof(ConnectAck)),
-                               0};
+                PacketHeader h{CONNECT_ACK, static_cast<uint16_t>(sizeof(ConnectAck)), 0};
                 std::vector<uint8_t> buf(sizeof(ConnectAck));
                 std::memcpy(buf.data(), &ack, sizeof(ConnectAck));
                 _socket.send(h, buf, sender);
@@ -301,19 +298,16 @@ void server::wait_for_players()
 void server::process_network_inputs()
 {
     asio::ip::udp::endpoint sender;
-    while (auto pkt_opt = _socket.receive(sender))
-    {
+    while (auto pkt_opt = _socket.receive(sender)) {
         auto [hdr, payload] = *pkt_opt;
-        if (hdr.type == INPUT)
-        {
+        if (hdr.type == INPUT) {
             if (payload.size() >= sizeof(InputPacket))
             {
                 InputPacket input{};
                 std::memcpy(&input, payload.data(), sizeof(InputPacket));
                 
-                if (_live_entities.find(input.clientId) == _live_entities.end()) {
+                if (_live_entities.find(input.clientId) == _live_entities.end())
                     continue;
-                }
                 
                 for (auto &p : _players) {
                     if (p.endpoint == sender && p.entityId == input.clientId) {
@@ -337,15 +331,10 @@ void server::game_handler()
     int live_entity_count = 0;
 
     for (size_t i = 0; i < positions.size(); ++i)
-    {
         if (positions[i])
-        {
             live_entity_count++;
-        }
-    }
 
-    if (_tick % 1 == 0 && live_entity_count < 60)
-    { // Much lower limit
+    if (_tick % 1 == 0 && live_entity_count < 60) {
         int posX = std::uniform_int_distribution<int>(100, 1820)(_gen);
         int posY = std::uniform_int_distribution<int>(100, 980)(_gen);
         auto enemy = engine::make_entity(
@@ -353,7 +342,7 @@ void server::game_handler()
             component::position{(float)posX, (float)posY},
             component::velocity{0.f, 0.f},
             component::hitbox{40.f, 40.f},
-            component::entity_kind::enemy,
+            component::entity_kind::decor,
             component::collision_state{false},
             component::health{1}
         );
@@ -374,17 +363,20 @@ void server::broadcast_snapshot()
 
     SnapshotBuilderContext ctx{positions, kinds, collisions, healths};
 
-    for (auto &pInfo : _players) try_add_entity(static_cast<uint32_t>(pInfo.entityId), inserted, states, ctx, inserted, SNAPSHOT_LIMIT);
+    for (auto &pInfo : _players)
+        try_add_entity(static_cast<uint32_t>(pInfo.entityId), inserted, states, ctx, inserted, SNAPSHOT_LIMIT);
     for (uint32_t entityId : _live_entities) {
         if (states.size() >= SNAPSHOT_LIMIT) break;
-        try_add_entity(entityId, inserted, states, ctx, inserted, SNAPSHOT_LIMIT);
+            try_add_entity(entityId, inserted, states, ctx, inserted, SNAPSHOT_LIMIT);
     }
-    if (states.empty()) return;
+    if (states.empty())
+        return;
 
     Snapshot snap{_tick, static_cast<uint16_t>(states.size())};
     std::vector<uint8_t> buf(sizeof(Snapshot) + sizeof(EntityState) * states.size());
     std::memcpy(buf.data(), &snap, sizeof(Snapshot));
     std::memcpy(buf.data() + sizeof(Snapshot), states.data(), sizeof(EntityState) * states.size());
     PacketHeader hdr{SNAPSHOT, static_cast<uint16_t>(buf.size()), _tick};
-    for (auto &p : _players) _socket.send(hdr, buf, p.endpoint);
+    for (auto &p : _players)
+        _socket.send(hdr, buf, p.endpoint);
 }
