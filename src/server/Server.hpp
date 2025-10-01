@@ -18,11 +18,22 @@ public:
     void stop();
 
 private:
+    // Initialization / registration
+    void register_components();
     void setup_systems();
+
+    // Game loop phases
     void wait_for_players();
     void process_network_inputs();
-    void broadcast_snapshot();
     void game_handler();
+    void broadcast_snapshot();
+
+    // Spawning helpers
+    engine::entity_t spawn_player(asio::ip::udp::endpoint endpoint, std::size_t index);
+    engine::entity_t spawn_projectile(engine::entity_t owner);
+
+    // Internal utility: ensure an entity is scheduled for removal by setting/adding despawn_tag.
+    // Centralises logic so systems never call kill_entity directly (uniform ECS pipeline).
 private:
     bool _running = true;
     engine::registry _registry;

@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <functional>
 
-// Forward declarations to allow spawn_request factory signature without including Registry.hpp
 namespace engine
 {
     class registry;
@@ -22,7 +21,6 @@ namespace component
         decor = 5
     };
 
-    // Position 2D
     struct position
     {
         float x{}, y{};
@@ -30,7 +28,6 @@ namespace component
         position(float x_, float y_) : x(x_), y(y_) {}
     };
 
-    // Vitesse 2D
     struct velocity
     {
         float vx{}, vy{};
@@ -38,13 +35,10 @@ namespace component
         velocity(float vx_, float vy_) : vx(vx_), vy(vy_) {}
     };
 
-    // Components.hpp
-    // Client-only drawable lives in Components_client_sfml.hpp
-    // Marqueur de contrÃ´le clavier
     struct controllable
     {
-        int inputX = 0; // -1 = left, +1 = right
-        int inputY = 0; // -1 = up, +1 = down
+        int inputX = 0;
+        int inputY = 0;
         bool shoot = false;
     };
 
@@ -67,7 +61,7 @@ namespace component
     struct net_id
     {
         std::uint32_t id{0};
-        std::uint8_t type{0}; // deprecated, prefer entity_kind
+        std::uint8_t type{0};
     };
 
     struct collision_state
@@ -75,7 +69,6 @@ namespace component
         bool collided{false};
     };
 
-    // Owner/controller identifier, e.g., clientId for players
     struct controlled_by
     {
         std::uint32_t owner{0};
@@ -86,11 +79,6 @@ namespace component
         int amount{0};
     };
 
-    struct despawn_tag
-    {
-        bool now{true};
-    };
-
     struct spawn_request
     {
         std::function<void(engine::registry &, engine::entity_t)> factory;
@@ -99,6 +87,16 @@ namespace component
     struct damage_cooldown
     {
         uint32_t last_hit_tick{0};
+    };
+
+    struct projectile_tag
+    {
+        std::uint32_t owner{0};
+        std::uint32_t lifetime{180};
+        float dirX{1.f};
+        float dirY{0.f};
+        float speed{20.f};
+        int damage{1};
     };
 
 } // namespace component
