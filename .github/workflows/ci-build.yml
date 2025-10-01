@@ -24,7 +24,8 @@ jobs:
           apt-get install -y --no-install-recommends \
             libconfig++-dev \
             libasio-dev \
-            libsdl2-dev
+            libsdl2-dev \
+            nlohmann-json3-dev
           apt-get clean
           rm -rf /var/lib/apt/lists/*
 
