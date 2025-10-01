@@ -1,12 +1,24 @@
 #include "server/Server.hpp"
-#include "engine/ecs/Systems.hpp"
-#include "engine/ecs/Systems_client_sfml.hpp"
+#include "common/Systems.hpp"
+#include "common/Systems_client_sfml.hpp"
 #include "engine/ecs/EntityFactory.hpp"
 #include "server/ServerUtils.hpp"
 #include <thread>
 #include <chrono>
 #include <iostream>
 #include <random>
+#include <fstream>
+#include <nlohmann/json.hpp>
+
+#include "server/Server.hpp"
+#include "common/Systems.hpp"
+#include "common/Systems_client_sfml.hpp"
+#include "common/Components_client.hpp"
+#include "server/Components_ai.hpp"
+#include "server/System_ai.hpp"
+#include "server/EnemyConfig.hpp"
+
+using json = nlohmann::json;
 
 using namespace serverutils;
 
@@ -17,7 +29,9 @@ server::server(asio::io_context &ctx, unsigned short port)
     setup_systems();
 }
 
-void server::register_components() {
+// Default components
+void server::register_components()
+{
     _registry.register_component<component::position>();
     _registry.register_component<component::velocity>();
     _registry.register_component<component::drawable>();
@@ -30,21 +44,14 @@ void server::register_components() {
     _registry.register_component<component::entity_kind>();
     _registry.register_component<component::controlled_by>();
     _registry.register_component<component::damage_cooldown>();
-    _registry.register_component<component::projectile_tag>();
-    // Force allocate sparse arrays
-    (void)_registry.get_components<component::position>();
-    (void)_registry.get_components<component::velocity>();
-    (void)_registry.get_components<component::drawable>();
-    (void)_registry.get_components<component::hitbox>();
-    (void)_registry.get_components<component::controllable>();
-    (void)_registry.get_components<component::collision_state>();
-    (void)_registry.get_components<component::health>();
-    (void)_registry.get_components<component::damage>();
-    (void)_registry.get_components<component::spawn_request>();
-    (void)_registry.get_components<component::entity_kind>();
-    (void)_registry.get_components<component::controlled_by>();
-    (void)_registry.get_components<component::damage_cooldown>();
-    (void)_registry.get_components<component::projectile_tag>();
+
+    // AI related
+    _registry.register_component<component::ai_controller>();
+    _registry.register_component<component::spell>();
+    _registry.register_component<component::spellbook>();
+    _registry.register_component<component::boss_phase>();
+
+    setup_systems();
 }
 
 void server::run()
@@ -54,14 +61,15 @@ void server::run()
 
     using clock = std::chrono::steady_clock;
     const auto tick_duration = std::chrono::milliseconds(16);
-
     auto last_tick = clock::now();
 
-    while (_running) {
+    while (_running)
+    {
         process_network_inputs();
 
         auto now = clock::now();
-        if (now - last_tick >= tick_duration) {
+        if (now - last_tick >= tick_duration)
+        {
             game_handler();
             _registry.run_systems();
             broadcast_snapshot();
@@ -70,7 +78,9 @@ void server::run()
             last_tick += tick_duration;
 
             if (now - last_tick >= tick_duration)
+            {
                 last_tick = now;
+            }
         }
     }
 }
@@ -84,9 +94,11 @@ void server::setup_systems()
     _registry.add_system<component::health, component::damage>(health_system);
     _registry.add_system<component::spawn_request>(spawn_system);
 
+    // Collision/hitbox
     _registry.add_system<component::position, component::projectile_tag>([this](engine::registry &reg,
-        engine::sparse_array<component::position> &positions,
-        engine::sparse_array<component::projectile_tag> &projectiles) {
+                                                                                engine::sparse_array<component::position> &positions,
+                                                                                engine::sparse_array<component::projectile_tag> &projectiles)
+                                                                         {
         std::vector<engine::entity_t> toKill;
         for (auto &&[i, pos, proj] : indexed_zipper(positions, projectiles)) {
             pos.x += proj.dirX * proj.speed;
@@ -97,12 +109,12 @@ void server::setup_systems()
         for (auto e : toKill) {
             _live_entities.erase(static_cast<uint32_t>(e));
             reg.kill_entity(e);
-        }
-    });
+        } });
 
     _registry.add_system<component::position, component::hitbox>([this](engine::registry &reg,
-        engine::sparse_array<component::position> &positions,
-        engine::sparse_array<component::hitbox> &hitboxes) {
+                                                                        engine::sparse_array<component::position> &positions,
+                                                                        engine::sparse_array<component::hitbox> &hitboxes)
+                                                                 {
         auto &collisions = _registry.get_components<component::collision_state>();
         auto &velocities = _registry.get_components<component::velocity>();
         auto &kinds = _registry.get_components<component::entity_kind>();
@@ -111,43 +123,182 @@ void server::setup_systems()
         auto &projectiles = _registry.get_components<component::projectile_tag>();
         std::vector<bool> newCollided(collisions.size(), false);
 
-        hitbox_system(reg, positions, hitboxes, [&](std::size_t i, std::size_t j) {
-            auto kindI = (i < kinds.size() && kinds[i]) ? kinds[i].value() : component::entity_kind::unknown;
-            auto kindJ = (j < kinds.size() && kinds[j]) ? kinds[j].value() : component::entity_kind::unknown;
-            if (kindI == component::entity_kind::player && kindJ == component::entity_kind::decor)
-                resolve_block(i, j, positions, hitboxes, collisions, velocities);
-            if (kindJ == component::entity_kind::player && kindI == component::entity_kind::decor)
-                resolve_block(j, i, positions, hitboxes, collisions, velocities);
-            if (kindI == component::entity_kind::player && kindJ == component::entity_kind::enemy) {
-                apply_damage_with_cooldown(i, _tick, reg, damages, cooldowns, collisions);
-                newCollided[i] = true;
-            }
-            if (kindJ == component::entity_kind::player && kindI == component::entity_kind::enemy) {
-                apply_damage_with_cooldown(j, _tick, reg, damages, cooldowns, collisions);
-                newCollided[j] = true;
-            }
+            auto apply_damage_with_cooldown = [&](std::size_t p)
+            {
+                if (p >= damages.size())
+                    return;
+                uint32_t last =
+                    (p < cooldowns.size() && cooldowns[p]) ? cooldowns[p]->last_hit_tick : 0;
+                if (_tick > last + 60)
+                {
+                    if (!damages[p])
+                        reg.add_component<component::damage>(reg.entity_from_index(p),
+                                                             component::damage{1});
+                    else
+                        damages[p]->amount += 1;
+                    if (p < cooldowns.size() && cooldowns[p])
+                        cooldowns[p]->last_hit_tick = _tick;
+                    else
+                        reg.add_component<component::damage_cooldown>(
+                            reg.entity_from_index(p), component::damage_cooldown{_tick});
+                    if (p < collisions.size() && collisions[p])
+                        collisions[p]->collided = true;
+                }
+            };
 
+            hitbox_system(reg, positions, hitboxes,
+                          [&](std::size_t i, std::size_t j)
+                          {
+                              auto kindI = (i < kinds.size() && kinds[i])
+                                               ? kinds[i].value()
+                                               : component::entity_kind::unknown;
+                              auto kindJ = (j < kinds.size() && kinds[j])
+                                               ? kinds[j].value()
+                                               : component::entity_kind::unknown;
 
+                              if (kindI == component::entity_kind::player &&
+                                  kindJ == component::entity_kind::enemy)
+                              {
+                                  apply_damage_with_cooldown(i);
+                                  newCollided[i] = true;
+                              }
+                              if (kindJ == component::entity_kind::player &&
+                                  kindI == component::entity_kind::enemy)
+                              {
+                                  apply_damage_with_cooldown(j);
+                                  newCollided[j] = true;
+                              }
+                          });
 
-            // Projectile hits enemy or player (friendly fire optional false) -> apply damage and despawn projectile
-            if (kindI == component::entity_kind::projectile && kindJ == component::entity_kind::enemy && i < projectiles.size() && projectiles[i]) {
-                int dmg = projectiles[i]->damage;
-                if (j < damages.size() && damages[j]) damages[j]->amount += dmg; else reg.add_component(reg.entity_from_index(j), component::damage{dmg});
-                _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(i)));
-                reg.kill_entity(reg.entity_from_index(i));
-            }
-            if (kindJ == component::entity_kind::projectile && kindI == component::entity_kind::enemy && j < projectiles.size() && projectiles[j]) {
-                int dmg = projectiles[j]->damage;
-                if (i < damages.size() && damages[i]) damages[i]->amount += dmg; else reg.add_component(reg.entity_from_index(i), component::damage{dmg});
-                _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(j)));
-                reg.kill_entity(reg.entity_from_index(j));
-            }
+            for (size_t idx = 0; idx < collisions.size(); ++idx)
+            {
+                if (collisions[idx])
+                    collisions[idx]->collided = newCollided[idx];
+            } });
 
+    systems::init_ai_behaviors();
+    _registry.add_system<component::position, component::velocity, component::ai_controller>(
+        [this](auto &reg, auto &pos, auto &vel, auto &ai)
+        {
+            systems::enemy_ai_system(reg, pos, vel, ai, _tick);
         });
-        for (size_t idx = 0; idx < collisions.size(); ++idx)
-            if (collisions[idx])
-                collisions[idx]->collided = newCollided[idx];
-    });
+
+    _registry.add_system<component::health, component::ai_controller, component::boss_phase>(
+        systems::boss_phase_system);
+}
+
+void server::game_handler()
+{
+    // Zigzag enemy
+    if (_tick % 30 == 0) {
+        for (auto &p : _players) {
+            auto proj = spawn_projectile(p.entityId);
+            _live_entities.insert(static_cast<uint32_t>(proj));
+        }
+    }
+    if (_tick % 200 == 0)
+    {
+        try
+        {
+            EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/crawler.json");
+            auto e = _registry.spawn_entity();
+            _live_entities.insert((uint32_t)e);
+
+            _registry.add_component(e, component::position{1820, 300});
+            _registry.add_component(e, component::velocity{0, 0});
+            _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
+            _registry.add_component(e, component::entity_kind::enemy);
+            _registry.add_component(e, component::collision_state{false});
+            _registry.add_component(e, component::health{(uint8_t)cfg.hp});
+
+            component::ai_controller ai;
+            ai.behavior = cfg.behavior;
+            ai.speed = cfg.speed;
+            _registry.add_component<component::ai_controller>(e, std::move(ai));
+
+            if (!cfg.spells.empty())
+            {
+                component::spellbook sb;
+                sb.spells = cfg.spells;
+                _registry.add_component<component::spellbook>(e, std::move(sb));
+            }
+            std::cout << "Spawned Zigzag enemy\n";
+        }
+        catch (std::exception &ex)
+        {
+            std::cerr << "Failed to load zigzag enemy: " << ex.what() << "\n";
+        }
+    }
+
+    // Shooter enemy
+    if (_tick % 400 == 0)
+    {
+        try
+        {
+            EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/shooter.json");
+            auto e = _registry.spawn_entity();
+            _live_entities.insert((uint32_t)e);
+
+            _registry.add_component(e, component::position{1820, 500});
+            _registry.add_component(e, component::velocity{0, 0});
+            _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
+            _registry.add_component(e, component::entity_kind::enemy);
+            _registry.add_component(e, component::collision_state{false});
+            _registry.add_component(e, component::health{(uint8_t)cfg.hp});
+            component::ai_controller ai;
+            ai.behavior = cfg.behavior;
+            ai.speed = cfg.speed;
+            _registry.add_component<component::ai_controller>(e, std::move(ai));
+            if (!cfg.spells.empty())
+            {
+                component::spellbook sb;
+                sb.spells = cfg.spells;
+                _registry.add_component<component::spellbook>(e, std::move(sb));
+            }
+            std::cout << "Spawned Shooter enemy\n";
+        }
+        catch (std::exception &ex)
+        {
+            std::cerr << "Failed to load shooter enemy: " << ex.what() << "\n";
+        }
+    }
+}
+
+void server::broadcast_snapshot()
+{
+    auto &positions = _registry.get_components<component::position>();
+    auto &kinds = _registry.get_components<component::entity_kind>();
+    auto &collisions = _registry.get_components<component::collision_state>();
+    auto &healths = _registry.get_components<component::health>();
+
+    constexpr std::size_t SNAPSHOT_LIMIT = 80;
+    std::vector<EntityState> states;
+    states.reserve(50);
+    std::unordered_set<uint32_t> inserted; // track inside this call
+
+    SnapshotBuilderContext ctx{positions, kinds, collisions, healths};
+
+    for (auto &pInfo : _players)
+    {
+        try_add_entity(static_cast<uint32_t>(pInfo.entityId), states, ctx, inserted, SNAPSHOT_LIMIT);
+    }
+    for (uint32_t entityId : _live_entities)
+    {
+        if (states.size() >= SNAPSHOT_LIMIT)
+            break;
+        size_t idx = static_cast<size_t>(entityId);
+        try_add_entity(entityId, states, ctx, inserted, SNAPSHOT_LIMIT);
+    }
+    if (states.empty())
+        return;
+
+    Snapshot snap{_tick, static_cast<uint16_t>(states.size())};
+    std::vector<uint8_t> buf(sizeof(Snapshot) + sizeof(EntityState) * states.size());
+    std::memcpy(buf.data(), &snap, sizeof(Snapshot));
+    std::memcpy(buf.data() + sizeof(Snapshot), states.data(), sizeof(EntityState) * states.size());
+    PacketHeader hdr{SNAPSHOT, static_cast<uint16_t>(buf.size()), _tick};
+    for (auto &p : _players)
+        _socket.send(hdr, buf, p.endpoint);
 }
 
 void server::wait_for_players()
@@ -188,24 +339,33 @@ void server::wait_for_players()
 void server::process_network_inputs()
 {
     asio::ip::udp::endpoint sender;
-    while (auto pkt_opt = _socket.receive(sender)) {
+    while (auto pkt_opt = _socket.receive(sender))
+    {
         auto [hdr, payload] = *pkt_opt;
-        if (hdr.type == INPUT) {
+        if (hdr.type == INPUT)
+        {
             if (payload.size() >= sizeof(InputPacket))
             {
                 InputPacket input{};
                 std::memcpy(&input, payload.data(), sizeof(InputPacket));
-                
+
                 if (_live_entities.find(input.clientId) == _live_entities.end())
+                {
                     continue;
-                
-                for (auto &p : _players) {
-                    if (p.endpoint == sender && p.entityId == input.clientId) {
-                        auto& velocities = _registry.get_components<component::velocity>();
-                        if (static_cast<size_t>(p.entityId) < velocities.size() && velocities[p.entityId]) {
+                }
+
+                for (auto &p : _players)
+                {
+                    if (p.endpoint == sender && p.entityId == input.clientId)
+                    {
+                        auto &velocities = _registry.get_components<component::velocity>();
+                        if (static_cast<size_t>(p.entityId) < velocities.size() && velocities[p.entityId])
+                        {
                             auto &vel = *velocities[p.entityId];
-                            vel.vx = (input.keys & 0x01) ? -10 : (input.keys & 0x02) ? 10 : 0;
-                            vel.vy = (input.keys & 0x04) ? -10 : (input.keys & 0x08) ? 10 : 0;
+                            vel.vx = (input.keys & 0x01) ? -10 : (input.keys & 0x02) ? 10
+                                                                                     : 0;
+                            vel.vy = (input.keys & 0x04) ? -10 : (input.keys & 0x08) ? 10
+                                                                                     : 0;
                         }
                         break;
                     }
@@ -215,74 +375,8 @@ void server::process_network_inputs()
     }
 }
 
-void server::game_handler()
+engine::entity_t server::spawn_player(asio::ip::udp::endpoint endpoint, std::size_t index)
 {
-    auto &positions = _registry.get_components<component::position>();
-    int live_entity_count = 0;
-
-    for (size_t i = 0; i < positions.size(); ++i)
-        if (positions[i])
-            live_entity_count++;
-
-    if (_tick % 1 == 0 && live_entity_count < 60) {
-        int posX = std::uniform_int_distribution<int>(100, 1820)(_gen);
-        int posY = std::uniform_int_distribution<int>(100, 980)(_gen);
-        auto enemy = engine::make_entity(
-            _registry,
-            component::position{(float)posX, (float)posY},
-            component::velocity{0.f, 0.f},
-            component::hitbox{40.f, 40.f},
-            component::entity_kind::enemy,
-            component::collision_state{false},
-            component::health{1}
-        );
-        _live_entities.insert(static_cast<uint32_t>(enemy));
-    }
-
-/*     // Test projectile spawning: every 30 ticks each player shoots one projectile to the right
-    if (_tick % 30 == 0) {
-        for (auto &p : _players) {
-            auto proj = spawn_projectile(p.entityId);
-            _live_entities.insert(static_cast<uint32_t>(proj));
-        }
-    } */
-}
-
-void server::broadcast_snapshot()
-{
-    auto &positions = _registry.get_components<component::position>();
-    auto &kinds = _registry.get_components<component::entity_kind>();
-    auto &collisions = _registry.get_components<component::collision_state>();
-    auto &healths = _registry.get_components<component::health>();
-
-    constexpr std::size_t SNAPSHOT_LIMIT = 80;
-    std::vector<EntityState> states; states.reserve(50);
-    std::unordered_set<uint32_t> inserted; // track inside this call
-
-    SnapshotBuilderContext ctx{positions, kinds, collisions, healths};
-
-    for (auto &pInfo : _players) {
-        try_add_entity(static_cast<uint32_t>(pInfo.entityId), states, ctx, inserted, SNAPSHOT_LIMIT);
-    }
-    for (uint32_t entityId : _live_entities) {
-        if (states.size() >= SNAPSHOT_LIMIT) break;
-        size_t idx = static_cast<size_t>(entityId);
-        try_add_entity(entityId, states, ctx, inserted, SNAPSHOT_LIMIT);
-    }
-    if (states.empty())
-        return;
-
-    Snapshot snap{_tick, static_cast<uint16_t>(states.size())};
-    std::vector<uint8_t> buf(sizeof(Snapshot) + sizeof(EntityState) * states.size());
-    std::memcpy(buf.data(), &snap, sizeof(Snapshot));
-    std::memcpy(buf.data() + sizeof(Snapshot), states.data(), sizeof(EntityState) * states.size());
-    PacketHeader hdr{SNAPSHOT, static_cast<uint16_t>(buf.size()), _tick};
-    for (auto &p : _players)
-        _socket.send(hdr, buf, p.endpoint);
-
-}
-
-engine::entity_t server::spawn_player(asio::ip::udp::endpoint endpoint, std::size_t index) {
     float spawnX = 100.f;
     float spawnY = 100.f + 120.f * static_cast<float>(index);
     auto eid = engine::make_entity(
@@ -297,20 +391,26 @@ engine::entity_t server::spawn_player(asio::ip::udp::endpoint endpoint, std::siz
         component::entity_kind::player,
         component::controlled_by{static_cast<uint32_t>(index)},
         component::drawable{sf::Vector2f{40.f, 40.f}, sf::Color::Green},
-        component::damage_cooldown{0}
-    );
+        component::damage_cooldown{0});
     return eid;
 }
 
-engine::entity_t server::spawn_projectile(engine::entity_t owner) {
+engine::entity_t server::spawn_projectile(engine::entity_t owner)
+{
     auto &positions = _registry.get_components<component::position>();
     auto &hitboxes = _registry.get_components<component::hitbox>();
     size_t idx = static_cast<size_t>(owner);
-    if (idx >= positions.size() || !positions[idx]) return owner; // invalid -> no spawn
+    if (idx >= positions.size() || !positions[idx])
+        return owner; // invalid -> no spawn
     auto pos = positions[idx].value();
     float playerW = 0.f, playerH = 0.f;
-    if (idx < hitboxes.size() && hitboxes[idx]) { playerW = hitboxes[idx]->width; playerH = hitboxes[idx]->height; }
-    constexpr float projectileW = 10.f; constexpr float projectileH = 10.f;
+    if (idx < hitboxes.size() && hitboxes[idx])
+    {
+        playerW = hitboxes[idx]->width;
+        playerH = hitboxes[idx]->height;
+    }
+    constexpr float projectileW = 10.f;
+    constexpr float projectileH = 10.f;
     float startX = pos.x + playerW + 4.f;
     float startY = pos.y + (playerH * 0.5f) - (projectileH * 0.5f);
     auto proj = engine::make_entity(
@@ -319,8 +419,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner) {
         component::hitbox{projectileW, projectileH},
         component::collision_state{false},
         component::entity_kind::projectile,
-        component::projectile_tag{static_cast<uint32_t>(owner), 4, 1.f, 0.f, 25.f, 2},
-        component::health{1}
-    );
+        component::projectile_tag{static_cast<uint32_t>(owner), 120, 1.f, 0.f, 25.f, 2},
+        component::health{1});
     return proj;
 }

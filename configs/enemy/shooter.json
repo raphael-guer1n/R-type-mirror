@@ -1,0 +1,22 @@
+{
+    "type": "enemy",
+    "hp": 3,
+    "speed": 1.5,
+    "behavior": "straight_shooter",
+    "hitbox": {
+        "w": 30,
+        "h": 30
+    },
+    "spells": [
+        {
+            "name": "straight_bullet",
+            "cooldown": 60,
+            "damage": 1,
+            "speedX": -6,
+            "speedY": 0,
+            "width": 10,
+            "height": 10
+        }
+    ],
+    "color": "blue"
+}

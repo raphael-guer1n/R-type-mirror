@@ -8,11 +8,11 @@
 #include "engine/network/Udpsocket.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "common/Components.hpp"
-#include "engine/ecs/Components_client_sfml.hpp"
+#include "common/Components_client_sfml.hpp"
 #include "common/Packets.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
-#include "engine/ecs/Systems_client_sfml.hpp"
-#include "engine/ecs/Systems.hpp"
+#include "common/Systems_client_sfml.hpp"
+#include "common/Systems.hpp"
 
 using namespace engine::net;
 
