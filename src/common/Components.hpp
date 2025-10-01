@@ -94,4 +94,14 @@ namespace component
         uint32_t last_hit_tick{0};
     };
 
+    struct projectile_tag
+    {
+        std::uint32_t owner{0};
+        std::uint32_t lifetime{180};
+        float dirX{1.f};
+        float dirY{0.f};
+        float speed{20.f};
+        int damage{1};
+    };
+
 } // namespace component
