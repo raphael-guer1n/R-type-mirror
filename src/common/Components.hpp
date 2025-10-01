@@ -79,11 +79,6 @@ namespace component
         int amount{0};
     };
 
-    struct despawn_tag
-    {
-        bool now{true};
-    };
-
     struct spawn_request
     {
         std::function<void(engine::registry &, engine::entity_t)> factory;
