@@ -128,7 +128,7 @@ static void try_add_entity(
     inserted.insert(entityId);
 }
 
-}
+} // namespace
 
 server::server(asio::io_context &ctx, unsigned short port)
     : _socket(ctx, port), _io(ctx), _port(port)
@@ -146,6 +146,7 @@ server::server(asio::io_context &ctx, unsigned short port)
     _registry.register_component<component::entity_kind>();
     _registry.register_component<component::controlled_by>();
     _registry.register_component<component::damage_cooldown>();
+    _registry.register_component<component::projectile_tag>();
 
     (void)_registry.get_components<component::position>();
     (void)_registry.get_components<component::velocity>();
@@ -160,6 +161,7 @@ server::server(asio::io_context &ctx, unsigned short port)
     (void)_registry.get_components<component::entity_kind>();
     (void)_registry.get_components<component::controlled_by>();
     (void)_registry.get_components<component::damage_cooldown>();
+    (void)_registry.get_components<component::projectile_tag>();
 
     setup_systems();
 }
@@ -215,6 +217,23 @@ void server::setup_systems()
     });
     _registry.add_system<component::spawn_request>(spawn_system);
 
+    _registry.add_system<component::position, component::projectile_tag>([this](engine::registry &reg,
+        engine::sparse_array<component::position> &positions,
+        engine::sparse_array<component::projectile_tag> &projectiles) {
+        auto &despawns = reg.get_components<component::despawn_tag>();
+        for (auto &&[i, pos, proj] : indexed_zipper(positions, projectiles)) {
+            // Move
+            pos.x += proj.dirX * proj.speed;
+            pos.y += proj.dirY * proj.speed;
+            // Lifetime
+            if (proj.lifetime > 0)
+                --proj.lifetime;
+            if (proj.lifetime <= 0) {
+                reg.kill_entity(reg.entity_from_index(i));
+            }
+        }
+    });
+
     _registry.add_system<component::position, component::hitbox>([this](engine::registry &reg,
         engine::sparse_array<component::position> &positions,
         engine::sparse_array<component::hitbox> &hitboxes) {
@@ -223,6 +242,7 @@ void server::setup_systems()
         auto &kinds = _registry.get_components<component::entity_kind>();
         auto &damages = _registry.get_components<component::damage>();
         auto &cooldowns = _registry.get_components<component::damage_cooldown>();
+        auto &projectiles = _registry.get_components<component::projectile_tag>();
         std::vector<bool> newCollided(collisions.size(), false);
 
         hitbox_system(reg, positions, hitboxes, [&](std::size_t i, std::size_t j) {
@@ -240,6 +260,34 @@ void server::setup_systems()
                 apply_damage_with_cooldown(j, _tick, reg, damages, cooldowns, collisions);
                 newCollided[j] = true;
             }
+
+
+
+            // Projectile hits enemy or player (friendly fire optional false) -> apply damage and despawn projectile
+            if (kindI == component::entity_kind::projectile && kindJ == component::entity_kind::enemy) {
+                if (i < projectiles.size() && projectiles[i]) {
+                    int dmg = projectiles[i]->damage;
+                    if (j < damages.size() && damages[j]) damages[j]->amount += dmg; else reg.add_component(reg.entity_from_index(j), component::damage{dmg});
+                    // mark projectile for despawn
+                    if (i < _registry.get_components<component::despawn_tag>().size() && _registry.get_components<component::despawn_tag>()[i])
+                        _registry.get_components<component::despawn_tag>()[i]->now = true;
+                    else
+                        reg.add_component(reg.entity_from_index(i), component::despawn_tag{true});
+                }
+            }
+            if (kindJ == component::entity_kind::projectile && kindI == component::entity_kind::enemy) {
+                if (j < projectiles.size() && projectiles[j]) {
+                    int dmg = projectiles[j]->damage;
+                    if (i < damages.size() && damages[i]) damages[i]->amount += dmg; else reg.add_component(reg.entity_from_index(i), component::damage{dmg});
+                    if (j < _registry.get_components<component::despawn_tag>().size() && _registry.get_components<component::despawn_tag>()[j])
+                        _registry.get_components<component::despawn_tag>()[j]->now = true;
+                    else
+                        reg.add_component(reg.entity_from_index(j), component::despawn_tag{true});
+                }
+            }
+
+            
+
         });
         for (size_t idx = 0; idx < collisions.size(); ++idx)
             if (collisions[idx])
@@ -251,7 +299,7 @@ void server::wait_for_players()
 {
     std::cout << "Waiting for 4 players..." << std::endl;
 
-    while (_players.size() < 2)
+    while (_players.size() < 1)
     {
         asio::ip::udp::endpoint sender;
         auto pkt_opt = _socket.receive(sender);
@@ -334,7 +382,7 @@ void server::game_handler()
         if (positions[i])
             live_entity_count++;
 
-    if (_tick % 1 == 0 && live_entity_count < 60) {
+/*     if (_tick % 1 == 0 && live_entity_count < 60) {
         int posX = std::uniform_int_distribution<int>(100, 1820)(_gen);
         int posY = std::uniform_int_distribution<int>(100, 980)(_gen);
         auto enemy = engine::make_entity(
@@ -347,6 +395,37 @@ void server::game_handler()
             component::health{1}
         );
         _live_entities.insert(static_cast<uint32_t>(enemy));
+    } */
+
+    // Test projectile spawning: every 30 ticks each player shoots one projectile to the right
+    if (_tick % 30 == 0) {
+        auto &kinds = _registry.get_components<component::entity_kind>();
+        auto &hitboxes = _registry.get_components<component::hitbox>();
+        for (auto &p : _players) {
+            size_t idx = static_cast<size_t>(p.entityId);
+            if (idx >= positions.size() || !positions[idx]) continue;
+            auto pos = positions[idx].value();
+            // Compute front spawn using player's hitbox (if any) to avoid overlapping the player box
+            float playerW = 0.f, playerH = 0.f;
+            if (idx < hitboxes.size() && hitboxes[idx]) {
+                playerW = hitboxes[idx]->width;
+                playerH = hitboxes[idx]->height;
+            }
+            constexpr float projectileW = 10.f;
+            constexpr float projectileH = 10.f;
+            float startX = pos.x + playerW + 4.f; // 4px margin in front
+            float startY = pos.y + (playerH * 0.5f) - (projectileH * 0.5f); // center vertically
+            auto proj = engine::make_entity(
+                _registry,
+                component::position{startX, startY},
+                component::hitbox{projectileW, projectileH},
+                component::collision_state{false},
+                component::entity_kind::projectile,
+                component::projectile_tag{static_cast<uint32_t>(p.entityId), 4, 1.f, 0.f, 25.f, 2},
+                component::health{1}
+            );
+            _live_entities.insert(static_cast<uint32_t>(proj));
+        }
     }
 }
 
@@ -356,6 +435,7 @@ void server::broadcast_snapshot()
     auto &kinds = _registry.get_components<component::entity_kind>();
     auto &collisions = _registry.get_components<component::collision_state>();
     auto &healths = _registry.get_components<component::health>();
+    auto &despawns = _registry.get_components<component::despawn_tag>();
 
     constexpr std::size_t SNAPSHOT_LIMIT = 40;
     std::vector<EntityState> states; states.reserve(50);
@@ -363,11 +443,16 @@ void server::broadcast_snapshot()
 
     SnapshotBuilderContext ctx{positions, kinds, collisions, healths};
 
-    for (auto &pInfo : _players)
+    for (auto &pInfo : _players) {
+        size_t idx = static_cast<size_t>(pInfo.entityId);
+        if (idx < despawns.size() && despawns[idx] && despawns[idx]->now) continue; // skip about-to-despawn
         try_add_entity(static_cast<uint32_t>(pInfo.entityId), inserted, states, ctx, inserted, SNAPSHOT_LIMIT);
+    }
     for (uint32_t entityId : _live_entities) {
         if (states.size() >= SNAPSHOT_LIMIT) break;
-            try_add_entity(entityId, inserted, states, ctx, inserted, SNAPSHOT_LIMIT);
+        size_t idx = static_cast<size_t>(entityId);
+        if (idx < despawns.size() && despawns[idx] && despawns[idx]->now) continue;
+        try_add_entity(entityId, inserted, states, ctx, inserted, SNAPSHOT_LIMIT);
     }
     if (states.empty())
         return;
@@ -379,4 +464,5 @@ void server::broadcast_snapshot()
     PacketHeader hdr{SNAPSHOT, static_cast<uint16_t>(buf.size()), _tick};
     for (auto &p : _players)
         _socket.send(hdr, buf, p.endpoint);
+
 }
