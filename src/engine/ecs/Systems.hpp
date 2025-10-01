@@ -4,6 +4,7 @@
 #include "engine/ecs/iterator/Zipper.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include <algorithm>
+#include <vector>
 
 using namespace engine;
 
@@ -46,9 +47,9 @@ void hitbox_system(registry &r,
 // Apply damage to health and mark entities for despawn when hp <= 0
 inline void health_system(registry &r,
                           sparse_array<component::health> &healths,
-                          sparse_array<component::despawn_tag> &despawns,
                           sparse_array<component::damage> &damages)
 {
+    std::vector<entity_t> toKill;
     for (auto &&[i, h] : indexed_zipper(healths))
     {
         if (i < damages.size() && damages[i] && damages[i].value().amount != 0)
@@ -59,26 +60,9 @@ inline void health_system(registry &r,
             damages[i].value().amount = 0;
         }
         if (h.hp == 0)
-        {
-            if (i >= despawns.size())
-                despawns.emplace_at(i, component::despawn_tag{true});
-            else if (!despawns[i])
-                despawns.emplace_at(i, component::despawn_tag{true});
-            else
-                despawns[i].value().now = true;
-        }
+            toKill.push_back(r.entity_from_index(i));
     }
-}
-
-// Remove entities marked with despawn_tag
-inline void despawn_system(registry &r,
-                           sparse_array<component::despawn_tag> &despawns)
-{
-    for (auto &&[i, d] : indexed_zipper(despawns))
-    {
-        if (d.now)
-            r.kill_entity(r.entity_from_index(i));
-    }
+    for (auto e : toKill) r.kill_entity(e);
 }
 
 // Handle spawn requests via factory function
