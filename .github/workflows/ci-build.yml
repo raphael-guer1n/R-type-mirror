@@ -22,7 +22,10 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           apt-get update -y
           apt-get install -y --no-install-recommends \
-            libconfig++-dev
+            libconfig++-dev \
+            libasio-dev \
+            libsdl2-dev \
+            nlohmann-json3-dev
           apt-get clean
           rm -rf /var/lib/apt/lists/*
 
