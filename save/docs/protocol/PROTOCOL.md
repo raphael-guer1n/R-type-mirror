@@ -149,7 +149,7 @@ Hex representation :
     - ensure smoothness with interpolation/prediction.
 - Any unknown data must be ignored (robustness).
 
-## 7. Diagram
+## 7.  Diagram
 
    ┌─────────────┐                         ┌─────────────┐
    │   CLIENT    │                         │   SERVER    │
