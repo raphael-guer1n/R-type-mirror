@@ -31,7 +31,7 @@ void server::register_components() {
     _registry.register_component<component::controlled_by>();
     _registry.register_component<component::damage_cooldown>();
     _registry.register_component<component::projectile_tag>();
-    // Force allocate sparse arrays
+
     (void)_registry.get_components<component::position>();
     (void)_registry.get_components<component::velocity>();
     (void)_registry.get_components<component::drawable>();
@@ -128,17 +128,21 @@ void server::setup_systems()
             }
 
 
-
-            // Projectile hits enemy or player (friendly fire optional false) -> apply damage and despawn projectile
             if (kindI == component::entity_kind::projectile && kindJ == component::entity_kind::enemy && i < projectiles.size() && projectiles[i]) {
                 int dmg = projectiles[i]->damage;
-                if (j < damages.size() && damages[j]) damages[j]->amount += dmg; else reg.add_component(reg.entity_from_index(j), component::damage{dmg});
+                if (j < damages.size() && damages[j])
+                    damages[j]->amount += dmg;
+                else
+                    reg.add_component(reg.entity_from_index(j), component::damage{dmg});
                 _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(i)));
                 reg.kill_entity(reg.entity_from_index(i));
             }
             if (kindJ == component::entity_kind::projectile && kindI == component::entity_kind::enemy && j < projectiles.size() && projectiles[j]) {
                 int dmg = projectiles[j]->damage;
-                if (i < damages.size() && damages[i]) damages[i]->amount += dmg; else reg.add_component(reg.entity_from_index(i), component::damage{dmg});
+                if (i < damages.size() && damages[i])
+                    damages[i]->amount += dmg;
+                else
+                    reg.add_component(reg.entity_from_index(i), component::damage{dmg});
                 _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(j)));
                 reg.kill_entity(reg.entity_from_index(j));
             }
@@ -239,13 +243,12 @@ void server::game_handler()
         _live_entities.insert(static_cast<uint32_t>(enemy));
     }
 
-/*     // Test projectile spawning: every 30 ticks each player shoots one projectile to the right
     if (_tick % 30 == 0) {
         for (auto &p : _players) {
             auto proj = spawn_projectile(p.entityId);
             _live_entities.insert(static_cast<uint32_t>(proj));
         }
-    } */
+    }
 }
 
 void server::broadcast_snapshot()
@@ -257,7 +260,7 @@ void server::broadcast_snapshot()
 
     constexpr std::size_t SNAPSHOT_LIMIT = 80;
     std::vector<EntityState> states; states.reserve(50);
-    std::unordered_set<uint32_t> inserted; // track inside this call
+    std::unordered_set<uint32_t> inserted;
 
     SnapshotBuilderContext ctx{positions, kinds, collisions, healths};
 
@@ -306,7 +309,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner) {
     auto &positions = _registry.get_components<component::position>();
     auto &hitboxes = _registry.get_components<component::hitbox>();
     size_t idx = static_cast<size_t>(owner);
-    if (idx >= positions.size() || !positions[idx]) return owner; // invalid -> no spawn
+    if (idx >= positions.size() || !positions[idx]) return owner;
     auto pos = positions[idx].value();
     float playerW = 0.f, playerH = 0.f;
     if (idx < hitboxes.size() && hitboxes[idx]) { playerW = hitboxes[idx]->width; playerH = hitboxes[idx]->height; }
@@ -319,7 +322,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner) {
         component::hitbox{projectileW, projectileH},
         component::collision_state{false},
         component::entity_kind::projectile,
-        component::projectile_tag{static_cast<uint32_t>(owner), 4, 1.f, 0.f, 25.f, 2},
+        component::projectile_tag{static_cast<uint32_t>(owner), 120, 1.f, 0.f, 5.f, 2},
         component::health{1}
     );
     return proj;
