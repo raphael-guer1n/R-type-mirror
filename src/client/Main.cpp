@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <unordered_set>
 
 #include "engine/network/Udpsocket.hpp"
 #include "engine/ecs/Registry.hpp"
@@ -41,6 +42,8 @@ int main() {
     reg.add_system<component::position, component::velocity>(position_system);
 
     uint32_t myEntity = 0;
+    // Track currently active entity IDs we are rendering
+    std::unordered_set<uint32_t> activeEntities; // authoritative set from last snapshot
     asio::ip::udp::endpoint sender;
     bool connected = false;
 
@@ -78,6 +81,8 @@ int main() {
 
                 if (myEntity >= collisions.size())
                     collisions.insert_at(myEntity, component::collision_state{});
+
+                activeEntities.insert(myEntity);
             }
         }
     }
@@ -135,8 +140,8 @@ int main() {
         // --- Receive snapshots ---
         while (auto pkt_opt = client.receive(sender)) {
             auto [shdr, spayload] = *pkt_opt;
-            if (shdr.type == SNAPSHOT &&
-                spayload.size() >= sizeof(Snapshot)) {
+
+            if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot)) {
                 Snapshot snap{};
                 std::memcpy(&snap, spayload.data(), sizeof(Snapshot));
 
@@ -146,6 +151,9 @@ int main() {
                 auto& kinds      = reg.get_components<component::entity_kind>();
                 auto& collisions = reg.get_components<component::collision_state>();
 
+                // Build new active set for this snapshot
+                std::unordered_set<uint32_t> newActive;
+
                 size_t n = snap.entityCount;
                 if (spayload.size() >= sizeof(Snapshot) + n * sizeof(EntityState)) {
                     auto* entities = reinterpret_cast<const EntityState*>(
@@ -153,6 +161,7 @@ int main() {
 
                     for (size_t i = 0; i < n; ++i) {
                         const EntityState& es = entities[i];
+                        newActive.insert(es.entityId);
 
                         auto ensure_slot = [](auto &arr, std::size_t idx, auto &&value) {
                             if (idx >= arr.size()) {
@@ -171,10 +180,26 @@ int main() {
                         // Apply updates
                         positions[es.entityId]->x = es.x;
                         positions[es.entityId]->y = es.y;
+                        // Optionally use velocity (prediction not yet implemented)
+                        // velocities[es.entityId]->vx = es.vx; velocities[es.entityId]->vy = es.vy;
                         kinds[es.entityId] = static_cast<component::entity_kind>(es.type);
                         collisions[es.entityId]->collided = (es.collided != 0);
                     }
                 }
+
+                // Remove entities that disappeared (present previously but not now)
+                if (!activeEntities.empty()) {
+                    for (auto id : activeEntities) {
+                        if (newActive.find(id) == newActive.end()) {
+                            if (id < positions.size() && positions[id]) positions[id].reset();
+                            if (id < velocities.size() && velocities[id]) velocities[id].reset();
+                            if (id < drawables.size() && drawables[id]) drawables[id].reset();
+                            if (id < kinds.size() && kinds[id]) kinds[id].reset();
+                            if (id < collisions.size() && collisions[id]) collisions[id].reset();
+                        }
+                    }
+                }
+                activeEntities = std::move(newActive);
             }
         }
 
