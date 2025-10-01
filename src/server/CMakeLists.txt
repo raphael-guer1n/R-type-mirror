@@ -2,6 +2,7 @@ find_package(Threads REQUIRED)
 
 add_executable(r-type_server
     Server.cpp
+    ServerUtils.cpp
     Main.cpp
 )
 
