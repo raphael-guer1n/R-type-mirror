@@ -3,6 +3,31 @@
 #include "R_Graphic/Texture.hpp"
 #include "R_Graphic/Error.hpp"
 
+/**
+ * @file Texture.cpp
+ * @brief Implémentation de la classe Texture pour la gestion et l'affichage des textures avec SDL2.
+ */
+
+/// @brief Constructeur de la classe Texture. Charge une image depuis un fichier, crée une texture SDL et initialise sa position et sa taille.
+/// @param window Référence vers la fenêtre SDL utilisée pour la création de la texture.
+/// @param filepath Chemin du fichier image à charger.
+/// @param pos Position initiale de la texture à l'écran.
+/// @param size Taille de la texture (si (0,0), la taille de l'image chargée sera utilisée).
+/// @throws R_Graphic::Error si le chargement de l'image ou la création de la texture échoue.
+
+/// @brief Dessine la texture sur la fenêtre spécifiée.
+/// @param window Référence vers la fenêtre SDL où dessiner la texture.
+/// @param srcrect Rectangle source optionnel pour dessiner seulement une partie de la texture (nullptr pour dessiner toute la texture).
+
+/// @brief Retourne la taille actuelle de la texture.
+/// @return Taille de la texture sous forme de intVec2.
+
+/// @brief Définit la position de la texture à l'écran.
+/// @param x Nouvelle position horizontale.
+/// @param y Nouvelle position verticale.
+
+/// @brief Destructeur de la classe Texture. Libère les ressources associées à la texture SDL.
+
 R_Graphic::Texture::Texture(R_Graphic::Window& window,
     const std::string &filepath, R_Graphic::doubleVec2 pos, R_Graphic::intVec2 size)
 : position(pos), _size(size), _texture(nullptr)

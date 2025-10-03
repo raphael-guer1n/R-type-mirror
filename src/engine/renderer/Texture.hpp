@@ -3,7 +3,13 @@
 #include <string>
 #include "Vectors.hpp"
 #include "Window.hpp"
-
+/**
+ * @file Texture.hpp
+ * @brief Defines the Texture class for handling image textures in the rendering engine.
+ *
+ * This header provides the Texture class, which manages loading, positioning, and drawing
+ * textures using SDL. It also defines the textureRect struct for specifying subregions of textures.
+ */
 namespace R_Graphic {
     struct textureRect {
         textureRect() = default;
