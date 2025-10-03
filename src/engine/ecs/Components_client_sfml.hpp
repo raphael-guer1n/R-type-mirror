@@ -1,7 +1,9 @@
 #pragma once
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
-
+/**    * @file Components_client_sfml.hpp
+    * @brief Client-specific ECS components using SFML types.
+    */
 namespace component
 {
     struct drawable

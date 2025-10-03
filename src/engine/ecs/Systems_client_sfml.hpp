@@ -5,7 +5,21 @@
 #include "engine/ecs/Components_client_sfml.hpp"
 #include "engine/ecs/iterator/Zipper.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
-
+/**
+ * @file Systems_client_sfml.hpp
+ * @brief Defines ECS systems for client-side logic using SFML.
+ *
+ * This header provides implementations of core ECS systems for the client,
+ * including player control handling and entity rendering using SFML.
+ * 
+ * - control_system: Updates entity velocities based on keyboard input.
+ * - draw_system: Renders entities with position and drawable components.
+ *
+ * Dependencies:
+ *  - SFML/Graphics for rendering and input.
+ *  - Registry and ECS component definitions.
+ *  - Zipper utilities for iterating over multiple sparse arrays.
+ */
 using namespace engine;
 
 inline void control_system(registry &r,

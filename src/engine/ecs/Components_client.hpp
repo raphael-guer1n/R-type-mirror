@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
-
+/**
+ * @file Components_client.hpp
+ * @brief Defines ECS components specific to the client side, such as tags for identifying local and remote player entities.
+ */
 namespace component
 {
     // Tag component to mark the local player's entity on the client
