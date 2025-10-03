@@ -34,7 +34,6 @@ void server::register_components()
 {
     _registry.register_component<component::position>();
     _registry.register_component<component::velocity>();
-    _registry.register_component<component::drawable>();
     _registry.register_component<component::hitbox>();
     _registry.register_component<component::controllable>();
     _registry.register_component<component::collision_state>();
@@ -70,7 +69,10 @@ void server::run()
         auto now = clock::now();
         if (now - last_tick >= tick_duration)
         {
+            auto& positions = _registry.get_components<component::position>();
+            auto& velocities = _registry.get_components<component::velocity>();
             game_handler();
+            position_system(_registry, positions, velocities, 1.0f / 60.0f);
             _registry.run_systems();
             broadcast_snapshot();
             _tick++;
@@ -89,7 +91,7 @@ void server::stop() { _running = false; }
 
 void server::setup_systems()
 {
-    _registry.add_system<component::position, component::velocity>(position_system);
+    // _registry.add_system<component::position, component::velocity>(position_system);
     _registry.add_system<component::velocity, component::controllable>(control_system);
     _registry.add_system<component::health, component::damage>(health_system);
     _registry.add_system<component::spawn_request>(spawn_system);
@@ -390,7 +392,6 @@ engine::entity_t server::spawn_player(asio::ip::udp::endpoint endpoint, std::siz
         component::damage{0},
         component::entity_kind::player,
         component::controlled_by{static_cast<uint32_t>(index)},
-        component::drawable{sf::Vector2f{40.f, 40.f}, sf::Color::Green},
         component::damage_cooldown{0});
     return eid;
 }

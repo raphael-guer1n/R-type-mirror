@@ -5,6 +5,7 @@
 #include "common/Components_client_sfml.hpp"
 #include "engine/ecs/iterator/Zipper.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
+#include "engine/renderer/Window.hpp"
 
 using namespace engine;
 
@@ -31,16 +32,13 @@ inline void control_system(registry &r,
 inline void draw_system(registry &r,
     sparse_array<component::position> &positions,
     sparse_array<component::drawable> &drawables,
-    sf::RenderWindow &window)
+    R_Graphic::Window &window)
 {
-for (auto &&[i, pos, dr] : indexed_zipper(positions, drawables))
-{
-sf::RectangleShape shape(dr.size);
-shape.setFillColor(dr.color);
-
-// Draw at physics position (aligned with hitbox)
-shape.setPosition(pos.x, pos.y);
-
-window.draw(shape);
-}
+    for (auto &&[pos, dr] : zipper(positions, drawables))
+    {
+        if (dr.texture) {
+                dr.texture->position = {pos.x, pos.y};
+                dr.texture->draw(window, &dr.rect);
+        }
+    }
 }

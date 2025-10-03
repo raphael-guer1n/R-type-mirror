@@ -1,9 +1,9 @@
 #include <SDL_image.h>
 #include <sstream>
-#include "R_Graphic/Texture.hpp"
-#include "R_Graphic/Error.hpp"
+#include "Texture.hpp"
+#include "Error.hpp"
 
-R_Graphic::Texture::Texture(R_Graphic::Window& window,
+engine::R_Graphic::Texture::Texture(R_Graphic::Window& window,
     const std::string &filepath, R_Graphic::doubleVec2 pos, R_Graphic::intVec2 size)
 : position(pos), _size(size), _texture(nullptr)
 {
@@ -30,7 +30,7 @@ R_Graphic::Texture::Texture(R_Graphic::Window& window,
     SDL_FreeSurface(surface);
 }
 
-void R_Graphic::Texture::draw(R_Graphic::Window& window, R_Graphic::textureRect* srcrect) {
+void engine::R_Graphic::Texture::draw(R_Graphic::Window& window, R_Graphic::textureRect* srcrect) {
     SDL_Rect dst = {
         static_cast<int>(position.x),
         static_cast<int>(position.y),
@@ -48,16 +48,16 @@ void R_Graphic::Texture::draw(R_Graphic::Window& window, R_Graphic::textureRect*
     }
 }
 
-R_Graphic::intVec2 R_Graphic::Texture::getSize() const {
+engine::R_Graphic::intVec2 engine::R_Graphic::Texture::getSize() const {
     return _size;
 }
 
-void R_Graphic::Texture::setPosition(double x, double y) {
+void engine::R_Graphic::Texture::setPosition(double x, double y) {
     position.x = x;
     position.y = y;
 }
 
-R_Graphic::Texture::~Texture() {
+engine::R_Graphic::Texture::~Texture() {
     if (_texture)
         SDL_DestroyTexture(_texture);
 }

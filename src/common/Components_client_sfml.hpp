@@ -1,15 +1,15 @@
 #pragma once
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/System/Vector2.hpp>
+#include "engine/renderer/Texture.hpp"
 
 namespace component
 {
     struct drawable
     {
-        sf::Vector2f size{30.f, 30.f};
-        sf::Color color{sf::Color::White};
-        float renderX, renderY;
+        engine::R_Graphic::textureRect rect;
+        std::shared_ptr<engine::R_Graphic::Texture> texture;
+
         drawable() = default;
-        drawable(sf::Vector2f s, sf::Color c) : size(s), color(c) {}
+        drawable(std::shared_ptr<engine::R_Graphic::Texture> tex,
+            engine::R_Graphic::textureRect r = engine::R_Graphic::textureRect()) : rect(r), texture(std::move(tex)) {}
     };
 }

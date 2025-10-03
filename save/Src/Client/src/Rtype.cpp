@@ -11,11 +11,11 @@ R_Type::Rtype::Rtype()
 {
     try
     {
-        _registry.register_component<R_Ecs::Component::drawable>();
-        _registry.register_component<R_Ecs::Component::position>();
-        _registry.register_component<R_Ecs::Component::velocity>();
-        _registry.register_component<R_Ecs::Component::controllable>();
-        _registry.register_component<R_Ecs::Component::player_tag>();
+        _registry.register_component<component::drawable>();
+        _registry.register_component<component::tion>();
+        _registry.register_component<component::velocity>();
+        _registry.register_component<component::controllable>();
+        _registry.register_component<component::player_tag>();
         _background = std::make_unique<Background>(*this);
         _player = std::make_unique<Player>(*this);
     }
@@ -28,15 +28,15 @@ R_Type::Rtype::Rtype()
 void R_Type::Rtype::update(float deltaTime)
 {
     _background->update(_app, _registry, deltaTime);
-    auto& positions = _registry.get_components<R_Ecs::Component::position>();
-    auto& controls = _registry.get_components<R_Ecs::Component::controllable>();
-    auto& velocities = _registry.get_components<R_Ecs::Component::velocity>();
-    auto& drawables = _registry.get_components<R_Ecs::Component::drawable>();
-    auto& players    = _registry.get_components<R_Ecs::Component::player_tag>();
-    R_Ecs::input_system(_registry, controls);
-    R_Ecs::control_system(_registry, velocities, controls);
-    R_Ecs::position_system(_registry, positions, velocities, deltaTime);
-    R_Ecs::boundary_system(_registry, positions, drawables, players, _app.getWindow());
+    auto& positions = _registry.get_components<component::position>();
+    auto& controls = _registry.get_components<component::controllable>();
+    auto& velocities = _registry.get_components<component::velocity>();
+    auto& drawables = _registry.get_components<component::drawable>();
+    auto& players    = _registry.get_components<component::player_tag>();
+    engine::input_system(_registry, controls);
+    engine::control_system(_registry, velocities, controls);
+    engine::position_system(_registry, positions, velocities, deltaTime);
+    engine::boundary_system(_registry, positions, drawables, players, _app.getWindow());
 }
 
 void R_Type::Rtype::draw()
@@ -50,8 +50,9 @@ R_Graphic::App& R_Type::Rtype::getApp()
     return _app;
 }
 
-R_Ecs::Registry &R_Type::Rtype::getRegistry()
+engine::registry &R_Type::Rtype::getRegistry()
 {
     return _registry;
 }
 
+}

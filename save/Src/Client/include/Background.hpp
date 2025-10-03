@@ -16,16 +16,16 @@ namespace R_Ecs
 namespace R_Type
 {
     class Rtype;
-    void scroll_reset_system(R_Ecs::Registry& r,
-    R_Ecs::Sparse_array<R_Ecs::Component::position> &positions,
-    R_Ecs::Sparse_array<R_Ecs::Component::background_tag> &backgrounds,
+    void scroll_reset_system(engine::registry& r,
+    engine::sparse_array<component::position> &positions,
+    engine::sparse_array<component::background_tag> &backgrounds,
     R_Graphic::App &app);
     class Background
     {
         public:
             Background(R_Type::Rtype& rtype);
             ~Background() = default;
-            void update(R_Graphic::App& app, R_Ecs::Registry& reg, float deltaTime);
-            void draw(R_Graphic::App& app, R_Ecs::Registry& reg);
+            void update(R_Graphic::App& app, engine::registry& reg, float deltaTime);
+            void draw(R_Graphic::App& app, engine::registry& reg);
     };
 }

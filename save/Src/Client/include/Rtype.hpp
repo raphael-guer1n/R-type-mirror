@@ -15,10 +15,10 @@ namespace R_Type
             void update(float deltaTime);
             void draw();
             R_Graphic::App& getApp();
-            R_Ecs::Registry& getRegistry();
+            engine::registry& getRegistry();
         private:
             R_Graphic::App _app;
-            R_Ecs::Registry _registry;
+            engine::registry _registry;
             std::unique_ptr<Background> _background;
             std::unique_ptr<Player> _player;
     };

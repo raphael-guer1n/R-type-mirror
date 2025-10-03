@@ -1,6 +1,6 @@
 #include <iostream>
 #include "Background.hpp"
-#include "R_Ecs/Systems.hpp"
+#include "common/Systems.hpp"
 #include "Rtype.hpp"
 
 R_Type::Background::Background(R_Type::Rtype& rtype)
@@ -15,7 +15,7 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
     registry.add_component(e, component::background_tag{});
     auto tex = std::make_shared<R_Graphic::Texture>(
         rtype.getApp().getWindow(),
-        "../../Assets/Background/Starfield.png",
+        "./Assets/Background/Starfield.png",
         R_Graphic::doubleVec2(0.0, 0.0),
         rtype.getApp().getWindow().getSize()
     );
@@ -31,7 +31,7 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
     registry.add_component(e1, component::background_tag{});
     auto tex1 = std::make_shared<R_Graphic::Texture>(
         rtype.getApp().getWindow(),
-        "../../Assets/Background/Starfield.png",
+        "./Assets/Background/Starfield.png",
         R_Graphic::doubleVec2(0.0, 0.0),
         rtype.getApp().getWindow().getSize()
     );
@@ -40,24 +40,6 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
     rtype.getApp().getWindow().getSize().y
     );
     registry.emplace_component<component::drawable>(e1, tex1, rect1);
-}
-
-void R_Type::Background::update(R_Graphic::App& app, engine::registry& reg, float deltaTime)
-{
-    auto& positions = reg.get_components<component::position>();
-    auto& velocities = reg.get_components<component::>();
-    auto& background_tags = reg.get_components<component::background_tag>();
-
-    engine::position_system(reg, positions, velocities, deltaTime);
-    scroll_reset_system(reg, positions, background_tags, app);
-}
-
-void R_Type::Background::draw(R_Graphic::App &app, engine::registry& reg)
-{
-    auto& positions = reg.get_components<component::position>();
-    auto& drawables = reg.get_components<component::drawable>();
-
-    R_Ecs::draw_system(reg, positions, drawables, app.getWindow());
 }
 
 void R_Type::scroll_reset_system(engine::registry& r,
