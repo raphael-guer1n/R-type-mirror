@@ -2,7 +2,10 @@
 #include "Zipper_iterator.hpp"
 #include <tuple>
 #include <utility>
-
+/**
+    * @file Indexed_zipper_iterator.hpp
+    * @brief An iterator that zips multiple containers together and includes the index.
+    */  
 namespace engine
 {
     template <class... Containers>

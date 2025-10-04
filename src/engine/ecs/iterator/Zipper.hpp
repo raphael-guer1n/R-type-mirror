@@ -1,6 +1,9 @@
 #pragma once
 #include "Zipper_iterator.hpp"
-
+/**
+    * @file Zipper.hpp
+    * @brief A utility to zip multiple containers together.
+    */
 namespace engine
 {
     template <class... Containers>

@@ -1,5 +1,11 @@
 #pragma once
-
+/**
+ * @file Vectors.hpp
+ * @brief Defines basic vector structures for the R_Graphic namespace.
+ *
+ * This header provides simple 2D and 3D vector types with integer and double precision,
+ * used for mathematical operations and graphics calculations in the engine.
+ */
 namespace R_Graphic
 {
     struct vec3 {

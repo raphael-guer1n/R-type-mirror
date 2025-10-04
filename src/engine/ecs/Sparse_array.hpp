@@ -4,7 +4,18 @@
 #include <cstddef>
 #include <memory>
 #include <algorithm>
-
+/**
+ * @file Sparse_array.hpp
+ * @brief Defines the engine::sparse_array template class for efficient sparse storage of components.
+ *
+ * The sparse_array class provides a container for storing elements (typically ECS components)
+ * in a sparse manner, using std::optional to represent the presence or absence of a component
+ * at a given index. It supports random access, insertion, emplacing, erasure, and iteration.
+ * This is particularly useful in Entity-Component-System (ECS) architectures where not all
+ * entities have all components.
+ *
+ * @tparam Component The type of component to store in the sparse array.
+ */
 namespace engine
 {
     template <typename Component>

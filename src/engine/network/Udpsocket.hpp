@@ -7,7 +7,21 @@
 #include <iostream>
 
 #include "common/Packets.hpp"
-
+/**
+ * @brief UDP socket wrapper for sending and receiving packets using ASIO.
+ *
+ * This class provides a simple interface for sending and receiving raw data or
+ * structured packets (with headers and payloads) over UDP. It is designed to be
+ * non-blocking and integrates with ASIO's io_context for asynchronous network operations.
+ *
+ * Usage:
+ *  - Construct with an io_context and port to bind the socket.
+ *  - Use sendRaw() to send arbitrary data.
+ *  - Use send() to send a PacketHeader and payload.
+ *  - Use receive() to receive packets; returns std::nullopt if no data is available.
+ *
+ * Note: Error handling is minimal; production code should handle exceptions and errors robustly.
+ */
 namespace engine
 {
     namespace net

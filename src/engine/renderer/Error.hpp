@@ -2,6 +2,14 @@
 #include <exception>
 #include <string>
 
+/**
+ * @file Error.hpp
+ * @brief Defines the Error exception class for the R_Graphic renderer engine.
+ *
+ * This header declares a custom exception class used to signal errors
+ * within the renderer module of the R-type project. The Error class
+ * inherits from std::exception and allows for descriptive error messages.
+ */
 namespace R_Graphic {
 class Error : public std::exception
 {
