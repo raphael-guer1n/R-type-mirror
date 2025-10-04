@@ -11,6 +11,7 @@
 #include "common/Packets.hpp"
 #include "engine/network/Udpsocket.hpp"
 #include "common/Systems.hpp"
+#include "Background.hpp"
 #include "common/Systems_client_sfml.hpp"
 
 R_Type::Rtype::Rtype()
@@ -74,80 +75,82 @@ void R_Type::Rtype::update(float deltaTime,
         position_system(_registry, positions, velocities, deltaTime);
         scroll_reset_system(_registry, positions, background_tags, _app);
         _registry.run_systems();
-    std::cout << "here4" << std::endl;
-    std::cout << "positions.size()=" << positions.size()
-          << ", backgrounds.size()=" << background_tags.size() << std::endl;
 
 }
 
 void R_Type::Rtype::receiveSnapshot()
 {
+    const uint32_t NET_BASE = 1000;
+
     while (auto pkt_opt = _client->receive(_sender)) {
-            auto [shdr, spayload] = *pkt_opt;
+        auto [shdr, spayload] = *pkt_opt;
 
-            if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot)) {
-                Snapshot snap{};
-                std::memcpy(&snap, spayload.data(), sizeof(Snapshot));
+        if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot)) {
+            Snapshot snap{};
+            std::memcpy(&snap, spayload.data(), sizeof(Snapshot));
 
-                auto& positions  = _registry.get_components<component::position>();
-                auto& velocities = _registry.get_components<component::velocity>();
-                auto& drawables  = _registry.get_components<component::drawable>();
-                auto& kinds      = _registry.get_components<component::entity_kind>();
-                auto& collisions = _registry.get_components<component::collision_state>();
+            auto& positions  = _registry.get_components<component::position>();
+            auto& velocities = _registry.get_components<component::velocity>();
+            auto& drawables  = _registry.get_components<component::drawable>();
+            auto& kinds      = _registry.get_components<component::entity_kind>();
+            auto& collisions = _registry.get_components<component::collision_state>();
+            auto& backgrounds= _registry.get_components<component::background_tag>();
 
-                // Build new active set for this snapshot
-                std::unordered_set<uint32_t> newActive;
+            std::unordered_set<uint32_t> newActive;
 
-                size_t n = snap.entityCount;
-                if (spayload.size() >= sizeof(Snapshot) + n * sizeof(EntityState)) {
-                    auto* entities = reinterpret_cast<const EntityState*>(
-                        spayload.data() + sizeof(Snapshot));
+            size_t n = snap.entityCount;
+            if (spayload.size() >= sizeof(Snapshot) + n * sizeof(EntityState)) {
+                auto* entities = reinterpret_cast<const EntityState*>(
+                    spayload.data() + sizeof(Snapshot));
 
-                    for (size_t i = 0; i < n; ++i) {
-                        const EntityState& es = entities[i];
-                        newActive.insert(es.entityId);
+                auto ensure_slot = [](auto &arr, std::size_t idx, auto &&value) {
+                    if (idx >= arr.size()) {
+                        arr.insert_at(idx, std::forward<decltype(value)>(value));
+                    } else if (!arr[idx]) {
+                        arr.insert_at(idx, std::forward<decltype(value)>(value));
+                    }
+                };
 
-                        auto ensure_slot = [](auto &arr, std::size_t idx, auto &&value) {
-                            if (idx >= arr.size()) {
-                                arr.insert_at(idx, std::forward<decltype(value)>(value));
-                            } else if (!arr[idx]) {
-                                arr.insert_at(idx, std::forward<decltype(value)>(value));
-                            }
-                        };
+                for (size_t i = 0; i < n; ++i) {
+                    const EntityState& es = entities[i];
 
-                        ensure_slot(positions, es.entityId, component::position{});
-                        ensure_slot(velocities, es.entityId, component::velocity{});
-                        ensure_slot(kinds, es.entityId, component::entity_kind{});
-                        ensure_slot(collisions, es.entityId, component::collision_state{});
+                    uint32_t idLocal = NET_BASE + es.entityId;
 
-                        // Apply updates
-                        positions[es.entityId]->x = es.x;
-                        positions[es.entityId]->y = es.y;
-                        // Optionally use velocity (prediction not yet implemented)
-                        // velocities[es.entityId]->vx = es.vx; velocities[es.entityId]->vy = es.vy;
-                        kinds[es.entityId] = static_cast<component::entity_kind>(es.type);
-                        collisions[es.entityId]->collided = (es.collided != 0);
+                    if (idLocal < backgrounds.size() && backgrounds[idLocal]) continue;
+
+                    newActive.insert(idLocal);
+
+                    ensure_slot(positions,  idLocal, component::position{});
+                    ensure_slot(velocities, idLocal, component::velocity{});
+                    ensure_slot(kinds,      idLocal, component::entity_kind{});
+                    ensure_slot(collisions, idLocal, component::collision_state{});
+
+                    positions[idLocal]->x = es.x;
+                    positions[idLocal]->y = es.y;
+                    kinds[idLocal] = static_cast<component::entity_kind>(es.type);
+                    collisions[idLocal]->collided = (es.collided != 0);
+                }
+            }
+
+            if (!_activeEntities.empty()) {
+                for (auto id : _activeEntities) {
+                    if (newActive.find(id) == newActive.end()) {
+                        if (id == _player) 
+                            continue;
+                        if (id < backgrounds.size() && backgrounds[id]) continue;
+                        if (id < positions.size()  && positions[id])  positions[id].reset();
+                        if (id < velocities.size() && velocities[id]) velocities[id].reset();
+                        if (id < drawables.size()  && drawables[id])  drawables[id].reset();
+                        if (id < kinds.size()      && kinds[id])      kinds[id].reset();
+                        if (id < collisions.size() && collisions[id]) collisions[id].reset();
                     }
                 }
-
-                // Remove entities that disappeared (present previously but not now)
-                if (!_activeEntities.empty()) {
-                    for (auto id : _activeEntities) {
- if (newActive.find(id) == newActive.end()) {
-    // Ne pas supprimer les backgrounds
-    if (!(kinds.size() > id && kinds[id] && *kinds[id] == component::entity_kind::background)) {
-        if (id < positions.size() && positions[id]) positions[id].reset();
-        if (id < velocities.size() && velocities[id]) velocities[id].reset();
-        if (id < drawables.size() && drawables[id]) drawables[id].reset();
-        if (id < kinds.size() && kinds[id]) kinds[id].reset();
-        if (id < collisions.size() && collisions[id]) collisions[id].reset();
+            }
+            _activeEntities = std::move(newActive);
+        }
     }
 }
-                }
-                _activeEntities = std::move(newActive);
-            }
-        }
-}
+
 
 void R_Type::Rtype::draw()
 {
