@@ -7,12 +7,12 @@
 #include "common/Systems.hpp"
 #include "common/Components.hpp"
 #include "common/Components_client.hpp"
-#include "common/Components_client_sfml.hpp"
+#include "common/Components_client_sdl.hpp"
 #include "common/Packets.hpp"
 #include "engine/network/Udpsocket.hpp"
 #include "common/Systems.hpp"
 #include "Background.hpp"
-#include "common/Systems_client_sfml.hpp"
+#include "common/Systems_client_sdl.hpp"
 
 R_Type::Rtype::Rtype()
 : _app("R-Type", 800, 600)
@@ -30,15 +30,14 @@ R_Type::Rtype::Rtype()
         std::memcpy(buf.data(), &req, sizeof(ConnectReq));
         _client->send(hdr, buf, *_serverEndpoint);
         std::cout << "Sent CONNECT_REQ\n";
-        
         _registry.register_component<component::drawable>();
         _registry.register_component<component::position>();
         _registry.register_component<component::velocity>();
         _registry.register_component<component::controllable>();
         _registry.register_component<component::entity_kind>();
-        _registry.register_component<component::background_tag>();
         _registry.register_component<component::collision_state>();
         _background = std::make_unique<Background>(*this);
+        _playerTexture = std::make_unique<Player>(*this);
     }
     catch(const R_Graphic::Error& e)
     {
@@ -49,31 +48,35 @@ R_Type::Rtype::Rtype()
 void R_Type::Rtype::update(float deltaTime,
     const std::vector<R_Events::Event> &events)
     {
-        
-        if (R_Events::hasEvent(events, R_Events::Type::FocusGained)) {
+        for (auto &ev : events) {
+            if (ev.type == R_Events::Type::KeyDown)
+            {
+                _keys |= keyToBit(ev.key.code);
+            }
+            else if (ev.type == R_Events::Type::KeyUp)
+            {
+                _keys &= ~keyToBit(ev.key.code);
+            }
+        }
+        // if (R_Events::hasEvent(events, R_Events::Type::FocusGained)) {
             InputPacket inp{};
             inp.clientId = _player;
-            inp.tick = tick++;
-            inp.keys = keys;
-            
-            PacketHeader ihdr{INPUT, sizeof(InputPacket), tick};
+            inp.tick = _tick++;
+            inp.keys = _keys;
+            PacketHeader ihdr{INPUT, sizeof(InputPacket), _tick};
             std::vector<uint8_t> ibuf(sizeof(InputPacket));
             std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
             _client->send(ihdr, ibuf, *_serverEndpoint);
-        }
-        std::cout << "here" << std::endl;
+        // }
         receiveSnapshot();
-        std::cout << "here2" << std::endl;
-        std::cout << "here3" << std::endl;
         auto& positions = _registry.get_components<component::position>();
-        auto& controls = _registry.get_components<component::controllable>();
         auto& velocities = _registry.get_components<component::velocity>();
-        auto& background_tags = _registry.get_components<component::background_tag>();
+        auto& controls = _registry.get_components<component::controllable>();
         auto& kinds = _registry.get_components<component::entity_kind>();
         auto& collisions = _registry.get_components<component::collision_state>();
-        
         position_system(_registry, positions, velocities, deltaTime);
-        scroll_reset_system(_registry, positions, background_tags, _app);
+        control_system(_registry, velocities, controls, _keys);
+        scroll_reset_system(_registry, positions, kinds, _app);
         _registry.run_systems();
 
 }
@@ -94,7 +97,6 @@ void R_Type::Rtype::receiveSnapshot()
             auto& drawables  = _registry.get_components<component::drawable>();
             auto& kinds      = _registry.get_components<component::entity_kind>();
             auto& collisions = _registry.get_components<component::collision_state>();
-            auto& backgrounds= _registry.get_components<component::background_tag>();
 
             std::unordered_set<uint32_t> newActive;
 
@@ -116,13 +118,17 @@ void R_Type::Rtype::receiveSnapshot()
 
                     uint32_t idLocal = NET_BASE + es.entityId;
 
-                    if (idLocal < backgrounds.size() && backgrounds[idLocal]) continue;
+                    if (idLocal < kinds.size() && kinds[idLocal] &&
+                        kinds[idLocal].value() == component::entity_kind::decor) {
+                        continue;
+                    }
 
                     newActive.insert(idLocal);
 
-                    ensure_slot(positions,  idLocal, component::position{});
+                    ensure_slot(positions, idLocal, component::position{});
                     ensure_slot(velocities, idLocal, component::velocity{});
-                    ensure_slot(kinds,      idLocal, component::entity_kind{});
+                    ensure_slot(drawables, idLocal, component::drawable{_playerTexture->texture, _playerTexture->rect});
+                    ensure_slot(kinds, idLocal, component::entity_kind{});
                     ensure_slot(collisions, idLocal, component::collision_state{});
 
                     positions[idLocal]->x = es.x;
@@ -135,9 +141,14 @@ void R_Type::Rtype::receiveSnapshot()
             if (!_activeEntities.empty()) {
                 for (auto id : _activeEntities) {
                     if (newActive.find(id) == newActive.end()) {
-                        if (id == _player) 
+                        if (id == _player)
                             continue;
-                        if (id < backgrounds.size() && backgrounds[id]) continue;
+
+                        if (id < kinds.size() && kinds[id] &&
+                            kinds[id].value() == component::entity_kind::decor) {
+                            continue;
+                        }
+
                         if (id < positions.size()  && positions[id])  positions[id].reset();
                         if (id < velocities.size() && velocities[id]) velocities[id].reset();
                         if (id < drawables.size()  && drawables[id])  drawables[id].reset();
@@ -150,7 +161,6 @@ void R_Type::Rtype::receiveSnapshot()
         }
     }
 }
-
 
 void R_Type::Rtype::draw()
 {
@@ -194,23 +204,15 @@ void R_Type::Rtype::waiting_connection()
 
                 if (_player >= positions.size())
                     positions.insert_at(_player,
-                                        component::position{100.f, 100.f});
+                        component::position{100.f, 100.f});
 
                 if (_player >= velocities.size())
                     velocities.insert_at(_player, component::velocity{});
 
                 if (_player >= drawables.size()) {
-                    auto tex = std::make_shared<R_Graphic::Texture>(
-                        _app.getWindow(),
-                        "./Assets/sprites/r-typesheet1.gif",
-                        R_Graphic::doubleVec2(0, 0),
-                        R_Graphic::intVec2(132, 72)
-                    );
-                    R_Graphic::textureRect rect(100, 0, 34, 20);
                     drawables.insert_at(_player,
-                        component::drawable{tex, rect});
+                        component::drawable{_playerTexture->texture, _playerTexture->rect});
                 }
-
                 if (_player >= kinds.size())
                     kinds.insert_at(_player, component::entity_kind::player);
 
@@ -221,4 +223,15 @@ void R_Type::Rtype::waiting_connection()
     }
 }
 
-
+uint8_t R_Type::Rtype::keyToBit(engine::R_Events::Key key)
+{
+    using namespace engine::R_Events;
+    switch (key) {
+        case Key::Q: case Key::Left:  return 0x01;
+        case Key::D: case Key::Right: return 0x02;
+        case Key::Z: case Key::Up:    return 0x04;
+        case Key::S: case Key::Down:  return 0x08;
+        case Key::Space:              return 0x10;
+        default: return 0x00;
+    }
+}

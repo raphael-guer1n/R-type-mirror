@@ -1,6 +1,6 @@
 #include "server/Server.hpp"
 #include "common/Systems.hpp"
-#include "common/Systems_client_sfml.hpp"
+#include "common/Systems_client_sdl.hpp"
 #include "engine/ecs/EntityFactory.hpp"
 #include "server/ServerUtils.hpp"
 #include <thread>
@@ -12,7 +12,7 @@
 
 #include "server/Server.hpp"
 #include "common/Systems.hpp"
-#include "common/Systems_client_sfml.hpp"
+#include "common/Systems_client_sdl.hpp"
 #include "common/Components_client.hpp"
 #include "server/Components_ai.hpp"
 #include "server/System_ai.hpp"
@@ -71,6 +71,7 @@ void server::run()
         {
             auto& positions = _registry.get_components<component::position>();
             auto& velocities = _registry.get_components<component::velocity>();
+            auto& controls = _registry.get_components<component::controllable>();
             game_handler();
             position_system(_registry, positions, velocities, 1.0f / 60.0f);
             _registry.run_systems();
@@ -91,8 +92,6 @@ void server::stop() { _running = false; }
 
 void server::setup_systems()
 {
-    // _registry.add_system<component::position, component::velocity>(position_system);
-    _registry.add_system<component::velocity, component::controllable>(control_system);
     _registry.add_system<component::health, component::damage>(health_system);
     _registry.add_system<component::spawn_request>(spawn_system);
 
@@ -364,9 +363,9 @@ void server::process_network_inputs()
                         if (static_cast<size_t>(p.entityId) < velocities.size() && velocities[p.entityId])
                         {
                             auto &vel = *velocities[p.entityId];
-                            vel.vx = (input.keys & 0x01) ? -10 : (input.keys & 0x02) ? 10
+                            vel.vx = (input.keys & 0x01) ? -PLAYER_SPEED: (input.keys & 0x02) ? PLAYER_SPEED
                                                                                      : 0;
-                            vel.vy = (input.keys & 0x04) ? -10 : (input.keys & 0x08) ? 10
+                            vel.vy = (input.keys & 0x04) ? -PLAYER_SPEED : (input.keys & 0x08) ? PLAYER_SPEED
                                                                                      : 0;
                         }
                         break;

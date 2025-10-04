@@ -1,9 +1,10 @@
 #pragma once
 #include <memory>
 #include <unordered_set>
-// #include "Player.hpp"
+#include "Player.hpp"
 #include "engine/network/Udpsocket.hpp"
 #include "engine/renderer/App.hpp"
+#include "engine/events/Events.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "Background.hpp"
 
@@ -22,9 +23,11 @@ namespace R_Type
         public:
             void waiting_connection();
         private:
+            uint8_t keyToBit(engine::R_Events::Key key);
+        private:
             std::unique_ptr<asio::ip::udp::endpoint> _serverEndpoint;
-            uint32_t tick = 0;
-            uint8_t keys = 0;
+            uint32_t _tick = 0;
+            uint8_t _keys = 0;
             uint32_t _player = 0;
             std::unordered_set<uint32_t> _activeEntities;
             asio::ip::udp::endpoint _sender;
@@ -32,5 +35,6 @@ namespace R_Type
             engine::registry _registry;
             std::unique_ptr<Background> _background;
             std::unique_ptr<engine::net::UdpSocket> _client;
+            std::unique_ptr<Player> _playerTexture;
     };
 }

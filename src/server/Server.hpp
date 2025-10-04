@@ -10,6 +10,8 @@
 #include "common/Packets.hpp"
 #include "engine/network/Udpsocket.hpp"
 
+#define PLAYER_SPEED 200.0f
+
 class server
 {
 public:

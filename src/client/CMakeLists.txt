@@ -2,6 +2,7 @@ add_executable(r-type_client
     Main.cpp
     Rtype.cpp
     Background.cpp
+    Player.cpp
 )
 
 find_package(asio CONFIG REQUIRED)

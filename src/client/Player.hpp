@@ -1,8 +1,7 @@
 #pragma once
 #include <memory>
-#include "R_Graphic/Texture.hpp"
-#include "R_Graphic/App.hpp"
-#include "R_Ecs/Registry.hpp"
+#include "engine/renderer/App.hpp"
+#include "engine/renderer/Texture.hpp"
 
 namespace R_Type
 {
@@ -11,5 +10,7 @@ namespace R_Type
         public:
             Player(R_Type::Rtype& rtype);
             ~Player() = default;
+            std::shared_ptr<engine::R_Graphic::Texture> texture;
+            engine::R_Graphic::textureRect rect;
     };
 }

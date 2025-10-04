@@ -44,16 +44,22 @@ std::vector<engine::R_Events::Event> engine::R_Graphic::Window::pollEvents(bool 
                 events.push_back({R_Events::Type::Quit});
                 break;
             case SDL_KEYDOWN:
-                events.push_back({R_Events::Type::KeyDown, .key={event.key.keysym.sym}});
+                events.push_back({R_Events::Type::KeyDown, .key={R_Events::mapSDLKey(event.key.keysym.sym)}});
                 break;
             case SDL_KEYUP:
-                events.push_back({R_Events::Type::KeyUp, .key={event.key.keysym.sym}});
+                events.push_back({R_Events::Type::KeyUp, .key={R_Events::mapSDLKey(event.key.keysym.sym)}});
                 break;
-            case SDL_WINDOWEVENT_FOCUS_GAINED:
-                events.push_back({R_Events::Type::FocusGained});
-                break;
-            case SDL_WINDOWEVENT_FOCUS_LOST:
-                events.push_back({R_Events::Type::FocusLost});
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_FOCUS_GAINED:
+                        events.push_back({R_Events::Type::FocusGained});
+                        break;
+                    case SDL_WINDOWEVENT_FOCUS_LOST:
+                        events.push_back({R_Events::Type::FocusLost});
+                        break;
+                    default:
+                        break;
+                }
                 break;
             default:
                 break;
