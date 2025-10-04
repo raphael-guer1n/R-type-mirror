@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <functional>
 
-// Forward declarations to allow spawn_request factory signature without including Registry.hpp
 namespace engine
 {
     class registry;
@@ -30,6 +29,7 @@ namespace component
 /**
     * @brief Basic 2D position component.
     */
+
     struct position
     {
         float x{}, y{};
@@ -52,8 +52,8 @@ namespace component
     */
     struct controllable
     {
-        int inputX = 0; // -1 = left, +1 = right
-        int inputY = 0; // -1 = up, +1 = down
+        int inputX = 0;
+        int inputY = 0;
         bool shoot = false;
     };
 /**
@@ -82,7 +82,7 @@ namespace component
     struct net_id
     {
         std::uint32_t id{0};
-        std::uint8_t type{0}; // deprecated, prefer entity_kind
+        std::uint8_t type{0};
     };
 /**
     * @brief Simple drawable component for rendering entities.
@@ -94,6 +94,7 @@ namespace component
 /**
     * @brief Component to mark which player controls an entity.
     */
+
     struct controlled_by
     {
         std::uint32_t owner{0};
@@ -115,6 +116,7 @@ namespace component
 /**
     * @brief Component to request spawning of an entity with a factory function.
     */
+
     struct spawn_request
     {
         std::function<void(engine::registry &, engine::entity_t)> factory;
@@ -125,6 +127,16 @@ namespace component
     struct damage_cooldown
     {
         uint32_t last_hit_tick{0};
+    };
+
+    struct projectile_tag
+    {
+        std::uint32_t owner{0};
+        std::uint32_t lifetime{180};
+        float dirX{1.f};
+        float dirY{0.f};
+        float speed{20.f};
+        int damage{1};
     };
 
 } // namespace component

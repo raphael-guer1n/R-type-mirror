@@ -1,8 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "Registry.hpp"
+#include "engine/ecs/Registry.hpp"
 #include "common/Components.hpp"
-#include "engine/ecs/Components_client_sfml.hpp"
+#include "common/Components_client_sfml.hpp"
 #include "engine/ecs/iterator/Zipper.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 /**
