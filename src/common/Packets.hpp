@@ -13,6 +13,7 @@ struct PacketHeader
     uint16_t type;
     uint16_t size; // payload size
     uint32_t seq;
+    uint32_t ack;
 };
 /**    * @brief Different packet types for client-server communication.
     */  
@@ -42,11 +43,22 @@ struct ConnectAck
 };
 /**    * @brief Input packet structure.
     */  
+
+struct UserCmd
+{
+    uint32_t tick;   // tick du client
+    int16_t dx;      // déplacement X (ex: -1 gauche, +1 droite, 0 rien)
+    int16_t dy;      // déplacement Y (ex: -1 bas, +1 haut, 0 rien)
+    uint8_t actions; // bits: 1=shoot, 2=bomb, etc.
+};
+
+/**    * @brief Input packet structure.
+    */  
 struct InputPacket
 {
     uint32_t clientId;
-    uint32_t tick;
-    uint8_t keys;
+    uint8_t cmdCount; // number of commands
+    // followed by `UserCmd[cmdCount]`
 };
 /**    * @brief State of a single entity in a snapshot.
     */  
@@ -57,14 +69,16 @@ struct EntityState
     float vx, vy;
     uint8_t type;
     uint8_t hp;
-    uint8_t collided;
+    uint8_t flags; // bits for various states (e.g., alive, shooting)
 };
 /**    * @brief Snapshot packet structure.
     */  
-struct Snapshot
+struct SnapshotHeader
 {
     uint32_t tick;
     uint16_t entityCount;
+    uint8_t isDelta;    // 0 = full, 1 = delta
+    uint32_t baseTick; // for delta compression
     // followed by `EntityState[entityCount]`
 };
 /**    * @brief Event packet structure.
