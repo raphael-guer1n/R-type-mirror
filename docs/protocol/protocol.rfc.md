@@ -1,4 +1,4 @@
-# R-Type Multiplayer Protocol (RFC)
+# R-Type Multiplayer Protocol (RFC - Quake Style)
 
 **Category:** Experimental  
 **Author:** R-Type Team  
@@ -10,25 +10,26 @@
 ## 1. Introduction
 
 This document specifies the network protocol used for the R-Type multiplayer project.  
-The protocol is based on **UDP** and is designed for a **server-authoritative architecture**.  
-It defines the packet structure, message flow, and semantics required for clients and servers to interoperate.
+It is based on **UDP** and a **server-authoritative architecture**.  
+The protocol borrows concepts from the **Quake networking model**:
 
-The goals of this specification are:  
-- Low latency for real-time gameplay  
-- Minimal bandwidth usage  
-- Deterministic synchronization between server and clients  
-- Robustness against packet loss and reordering  
+- Compact client commands (`UserCmd`) to minimize input bandwidth.  
+- Server-to-client **snapshots** using delta compression for efficient state sync.  
+- Reliability mechanisms via sequence numbers (`seq`) and acknowledgments (`ack`).
+
+Goals:  
+- Low latency suitable for action gameplay.  
+- Bandwidth efficiency by compressing repeated state.  
+- Graceful handling of out-of-order or lost packets. 
 
 ---
 
 ## 2. Conventions
 
-The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.  
-
-- All integers are little-endian unless otherwise specified.  
-- All packets begin with a **Packet Header**.  
-- Time is expressed in **ticks**, synchronized by the server.  
-- UDP is used as the transport layer; no retransmission is guaranteed.  
+- All integers are little-endian.  
+- All packets start with a **Packet Header**.  
+- Time is expressed in **ticks**, controlled by the server.  
+- UDP is the transport layer. No retransmission is guaranteed.  
 
 ---
 
@@ -36,13 +37,14 @@ The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** ar
 
 Every packet begins with the following header:
 
-| Field       | Type     | Size | Description                           |
-|-------------|----------|------|---------------------------------------|
-| `type`      | uint16_t | 2    | Packet type (see Section 4)           |
-| `size`      | uint16_t | 2    | Total packet size in bytes            |
-| `seq`       | uint32_t | 4    | Sequence number (increment per send)  |
+| Field   | Type     | Size | Description                                      |
+|---------|----------|------|--------------------------------------------------|
+| `type`  | uint16_t | 2    | Packet type (see Section 4)                      |
+| `size`  | uint16_t | 2    | Total packet size in bytes                       |
+| `seq`   | uint32_t | 4    | Sequence number of this packet (monotonic)       |
+| `ack`   | uint32_t | 4    | Last sequence number received from peer          |
 
-**Total size:** 8 bytes  
+**Total size:** 12 bytes  
 
 ---
 
@@ -50,109 +52,105 @@ Every packet begins with the following header:
 
 ### 4.1 CONNECT_REQ (0x01)
 
-Sent by the client to initiate a connection.
+Client → Server
 
-| Field       | Type     | Size | Description                           |
-|-------------|----------|------|---------------------------------------|
-| `clientId`  | uint32_t | 4    | Client-provided identifier            |
+| Field      | Type     | Size | Description                  |
+|------------|----------|------|------------------------------|
+| `clientId` | uint32_t | 4    | Client-provided identifier   |
 
 ---
 
 ### 4.2 CONNECT_ACK (0x02)
 
-Sent by the server in response to CONNECT_REQ.
+Server → Client
 
-| Field            | Type     | Size | Description                           |
-|------------------|----------|------|---------------------------------------|
-| `serverId`       | uint32_t | 4    | Unique server identifier              |
-| `playerEntityId` | uint32_t | 4    | Entity ID controlled by this client   |
-| `tickRate`       | uint32_t | 4    | Number of ticks per second            |
+| Field            | Type     | Size | Description                     |
+|------------------|----------|------|---------------------------------|
+| `serverId`       | uint32_t | 4    | Unique server identifier        |
+| `playerEntityId` | uint32_t | 4    | Entity ID controlled by client  |
+| `tickRate`       | uint32_t | 4    | Ticks per second                |
 
 ---
 
 ### 4.3 INPUT (0x03)
 
-Sent by the client to indicate player input.
+Client → Server
 
-| Field      | Type     | Size | Description                           |
-|------------|----------|------|---------------------------------------|
-| `playerId` | uint32_t | 4    | Player entity ID                      |
-| `tick`     | uint32_t | 4    | Tick at which input was sampled       |
-| `inputs`   | uint8_t  | 1    | Bitmask of pressed keys               |
+**InputPacket**
 
-**Bitmask example:**  
-- bit 0 = UP  
-- bit 1 = DOWN  
-- bit 2 = LEFT  
-- bit 3 = RIGHT  
-- bit 4 = SHOOT  
+| Field      | Type     | Size | Description                            |
+|------------|----------|------|----------------------------------------|
+| `clientId` | uint32_t | 4    | ID of client                          |
+| `cmdCount` | uint8_t  | 1    | Number of commands included           |
+
+**UserCmd** (repeated `cmdCount` times)
+
+| Field   | Type    | Size | Description                             |
+|---------|---------|------|-----------------------------------------|
+| `tick`  | uint32  | 4    | Client tick for this command            |
+| `dx`    | int16   | 2    | Movement on X (-1,0,+1)                 |
+| `dy`    | int16   | 2    | Movement on Y (-1,0,+1)                 |
+| `act`   | uint8   | 1    | Action bits (bit0=shoot, bit1=bomb…)    |
 
 ---
 
 ### 4.4 SNAPSHOT (0x04)
 
-Sent by the server to broadcast the current world state.  
+Server → Clients
 
 **SnapshotHeader**
 
-| Field         | Type     | Size | Description                     |
-|---------------|----------|------|---------------------------------|
-| `tick`        | uint32_t | 4    | Tick of this snapshot           |
-| `entityCount` | uint16_t | 2    | Number of entities serialized   |
+| Field         | Type     | Size | Description                        |
+|---------------|----------|------|------------------------------------|
+| `tick`        | uint32_t | 4    | Tick number of snapshot            |
+| `entityCount` | uint16_t | 2    | Number of entities in snapshot     |
 
 **EntityState** (repeated `entityCount` times)
 
-| Field      | Type     | Size | Description                       |
-|------------|----------|------|-----------------------------------|
-| `entityId` | uint32_t | 4    | Unique ID of the entity           |
-| `x`        | float    | 4    | X coordinate                      |
-| `y`        | float    | 4    | Y coordinate                      |
-| `vx`       | float    | 4    | Velocity X                        |
-| `vy`       | float    | 4    | Velocity Y                        |
-| `type`     | uint8_t  | 1    | Entity type (player, enemy, etc.) |
-| `hp`       | uint8_t  | 1    | Health points                     |
+| Field     | Type     | Size | Description                                |
+|-----------|----------|------|--------------------------------------------|
+| `entityId`| uint32_t | 4    | Unique entity ID                           |
+| `flags`   | uint8_t  | 1    | Bitmask: which fields are present/changed  |
+| `x`       | float    | 4    | X coordinate (if flagged)                  |
+| `y`       | float    | 4    | Y coordinate (if flagged)                  |
+| `vx`      | float    | 4    | Velocity X (if flagged)                    |
+| `vy`      | float    | 4    | Velocity Y (if flagged)                    |
+| `type`    | uint8_t  | 1    | Entity type (if flagged)                   |
+| `hp`      | uint8_t  | 1    | Health points (if flagged)                 |
+
+**Note:** Entities are delta-compressed: only fields with changes since last acknowledged snapshot are sent.  
 
 ---
 
 ### 4.5 EVENT (0x05)
 
-Sent by the server to notify critical events.
+Server → Clients
 
-| Field     | Type     | Size | Description                          |
-|-----------|----------|------|--------------------------------------|
-| `eventId` | uint32_t | 4    | Event identifier                     |
-| `data`    | uint32_t | 4    | Event-specific data                  |
-
-Examples:  
-- Player death  
-- Enemy spawn  
-- Explosion  
+| Field     | Type     | Size | Description                     |
+|-----------|----------|------|---------------------------------|
+| `eventId` | uint32_t | 4    | Event identifier                |
+| `data`    | uint32_t | 4    | Event-specific data             |
 
 ---
 
 ### 4.6 PING (0x06) / PONG (0x07)
 
-Used to measure latency and maintain keep-alive.  
-
-- **PING**: client → server  
-- **PONG**: server → client  
-
-| Field     | Type     | Size | Description                          |
-|-----------|----------|------|--------------------------------------|
-| `time`    | uint64_t | 8    | Client timestamp in microseconds     |
+| Field  | Type     | Size | Description                      |
+|--------|----------|------|----------------------------------|
+| `time` | uint64_t | 8    | Client timestamp in microseconds |
 
 ---
 
 ## 5. Message Flow
 
-1. **Connection**  
+1. **Handshake**  
    - Client → CONNECT_REQ  
    - Server → CONNECT_ACK  
 
 2. **Game Loop**  
-   - Client → INPUT (each tick)  
-   - Server → SNAPSHOT (periodically, usually every tick or every few ticks)  
-   - Server → EVENT (on critical events)  
+   - Client → INPUT (with batched UserCmds)  
+   - Server → SNAPSHOT (delta-compressed world state)  
+   - Server → EVENT (critical game events)  
 
 3. **Keep-Alive**  
    - Client → PING  
@@ -162,14 +160,14 @@ Used to measure latency and maintain keep-alive.
 
 ## 6. Error Handling
 
-- Packets with invalid size or unknown type MUST be discarded.  
-- Clients not sending INPUT or PING for more than 5 seconds SHOULD be disconnected.  
-- Sequence numbers MAY be used to detect and discard out-of-order packets.  
+- Invalid packets MUST be discarded.  
+- Timeout: clients inactive >5s SHOULD be dropped.  
+- `seq`/`ack` numbers detect out-of-order and lost packets.  
 
 ---
 
 ## 7. Security Considerations
 
-- Protocol assumes a trusted LAN or controlled environment.  
-- No authentication or encryption is included in this specification.  
-- For production deployment, TLS or DTLS SHOULD be considered.  
+- No authentication or encryption.  
+- Protocol intended for trusted LAN or coursework environment.  
+- DTLS/TLS MAY be considered for production.  

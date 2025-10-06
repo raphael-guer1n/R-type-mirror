@@ -15,16 +15,23 @@ Abstract
 
    This document specifies the UDP-based protocol used by the R-Type
    multiplayer project. It defines packet formats, semantics, and the
-   expected message flow between client and server.
+   expected message flow between client and server. The protocol borrows
+   from the Quake networking model: compact client commands, delta
+   snapshots, and sequence/ack numbers for robustness.
 
 
 1. Introduction
 
    The R-Type protocol is a custom application-layer protocol built on
    top of UDP. It follows a server-authoritative model where the server
-   controls the game state and clients send input. The protocol is
-   optimized for low latency, simplicity, and synchronization between
-   players.
+   controls the game state and clients transmit input commands. The
+   design is optimized for low latency, efficient bandwidth usage, and
+   synchronization across multiple players.
+
+   Compared to a simple fixed-struct protocol, this version introduces:
+   - An acknowledgment number (ack) in headers.
+   - Batched input commands (UserCmd).
+   - Delta-compressed snapshots.
 
 
 2. Conventions Used in This Document
@@ -35,23 +42,26 @@ Abstract
    All integers are little-endian unless otherwise specified.
    All packets start with a fixed-size header.
    Time is expressed in ticks, synchronized by the server.
-   UDP is used as transport; no reliability is guaranteed.
+   UDP is used as transport; no retransmission is guaranteed.
 
 
 3. Packet Header
 
-   Every packet begins with an 8-byte header:
+   Every packet begins with a 12-byte header:
 
       0               1               2               3
       +-------+-------+---------------+---------------+
       | Type  | Size  |     Sequence Number (32)      |
       +-------+-------+---------------+---------------+
+      |                 Ack Number (32)               |
+      +-----------------------------------------------+
 
    Fields:
 
-      - type: 16-bit unsigned integer indicating the packet type
-      - size: 16-bit unsigned integer, total size of the packet
+      - type: 16-bit unsigned integer, packet type
+      - size: 16-bit unsigned integer, total size in bytes
       - seq:  32-bit unsigned integer, incremented per packet
+      - ack:  32-bit unsigned integer, last seq received from peer
 
 
 4. Packet Types
@@ -59,35 +69,36 @@ Abstract
    4.1 CONNECT_REQ (0x01)
 
       Sent by client to request connection.
-
          - clientId (32 bits)
 
    4.2 CONNECT_ACK (0x02)
 
       Sent by server in response to CONNECT_REQ.
-
          - serverId       (32 bits)
          - playerEntityId (32 bits)
          - tickRate       (32 bits)
 
    4.3 INPUT (0x03)
 
-      Sent by client each tick to report input.
+      Sent by client to provide one or more input commands.
 
-         - playerId (32 bits)
-         - tick     (32 bits)
-         - inputs   (8 bits) bitmask of pressed keys
+      InputPacket:
+         - clientId (32 bits)
+         - cmdCount (8 bits)
 
-      Bitmask:
-         bit 0 = UP
-         bit 1 = DOWN
-         bit 2 = LEFT
-         bit 3 = RIGHT
-         bit 4 = SHOOT
+      UserCmd (repeated cmdCount times):
+         - tick  (32 bits)
+         - dx    (16 bits)
+         - dy    (16 bits)
+         - act   (8 bits) bitmask of actions
+           * bit 0 = SHOOT
+           * bit 1 = BOMB
+           * others reserved
 
    4.4 SNAPSHOT (0x04)
 
-      Sent by server to broadcast world state.
+      Sent by server to broadcast world state. Snapshots use delta
+      compression: only changed fields are included.
 
       SnapshotHeader:
          - tick        (32 bits)
@@ -95,26 +106,24 @@ Abstract
 
       EntityState (repeated entityCount times):
          - entityId (32 bits)
-         - x        (float, 32 bits)
-         - y        (float, 32 bits)
-         - vx       (float, 32 bits)
-         - vy       (float, 32 bits)
-         - type     (8 bits)
-         - hp       (8 bits)
+         - flags    (8 bits) bitmask: which fields follow
+         - x        (float, 32 bits, if flagged)
+         - y        (float, 32 bits, if flagged)
+         - vx       (float, 32 bits, if flagged)
+         - vy       (float, 32 bits, if flagged)
+         - type     (8 bits, if flagged)
+         - hp       (8 bits, if flagged)
 
    4.5 EVENT (0x05)
 
-      Sent by server to notify critical events.
-
+      Sent by server for critical events.
          - eventId (32 bits)
          - data    (32 bits)
-
       Examples: player death, enemy spawn, explosion.
 
    4.6 PING (0x06) / PONG (0x07)
 
       Used for latency measurement and keep-alive.
-
          - time (64 bits, microseconds)
 
 
@@ -125,8 +134,8 @@ Abstract
       Server -> CONNECT_ACK
 
    2. Game Loop:
-      Client -> INPUT (each tick)
-      Server -> SNAPSHOT (periodically)
+      Client -> INPUT (batched UserCmds)
+      Server -> SNAPSHOT (delta world state)
       Server -> EVENT (when needed)
 
    3. Keep-alive:
@@ -137,14 +146,15 @@ Abstract
 6. Error Handling
 
    - Packets with invalid type or size MUST be discarded.
-   - Clients not sending INPUT or PING for >5 seconds SHOULD be dropped.
-   - Sequence numbers MAY be used to discard out-of-order packets.
+   - Clients inactive for >5 seconds (no INPUT/PING) SHOULD be dropped.
+   - seq/ack MUST be used to detect and ignore out-of-order packets.
+   - SNAPSHOTs MAY be resent if a client reports desynchronization.
 
 
 7. Security Considerations
 
-   The protocol assumes a trusted LAN or controlled environment.
-   No encryption or authentication is included.
+   The protocol assumes a trusted LAN or coursework environment.
+   No encryption or authentication is provided.
    For production, DTLS or TLS SHOULD be considered.
 
 
