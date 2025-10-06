@@ -11,6 +11,7 @@ namespace R_Type
             Player(R_Type::Rtype& rtype);
             ~Player() = default;
             std::shared_ptr<engine::R_Graphic::Texture> texture;
-            engine::R_Graphic::textureRect rect;
+            engine::R_Graphic::textureRect playerRect;
+            engine::R_Graphic::textureRect projectileRect;
     };
 }

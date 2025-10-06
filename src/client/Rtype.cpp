@@ -127,13 +127,26 @@ void R_Type::Rtype::receiveSnapshot()
 
                     ensure_slot(positions, idLocal, component::position{});
                     ensure_slot(velocities, idLocal, component::velocity{});
-                    ensure_slot(drawables, idLocal, component::drawable{_playerTexture->texture, _playerTexture->rect});
                     ensure_slot(kinds, idLocal, component::entity_kind{});
                     ensure_slot(collisions, idLocal, component::collision_state{});
+                    kinds[idLocal] = static_cast<component::entity_kind>(es.type);
+                    std::shared_ptr<R_Graphic::Texture> tex;
+                    R_Graphic::textureRect rect;
+                    switch (kinds[idLocal].value())
+                    {
+                        case component::entity_kind::projectile:
+                            tex = _playerTexture->texture;
+                            rect = _playerTexture->projectileRect;
+                            break;
+                        default:
+                            tex = _playerTexture->texture;
+                            rect = _playerTexture->playerRect;
+                            break;
+                    }
+                    ensure_slot(drawables, idLocal, component::drawable{tex, rect});
 
                     positions[idLocal]->x = es.x;
                     positions[idLocal]->y = es.y;
-                    kinds[idLocal] = static_cast<component::entity_kind>(es.type);
                     collisions[idLocal]->collided = (es.collided != 0);
                 }
             }
@@ -211,7 +224,7 @@ void R_Type::Rtype::waiting_connection()
 
                 if (_player >= drawables.size()) {
                     drawables.insert_at(_player,
-                        component::drawable{_playerTexture->texture, _playerTexture->rect});
+                        component::drawable{_playerTexture->texture, _playerTexture->playerRect});
                 }
                 if (_player >= kinds.size())
                     kinds.insert_at(_player, component::entity_kind::player);
