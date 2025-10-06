@@ -15,7 +15,7 @@
 #include "common/Systems_client_sdl.hpp"
 
 R_Type::Rtype::Rtype()
-: _app("R-Type", 800, 600)
+: _app("R-Type", 1920, 1080)
 {
     try
     {
