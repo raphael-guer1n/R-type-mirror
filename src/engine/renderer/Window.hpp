@@ -5,6 +5,13 @@
 #include "Vectors.hpp"
 #include "engine/events/Events.hpp"
 
+/**
+ * @file Window.hpp
+ * @brief Déclaration de la classe Window pour la gestion de la fenêtre SDL et du rendu.
+ *
+ * Cette classe encapsule la création, la gestion et la destruction d'une fenêtre SDL,
+ * ainsi que la gestion des événements et l'accès au renderer associé.
+ */
 namespace engine
 {
     namespace R_Graphic

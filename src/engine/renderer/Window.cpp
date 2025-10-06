@@ -1,6 +1,7 @@
 #include "Window.hpp"
 #include <iostream>
 
+
 engine::R_Graphic::Window::Window(const std::string &title, int width, int height)
     : _window(nullptr), _renderer(nullptr), _isOpen(true)
 {

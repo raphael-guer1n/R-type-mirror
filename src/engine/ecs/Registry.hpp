@@ -9,9 +9,24 @@
 
 #include "Entity.hpp"
 #include "Sparse_array.hpp"
-
+/**
+    * @file Registry.hpp
+    * @brief A simple ECS registry to manage entities and their components.
+    */
 namespace engine
 {
+    /**
+     * @class registry
+     * @brief Manages entity creation, deletion, and component association in an ECS (Entity Component System).
+     *
+     * This class provides:
+     * - Creation and removal of entities.
+     * - Dynamic registration and management of components associated with entities.
+     * - Adding, removing, and accessing components for each entity.
+     * - Management of systems (functions) that operate on sets of components.
+     *
+     * Uses sparse arrays to efficiently store components.
+     */
     class registry
     {
     public:

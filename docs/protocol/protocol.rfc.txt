@@ -1,0 +1,165 @@
+Network Working Group                                        R-Type Team
+Request for Comments: XXXX                                   September 2025
+Category: Experimental
+
+
+                   R-Type Multiplayer Protocol (Draft)
+
+
+Status of this Memo
+
+   This memo provides information for the R-Type multiplayer project.
+   Distribution of this memo is unlimited.
+
+Abstract
+
+   This document specifies the UDP-based protocol used by the R-Type
+   multiplayer project. It defines packet formats, semantics, and the
+   expected message flow between client and server. The protocol borrows
+   from the Quake networking model: compact client commands, delta
+   snapshots, and sequence/ack numbers for robustness.
+
+
+1. Introduction
+
+   The R-Type protocol is a custom application-layer protocol built on
+   top of UDP. It follows a server-authoritative model where the server
+   controls the game state and clients transmit input commands. The
+   design is optimized for low latency, efficient bandwidth usage, and
+   synchronization across multiple players.
+
+   Compared to a simple fixed-struct protocol, this version introduces:
+   - An acknowledgment number (ack) in headers.
+   - Batched input commands (UserCmd).
+   - Delta-compressed snapshots.
+
+
+2. Conventions Used in This Document
+
+   The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT", and "MAY"
+   are to be interpreted as described in RFC 2119.
+
+   All integers are little-endian unless otherwise specified.
+   All packets start with a fixed-size header.
+   Time is expressed in ticks, synchronized by the server.
+   UDP is used as transport; no retransmission is guaranteed.
+
+
+3. Packet Header
+
+   Every packet begins with a 12-byte header:
+
+      0               1               2               3
+      +-------+-------+---------------+---------------+
+      | Type  | Size  |     Sequence Number (32)      |
+      +-------+-------+---------------+---------------+
+      |                 Ack Number (32)               |
+      +-----------------------------------------------+
+
+   Fields:
+
+      - type: 16-bit unsigned integer, packet type
+      - size: 16-bit unsigned integer, total size in bytes
+      - seq:  32-bit unsigned integer, incremented per packet
+      - ack:  32-bit unsigned integer, last seq received from peer
+
+
+4. Packet Types
+
+   4.1 CONNECT_REQ (0x01)
+
+      Sent by client to request connection.
+         - clientId (32 bits)
+
+   4.2 CONNECT_ACK (0x02)
+
+      Sent by server in response to CONNECT_REQ.
+         - serverId       (32 bits)
+         - playerEntityId (32 bits)
+         - tickRate       (32 bits)
+
+   4.3 INPUT (0x03)
+
+      Sent by client to provide one or more input commands.
+
+      InputPacket:
+         - clientId (32 bits)
+         - cmdCount (8 bits)
+
+      UserCmd (repeated cmdCount times):
+         - tick  (32 bits)
+         - dx    (16 bits)
+         - dy    (16 bits)
+         - act   (8 bits) bitmask of actions
+           * bit 0 = SHOOT
+           * bit 1 = BOMB
+           * others reserved
+
+   4.4 SNAPSHOT (0x04)
+
+      Sent by server to broadcast world state. Snapshots use delta
+      compression: only changed fields are included.
+
+      SnapshotHeader:
+         - tick        (32 bits)
+         - entityCount (16 bits)
+
+      EntityState (repeated entityCount times):
+         - entityId (32 bits)
+         - flags    (8 bits) bitmask: which fields follow
+         - x        (float, 32 bits, if flagged)
+         - y        (float, 32 bits, if flagged)
+         - vx       (float, 32 bits, if flagged)
+         - vy       (float, 32 bits, if flagged)
+         - type     (8 bits, if flagged)
+         - hp       (8 bits, if flagged)
+
+   4.5 EVENT (0x05)
+
+      Sent by server for critical events.
+         - eventId (32 bits)
+         - data    (32 bits)
+      Examples: player death, enemy spawn, explosion.
+
+   4.6 PING (0x06) / PONG (0x07)
+
+      Used for latency measurement and keep-alive.
+         - time (64 bits, microseconds)
+
+
+5. Message Flow
+
+   1. Connection:
+      Client -> CONNECT_REQ
+      Server -> CONNECT_ACK
+
+   2. Game Loop:
+      Client -> INPUT (batched UserCmds)
+      Server -> SNAPSHOT (delta world state)
+      Server -> EVENT (when needed)
+
+   3. Keep-alive:
+      Client -> PING
+      Server -> PONG
+
+
+6. Error Handling
+
+   - Packets with invalid type or size MUST be discarded.
+   - Clients inactive for >5 seconds (no INPUT/PING) SHOULD be dropped.
+   - seq/ack MUST be used to detect and ignore out-of-order packets.
+   - SNAPSHOTs MAY be resent if a client reports desynchronization.
+
+
+7. Security Considerations
+
+   The protocol assumes a trusted LAN or coursework environment.
+   No encryption or authentication is provided.
+   For production, DTLS or TLS SHOULD be considered.
+
+
+Author's Address
+
+   R-Type Team
+   Epitech
+   Contact: project-rtype@example.com

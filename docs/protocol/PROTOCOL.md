@@ -64,14 +64,21 @@ struct InputPacket {
     uint32_t tick;      -> local tick when input was sent
     uint8_t  keys;      -> key bitmap
 };
+
+struct InputPacket {
+uint32_t clientId;
+uint8_t cmdCount; // number of UserCmd entries
+UserCmd cmds[]; // repeated
+};
+
+struct UserCmd {
+uint32_t tick; // local tick
+int16_t dx; // movement X (-1,0,+1)
+int16_t dy; // movement Y (-1,0,+1)
+uint8_t act; // action bits (bit0=shoot, bit1=bomb…)
+};
 ```
 
-Key mapping (example):
-bit 0 = UP
-bit 1 = DOWN
-bit 2 = LEFT
-bit 3 = RIGHT
-bit 4 = SHOOT
 
 ### 3.4 SNAPSHOT (Server → Client)
 Type = 4
@@ -85,10 +92,9 @@ struct EntityState {
     uint8_t  hp;
 };
 
-struct Snapshot {
-    uint32_t tick;          -> server tick
-    uint16_t entityCount;   -> number of entities
-    EntityState entities[]; ->  variable-sized array
+struct SnapshotHeader {
+    uint32_t tick;
+    uint16_t entityCount;
 };
 ```
 
@@ -136,18 +142,19 @@ Hex representation :
 
 ## 5. Reliability
 
-- The protocol relies on UDP (no delivery guarantee).
-- Critical packets (connection) must be retransmitted if no response (timeout).
-- Other packets (inputs, snapshots) are sent frequently → loss is tolerable.
+- Protocol relies on UDP (no guarantee).  
+- Sequence + Ack allow detection of loss/out-of-order.  
+- Critical packets (CONNECT_REQ/ACK) MUST be retransmitted until acknowledged.  
+- Inputs and Snapshots are frequent: loss is tolerated.  
 
 ## 6. General Rules
 
-- The server is authoritative: only its state is valid.
-- The client must:
-    - send inputs regularly (~60 Hz),
-    - display received snapshots,
-    - ensure smoothness with interpolation/prediction.
-- Any unknown data must be ignored (robustness).
+- The server is authoritative: only its state is valid.  
+- The client must:  
+  - send INPUT regularly (~60 Hz),  
+  - process SNAPSHOTs and EVENTs,  
+  - interpolate/predict for smoothness.  
+- Unknown data MUST be ignored for robustness.
 
 ## 7. Diagram
 
@@ -156,19 +163,19 @@ Hex representation :
    │ (Graphic)   │                         │ (Authority) │
    └──────┬──────┘                         └──────┬──────┘
           │                                     │
-          │ 1. CONNECT_REQ (UDP)                │
+          │ 1. CONNECT_REQ                      │
           ├────────────────────────────────────>│
           │                                     │
-          │ 2. CONNECT_ACK (UDP)                │
+          │ 2. CONNECT_ACK                      │
           │<────────────────────────────────────┤
           │                                     │
-          │ 3. INPUT (UDP, 60 Hz)               │
+          │ 3. INPUT (UserCmd batch)            │
           ├────────────────────────────────────>│
           │                                     │
-          │ 4. SNAPSHOT (UDP, 20–60 Hz)         │
+          │ 4. SNAPSHOT (delta state)           │
           │<────────────────────────────────────┤
           │                                     │
-          │ 5. EVENT (ex: mort, spawn boss)     │
+          │ 5. EVENT (e.g. death, spawn)        │
           │<────────────────────────────────────┤
           │                                     │
           │ 6. PING → PONG (keep-alive, RTT)    │

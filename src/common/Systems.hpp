@@ -7,7 +7,19 @@
 #include <vector>
 
 using namespace engine;
-
+/**
+ * @file Systems.hpp
+ * @brief Defines core ECS systems for the game engine.
+ *
+ * This file implements several systems operating on ECS components:
+ * - position_system: Updates entity positions based on velocity.
+ * - hitbox_system: Detects collisions between entities and triggers a callback.
+ * - health_system: Applies damage, updates health, and marks entities for despawn if health reaches zero.
+ * - despawn_system: Removes entities marked for despawn.
+ * - spawn_system: Handles entity spawning via factory callbacks.
+ *
+ * Each system operates on sparse arrays of components and interacts with the registry.
+ */
 inline void position_system(registry &r,
                     sparse_array<component::position> &positions,
                     sparse_array<component::velocity> &velocities,

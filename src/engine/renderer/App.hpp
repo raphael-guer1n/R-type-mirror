@@ -7,6 +7,13 @@
 #include "Renderer.hpp"
 #include "engine/events/Events.hpp"
 
+/**
+ * @brief Déclaration de la classe App pour gérer la boucle principale d'une application graphique.
+ * 
+ * Cette classe encapsule une fenêtre (Window) et un renderer (Renderer).
+ * Elle fournit une méthode run pour exécuter la boucle principale, prenant en paramètres
+ * des fonctions de mise à jour et de dessin du jeu.
+ */
 namespace engine {
     namespace R_Graphic
     {
