@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <unordered_set>
+#include <asio.hpp>
 #include "Player.hpp"
 #include "engine/network/Udpsocket.hpp"
 #include "engine/renderer/App.hpp"
@@ -34,6 +35,7 @@ namespace R_Type
             engine::R_Graphic::App _app;
             engine::registry _registry;
             std::unique_ptr<Background> _background;
+            asio::io_context _ioContext;
             std::unique_ptr<engine::net::UdpSocket> _client;
             std::unique_ptr<Player> _playerTexture;
     };

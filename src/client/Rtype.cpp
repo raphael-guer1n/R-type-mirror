@@ -19,8 +19,7 @@ R_Type::Rtype::Rtype()
 {
     try
     {
-        asio::io_context io;
-        _client = std::make_unique<engine::net::UdpSocket>(io, 0);
+    _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
         _serverEndpoint = std::make_unique<asio::ip::udp::endpoint>(asio::ip::make_address("127.0.0.1"), 4242);
 
         // --- STEP 1: Connect ---
