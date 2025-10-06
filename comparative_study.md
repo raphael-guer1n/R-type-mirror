@@ -42,8 +42,16 @@
 | **Manual (git submodules)** | Full control, zero external tooling                        | Maintenance burden, no version resolution             | ❌ No |
 | **System pkg (apt/brew)** | Quick local installs                                        | Not portable across teammates/CI                      | ❌ No |
 
+## 5. Game Framework / Rendering
 
-## 5. Conclusion
+| Option          | Pros                                                      | Cons                                           | Suitable for R-Type? |
+|-----------------|-----------------------------------------------------------|------------------------------------------------|-----------------------|
+| **Raw OpenGL**  | Full control, very powerful, no extra dependency          | Very verbose, a lot of boilerplate, steep learning curve | ❌ Too complex for project |
+| **SFML**        | Simple API (graphics, input, audio), well-documented      | Less low-level control, smaller community vs SDL | ✅ Possible |
+| **SDL2**        | Cross-platform, widely used in industry, battle-tested; handles input, rendering, sound | Lower-level than SFML (you need to write more code); less "high-level sugar" | ✅ **Chosen** |
+| **Allegro**     | Simple, stable library                                    | Less popular today, smaller ecosystem          | ❌ Not ideal |
+
+## 6. Conclusion
 
 For a real-time multiplayer game like **R-Type**, low latency and efficient bandwidth usage are non-negotiable.  
 After evaluating the alternatives, we adopt a stack that balances **speed**, **robustness**, and **implementation complexity**:
@@ -52,6 +60,11 @@ After evaluating the alternatives, we adopt a stack that balances **speed**, **r
 - **Game Data:** Re-sending the whole world each tick (full snapshots) would quickly saturate the network. **Delta Snapshots** only transmit changes since the last acknowledged state, drastically reducing bandwidth. Pairing this with **UserCmd batching** on the client side improves lag tolerance and enables client-side prediction and reconciliation.
 - **Networking Library:** **Asio Standalone** offers a clean, header-only, asynchronous API that compiles fast and works on all platforms without pulling the entire Boost ecosystem—ideal for both coursework and production-like prototypes.
 - **Package Manager:** We choose **vcpkg** to ensure consistent cross-platform builds via the CMake toolchain file and triplets. This simplifies teammate onboarding and CI, while keeping dependencies (like Asio) reproducible across macOS, Linux, and Windows.
+- **Framework:** We choose **SDL2** as our multimedia layer.  
+  It is portable across Windows, Linux, and macOS, integrates well with OpenGL,  
+  and provides reliable input, audio, and rendering. Compared to SFML, SDL2 is  
+  lower-level but more flexible and widely adopted in both academia and industry.  
+  This makes it the most appropriate choice for our R-Type project.
 
 **Bottom line:**  
 **UDP (Quake-style) + Delta Snapshots + UserCmd batching + Asio Standalone, managed with vcpkg** gives us the **best balance** of performance, reliability, portability, and learning value for the R-Type project.
