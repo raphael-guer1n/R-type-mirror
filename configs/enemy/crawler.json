@@ -1,7 +1,7 @@
 {
     "type": "enemy",
     "hp": 5,
-    "speed": 2.5,
+    "speed": 250,
     "behavior": "zigzag",
     "hitbox": {
         "w": 40,
