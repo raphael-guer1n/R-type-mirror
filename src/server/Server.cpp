@@ -343,7 +343,7 @@ void server::process_network_inputs()
     while (auto pkt_opt = _socket.receive(sender))
     {
         auto [hdr, payload] = *pkt_opt;
-        if (hdr.type == INPUT)
+    if (hdr.type == INPUT_PKT)
         {
             if (payload.size() >= sizeof(InputPacket))
             {
