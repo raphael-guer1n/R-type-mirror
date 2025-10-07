@@ -51,7 +51,6 @@ engine::R_Graphic::Texture::Texture(R_Graphic::Window& window,
         _size.x = surface->w;
         _size.y = surface->h;
     }
-
     SDL_FreeSurface(surface);
 }
 
