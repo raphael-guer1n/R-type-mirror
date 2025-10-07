@@ -3,6 +3,7 @@
 #include "engine/ecs/Registry.hpp"
 #include "common/Components.hpp"
 #include "common/Components_client_sdl.hpp"
+#include "common/Components_client.hpp"
 #include "engine/ecs/iterator/Zipper.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include "engine/renderer/App.hpp"
@@ -67,4 +68,20 @@ inline void scroll_reset_system(engine::registry& r,
         bg1.x = bg2.x + width;
     if (bg2.x + width <= 0)
         bg2.x = bg1.x + width;
+}
+
+inline void hud_system(engine::registry& registry, R_Graphic::Window& window)
+{
+    auto& beams = registry.get_components<component::beam_charge>();
+    auto& drawables = registry.get_components<component::drawable>();
+    auto& hudTags = registry.get_components<component::hud_tag>();
+
+    for (size_t i = 0; i < beams.size(); ++i) {
+        if (!beams[i] || !hudTags[i] || !drawables[i])
+            continue;
+
+        auto& beam = beams[i].value();
+        auto& drawable = drawables[i].value();
+        drawable.texture->draw(window, &drawable.rect);
+    }
 }
