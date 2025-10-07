@@ -19,10 +19,6 @@ inline void control_system(registry &r,
     {
         vel.vx = 0.f;
         vel.vy = 0.f;
-        // if (keys & 0x01) vel.vx = -200.f;
-        // if (keys & 0x02) vel.vx =  200.f;
-        // if (keys & 0x04) vel.vy = -200.f;
-        // if (keys & 0x08) vel.vy =  200.f;
     }
 }
 
@@ -32,12 +28,19 @@ inline void draw_system(registry &r,
     sparse_array<component::drawable> &drawables,
     R_Graphic::Window &window)
 {
-    for (auto &&[pos, dr] : zipper(positions, drawables))
-    {
-        if (dr.texture) {
-                dr.texture->position = {pos.x, pos.y};
-                dr.texture->draw(window, &dr.rect);
-        }
+    std::vector<size_t> indices;
+    for (size_t i = 0; i < drawables.size(); i++) {
+        if (drawables[i] && positions[i])
+            indices.push_back(i);
+    }
+    std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
+        return drawables[a]->layer < drawables[b]->layer;
+    });
+    for (size_t idx: indices) {
+        auto &d = *drawables[idx];
+        auto &p = *positions[idx];
+        d.texture->position = {p.x, p.y};
+        d.texture->draw(window, &d.rect);
     }
 }
 
