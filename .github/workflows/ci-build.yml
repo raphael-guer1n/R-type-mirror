@@ -17,22 +17,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install build tools
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update -y
           apt-get install -y --no-install-recommends \
-            libconfig++-dev \
-            libasio-dev \
-            libsdl2-dev \
-            nlohmann-json3-dev
+            curl zip unzip tar pkg-config \
+            build-essential cmake ninja-build git
           apt-get clean
           rm -rf /var/lib/apt/lists/*
 
-      - name: Configure CMake
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: vcpkg/installed
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Setup vcpkg
         run: |
-          cmake -S . -B build -D CMAKE_BUILD_TYPE=Debug
+          if [ ! -d "vcpkg" ]; then
+            git clone https://github.com/microsoft/vcpkg.git
+          fi
+          export VCPKG_FORCE_SYSTEM_BINARIES=1
+          ./vcpkg/bootstrap-vcpkg.sh
 
       - name: Build project (including tests)
         run: |
-          cmake --build build
+          chmod +x ./build.sh
+          ./build.sh

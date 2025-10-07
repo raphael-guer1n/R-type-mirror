@@ -9,16 +9,18 @@
  * of a rendering window. It acts as a bridge between the application and the
  * underlying graphics system, encapsulating rendering logic and window management.
  */
-namespace R_Graphic
-{
-    class Renderer
+namespace engine {
+    namespace R_Graphic
     {
-    public:
-        Renderer(Window &window);
-        void clear();
-        void display();
+        class Renderer
+        {
+            public:
+                Renderer(Window &window);
+                void clear();
+                void display();
 
-    private:
-        Window &_window;
-    };
+            private:
+                Window &_window;
+        };
+    }
 }

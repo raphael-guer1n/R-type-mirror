@@ -6,6 +6,7 @@ add_executable(r-type_server
     Main.cpp
 )
 
+find_package(asio CONFIG REQUIRED)
 target_include_directories(r-type_server PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     # Path to asio if it’s standalone, otherwise system headers
@@ -19,4 +20,5 @@ target_link_libraries(r-type_server PRIVATE
     sfml-audio
     sfml-network
     Threads::Threads
+    asio::asio
 )

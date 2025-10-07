@@ -1,8 +1,8 @@
-#include "R_Graphic/Window.hpp"
+#include "Window.hpp"
 #include <iostream>
 
 
-R_Graphic::Window::Window(const std::string &title, int width, int height)
+engine::R_Graphic::Window::Window(const std::string &title, int width, int height)
     : _window(nullptr), _renderer(nullptr), _isOpen(true)
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -23,37 +23,65 @@ R_Graphic::Window::Window(const std::string &title, int width, int height)
     }
 }
 
-R_Graphic::Window::~Window() {
+engine::R_Graphic::Window::~Window() {
     if (_renderer) SDL_DestroyRenderer(_renderer);
     if (_window) SDL_DestroyWindow(_window);
     SDL_Quit();
 }
 
-bool R_Graphic::Window::isOpen() const {
+bool engine::R_Graphic::Window::isOpen() const {
     return _isOpen;
 }
 
-void R_Graphic::Window::pollEvents(bool &running) {
+std::vector<engine::R_Events::Event> engine::R_Graphic::Window::pollEvents(bool &running) {
+    std::vector<engine::R_Events::Event> events;
     SDL_Event event;
+
     while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT)
-            running = false;
+        switch (event.type)
+        {
+            case SDL_QUIT:
+                running = false;
+                events.push_back({R_Events::Type::Quit});
+                break;
+            case SDL_KEYDOWN:
+                events.push_back({R_Events::Type::KeyDown, .key={R_Events::mapSDLKey(event.key.keysym.sym)}});
+                break;
+            case SDL_KEYUP:
+                events.push_back({R_Events::Type::KeyUp, .key={R_Events::mapSDLKey(event.key.keysym.sym)}});
+                break;
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_FOCUS_GAINED:
+                        events.push_back({R_Events::Type::FocusGained});
+                        break;
+                    case SDL_WINDOWEVENT_FOCUS_LOST:
+                        events.push_back({R_Events::Type::FocusLost});
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
     }
+    return events;
 }
 
-SDL_Window *R_Graphic::Window::getWindow() const
+SDL_Window *engine::R_Graphic::Window::getWindow() const
 {
     return _window;
 }
 
-R_Graphic::intVec2 R_Graphic::Window::getSize()
+engine::R_Graphic::intVec2 engine::R_Graphic::Window::getSize()
 {
     int width, height;
 
     SDL_GetWindowSize(_window, &width, &height);
     return intVec2(width, height);
 }
-SDL_Renderer *R_Graphic::Window::getRenderer() const
+SDL_Renderer *engine::R_Graphic::Window::getRenderer() const
 {
     return _renderer;
 }

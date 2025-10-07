@@ -1,6 +1,6 @@
 #include "server/Server.hpp"
 #include "common/Systems.hpp"
-#include "common/Systems_client_sfml.hpp"
+#include "common/Systems_client_sdl.hpp"
 #include "engine/ecs/EntityFactory.hpp"
 #include "server/ServerUtils.hpp"
 #include <thread>
@@ -12,7 +12,7 @@
 
 #include "server/Server.hpp"
 #include "common/Systems.hpp"
-#include "common/Systems_client_sfml.hpp"
+#include "common/Systems_client_sdl.hpp"
 #include "common/Components_client.hpp"
 #include "server/Components_ai.hpp"
 #include "server/System_ai.hpp"
@@ -34,7 +34,6 @@ void server::register_components()
 {
     _registry.register_component<component::position>();
     _registry.register_component<component::velocity>();
-    _registry.register_component<component::drawable>();
     _registry.register_component<component::hitbox>();
     _registry.register_component<component::controllable>();
     _registry.register_component<component::collision_state>();
@@ -70,7 +69,11 @@ void server::run()
         auto now = clock::now();
         if (now - last_tick >= tick_duration)
         {
+            auto& positions = _registry.get_components<component::position>();
+            auto& velocities = _registry.get_components<component::velocity>();
+            auto& controls = _registry.get_components<component::controllable>();
             game_handler();
+            position_system(_registry, positions, velocities, 1.0f / 60.0f);
             _registry.run_systems();
             broadcast_snapshot();
             _tick++;
@@ -89,8 +92,6 @@ void server::stop() { _running = false; }
 
 void server::setup_systems()
 {
-    _registry.add_system<component::position, component::velocity>(position_system);
-    _registry.add_system<component::velocity, component::controllable>(control_system);
     _registry.add_system<component::health, component::damage>(health_system);
     _registry.add_system<component::spawn_request>(spawn_system);
 
@@ -362,9 +363,9 @@ void server::process_network_inputs()
                         if (static_cast<size_t>(p.entityId) < velocities.size() && velocities[p.entityId])
                         {
                             auto &vel = *velocities[p.entityId];
-                            vel.vx = (input.keys & 0x01) ? -10 : (input.keys & 0x02) ? 10
+                            vel.vx = (input.keys & 0x01) ? -PLAYER_SPEED: (input.keys & 0x02) ? PLAYER_SPEED
                                                                                      : 0;
-                            vel.vy = (input.keys & 0x04) ? -10 : (input.keys & 0x08) ? 10
+                            vel.vy = (input.keys & 0x04) ? -PLAYER_SPEED : (input.keys & 0x08) ? PLAYER_SPEED
                                                                                      : 0;
                         }
                         break;
@@ -390,7 +391,6 @@ engine::entity_t server::spawn_player(asio::ip::udp::endpoint endpoint, std::siz
         component::damage{0},
         component::entity_kind::player,
         component::controlled_by{static_cast<uint32_t>(index)},
-        component::drawable{sf::Vector2f{40.f, 40.f}, sf::Color::Green},
         component::damage_cooldown{0});
     return eid;
 }

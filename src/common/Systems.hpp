@@ -20,14 +20,15 @@ using namespace engine;
  *
  * Each system operates on sparse arrays of components and interacts with the registry.
  */
-void position_system(registry &r,
-                     sparse_array<component::position> &positions,
-                     sparse_array<component::velocity> &velocities)
+inline void position_system(registry &r,
+                    sparse_array<component::position> &positions,
+                    sparse_array<component::velocity> &velocities,
+                    float deltaTime)
 {
     for (auto &&[i, pos, vel] : indexed_zipper(positions, velocities))
     {
-        pos.x += vel.vx;
-        pos.y += vel.vy;
+        pos.x += vel.vx * deltaTime;
+        pos.y += vel.vy * deltaTime;
     }
 }
 
