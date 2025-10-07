@@ -1,7 +1,7 @@
 {
     "type": "enemy",
     "hp": 3,
-    "speed": 1.5,
+    "speed": 150,
     "behavior": "straight_shooter",
     "hitbox": {
         "w": 30,
