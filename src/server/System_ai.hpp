@@ -111,7 +111,6 @@ inline void enemy_ai_system(registry &r,
     auto it = ai_dispatcher.find(ai.behavior);
     if (it != ai_dispatcher.end()) {
       it->second(r.entity_from_index(i), r, tick, pos, vel, ai);
-      ran = true;
     }
   }
 }
