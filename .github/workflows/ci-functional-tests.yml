@@ -30,4 +30,4 @@ jobs:
       - name: Push to Official Main Repository
         run: |
           git fetch official_main
-          git push official_main main --force
+          git push official_main HEAD:main --force
