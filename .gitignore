@@ -7,3 +7,4 @@ r-type_server
 vcpkg_installed/
 vcpkg
 Debug/
+Release/
