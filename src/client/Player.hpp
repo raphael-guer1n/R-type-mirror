@@ -2,6 +2,7 @@
 #include <memory>
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Texture.hpp"
+#include "common/Components.hpp"
 
 namespace R_Type
 {
@@ -13,5 +14,6 @@ namespace R_Type
             std::shared_ptr<engine::R_Graphic::Texture> texture;
             engine::R_Graphic::textureRect playerRect;
             engine::R_Graphic::textureRect projectileRect;
+            component::animation playerAnimation;
     };
 }
