@@ -12,6 +12,7 @@
 #include "engine/network/Udpsocket.hpp"
 #include "common/Systems.hpp"
 #include "Background.hpp"
+#include "Hud.hpp"
 #include "common/Systems_client_sdl.hpp"
 
 R_Type::Rtype::Rtype()
@@ -37,6 +38,7 @@ R_Type::Rtype::Rtype()
         _registry.register_component<component::collision_state>();
         _background = std::make_unique<Background>(*this);
         _playerTexture = std::make_unique<Player>(*this);
+        _hud = std::make_unique<Hud>(*this);
     }
     catch(const R_Graphic::Error& e)
     {
@@ -180,6 +182,7 @@ void R_Type::Rtype::draw()
     auto& drawables = _registry.get_components<component::drawable>();
 
     draw_system(_registry, positions, drawables, _app.getWindow());
+    hud_system(_registry,_app.getWindow());
 }
 
 R_Graphic::App& R_Type::Rtype::getApp()
