@@ -240,7 +240,7 @@ void server::game_handler()
             auto e = _registry.spawn_entity();
             _live_entities.insert((uint32_t)e);
 
-            _registry.add_component(e, component::position{1820, 500});
+            _registry.add_component(e, component::position{820, 500});
             _registry.add_component(e, component::velocity{0, 0});
             _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
             _registry.add_component(e, component::entity_kind::enemy);
