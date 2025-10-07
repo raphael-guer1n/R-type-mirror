@@ -25,6 +25,7 @@ namespace R_Type
             void waiting_connection();
         private:
             uint8_t keyToBit(engine::R_Events::Key key);
+            void setAnimation(component::animation &anim, const std::string &clip);
         private:
             std::unique_ptr<asio::ip::udp::endpoint> _serverEndpoint;
             uint32_t _tick = 0;
@@ -38,5 +39,6 @@ namespace R_Type
             asio::io_context _ioContext;
             std::unique_ptr<engine::net::UdpSocket> _client;
             std::unique_ptr<Player> _playerTexture;
+            std::unordered_map<uint32_t, size_t> _entityMap;
     };
 }
