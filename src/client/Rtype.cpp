@@ -182,7 +182,6 @@ void R_Type::Rtype::draw()
     auto& drawables = _registry.get_components<component::drawable>();
 
     draw_system(_registry, positions, drawables, _app.getWindow());
-    hud_system(_registry,_app.getWindow());
 }
 
 R_Graphic::App& R_Type::Rtype::getApp()
