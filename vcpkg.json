@@ -2,7 +2,16 @@
   "name": "rtype",
   "version": "0.1.0",
   "dependencies": [
-    "sdl2",
+    {
+      "name": "sdl2",
+      "platform": "windows"
+    },
+    {
+      "name": "sdl2",
+      "default-features": false,
+      "features": ["x11"],
+      "platform": "linux | osx"
+    },
     "sdl2-image",
     "asio",
     "nlohmann-json"
