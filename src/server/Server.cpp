@@ -69,9 +69,9 @@ void server::run()
         auto now = clock::now();
         if (now - last_tick >= tick_duration)
         {
-            auto& positions = _registry.get_components<component::position>();
-            auto& velocities = _registry.get_components<component::velocity>();
-            auto& controls = _registry.get_components<component::controllable>();
+            auto &positions = _registry.get_components<component::position>();
+            auto &velocities = _registry.get_components<component::velocity>();
+            auto &controls = _registry.get_components<component::controllable>();
             game_handler();
             position_system(_registry, positions, velocities, 1.0f / 60.0f);
             _registry.run_systems();
@@ -191,8 +191,10 @@ void server::setup_systems()
 void server::game_handler()
 {
     // Zigzag enemy
-    if (_tick % 30 == 0) {
-        for (auto &p : _players) {
+    if (_tick % 30 == 0)
+    {
+        for (auto &p : _players)
+        {
             auto proj = spawn_projectile(p.entityId);
             _live_entities.insert(static_cast<uint32_t>(proj));
         }
@@ -343,7 +345,7 @@ void server::process_network_inputs()
     while (auto pkt_opt = _socket.receive(sender))
     {
         auto [hdr, payload] = *pkt_opt;
-    if (hdr.type == INPUT_PKT)
+        if (hdr.type == INPUT_PKT)
         {
             if (payload.size() >= sizeof(InputPacket))
             {
@@ -354,6 +356,14 @@ void server::process_network_inputs()
                 {
                     continue;
                 }
+                std::unordered_set<engine::R_Events::Key> keys;
+                const size_t expectedSize = sizeof(InputPacket) + static_cast<size_t>(input.keyCount) * sizeof(int32_t);
+                if (payload.size() >= expectedSize && input.keyCount > 0)
+                {
+                    const int32_t *kptr = reinterpret_cast<const int32_t *>(payload.data() + sizeof(InputPacket));
+                    for (uint16_t i = 0; i < input.keyCount; ++i)
+                        keys.insert(static_cast<engine::R_Events::Key>(kptr[i]));
+                }
 
                 for (auto &p : _players)
                 {
@@ -363,10 +373,15 @@ void server::process_network_inputs()
                         if (static_cast<size_t>(p.entityId) < velocities.size() && velocities[p.entityId])
                         {
                             auto &vel = *velocities[p.entityId];
-                            vel.vx = (input.keys & 0x01) ? -PLAYER_SPEED: (input.keys & 0x02) ? PLAYER_SPEED
-                                                                                     : 0;
-                            vel.vy = (input.keys & 0x04) ? -PLAYER_SPEED : (input.keys & 0x08) ? PLAYER_SPEED
-                                                                                     : 0;
+                            using engine::R_Events::Key;
+                            bool left = keys.count(Key::Left) > 0 || keys.count(Key::Q) > 0;
+                            bool right = keys.count(Key::Right) > 0 || keys.count(Key::D) > 0;
+                            bool up = keys.count(Key::Up) > 0 || keys.count(Key::Z) > 0;
+                            bool down = keys.count(Key::Down) > 0 || keys.count(Key::S) > 0;
+                            vel.vx = left ? -PLAYER_SPEED : right ? PLAYER_SPEED
+                                                                  : 0.f;
+                            vel.vy = up ? -PLAYER_SPEED : down ? PLAYER_SPEED
+                                                               : 0.f;
                         }
                         break;
                     }
@@ -401,7 +416,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
     auto &hitboxes = _registry.get_components<component::hitbox>();
     size_t idx = static_cast<size_t>(owner);
     if (idx >= positions.size() || !positions[idx])
-        return owner; // invalid -> no spawn
+        return owner;
     auto pos = positions[idx].value();
     float playerW = 0.f, playerH = 0.f;
     if (idx < hitboxes.size() && hitboxes[idx])
