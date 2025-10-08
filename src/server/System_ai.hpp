@@ -36,7 +36,7 @@ namespace systems
     const float projectileW = 10.f;
     const float projectileH = 10.f;
     const float speed = 8.f;
-    const uint32_t lifetime = 120;
+    const uint32_t lifetime = 300;
 
     auto proj = engine::make_entity(
         r,

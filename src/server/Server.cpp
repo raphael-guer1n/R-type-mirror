@@ -134,6 +134,7 @@ void server::setup_systems()
         auto &kinds = _registry.get_components<component::entity_kind>();
         auto &damages = _registry.get_components<component::damage>();
         auto &cooldowns = _registry.get_components<component::damage_cooldown>();
+        auto &projectiles = _registry.get_components<component::projectile_tag>();
         std::vector<bool> newCollided(collisions.size(), false);
 
         // Main collision check
@@ -164,6 +165,96 @@ void server::setup_systems()
                         }
 
                         // --- Projectile ↔ Enemy ---
+                        if (kindI == component::entity_kind::projectile &&
+                            kindJ == component::entity_kind::enemy)
+                        {
+                          if (i < projectiles.size() && projectiles[i])
+                          {
+                            auto &proj = projectiles[i].value();
+                            auto ownerKind = (proj.owner < kinds.size() && kinds[proj.owner])
+                                                 ? kinds[proj.owner].value()
+                                                 : component::entity_kind::unknown;
+
+                            if (ownerKind != component::entity_kind::enemy)
+                            {
+                              if (j < damages.size() && damages[j])
+                                damages[j]->amount += proj.damage;
+                              else
+                                reg.add_component(reg.entity_from_index(j), component::damage{proj.damage});
+
+                              _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(i)));
+                              reg.kill_entity(reg.entity_from_index(i));
+                            }
+                          }
+                        }
+                        if (kindJ == component::entity_kind::projectile &&
+                            kindI == component::entity_kind::enemy)
+                        {
+                          if (j < projectiles.size() && projectiles[j])
+                          {
+                            auto &proj = projectiles[j].value();
+                            auto ownerKind = (proj.owner < kinds.size() && kinds[proj.owner])
+                                                 ? kinds[proj.owner].value()
+                                                 : component::entity_kind::unknown;
+
+                            if (ownerKind != component::entity_kind::enemy)
+                            {
+                              if (i < damages.size() && damages[i])
+                                damages[i]->amount += proj.damage;
+                              else
+                                reg.add_component(reg.entity_from_index(i), component::damage{proj.damage});
+
+                              _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(j)));
+                              reg.kill_entity(reg.entity_from_index(j));
+                            }
+                          }
+                        }
+
+                        // --- Projectile ↔ Player ---
+                        if (kindI == component::entity_kind::projectile &&
+                            kindJ == component::entity_kind::player)
+                        {
+                          if (i < projectiles.size() && projectiles[i])
+                          {
+                            auto &proj = projectiles[i].value();
+                            auto ownerKind = (proj.owner < kinds.size() && kinds[proj.owner])
+                                                 ? kinds[proj.owner].value()
+                                                 : component::entity_kind::unknown;
+
+                            if (ownerKind != component::entity_kind::player)
+                            {
+                              if (j < damages.size() && damages[j])
+                                damages[j]->amount += proj.damage;
+                              else
+                                reg.add_component(reg.entity_from_index(j), component::damage{proj.damage});
+
+                              _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(i)));
+                              reg.kill_entity(reg.entity_from_index(i));
+                            }
+                          }
+                        }
+                        if (kindJ == component::entity_kind::projectile &&
+                            kindI == component::entity_kind::player)
+                        {
+                          if (j < projectiles.size() && projectiles[j])
+                          {
+                            auto &proj = projectiles[j].value();
+                            auto ownerKind = (proj.owner < kinds.size() && kinds[proj.owner])
+                                                 ? kinds[proj.owner].value()
+                                                 : component::entity_kind::unknown;
+
+                            if (ownerKind != component::entity_kind::player)
+                            {
+                              if (i < damages.size() && damages[i])
+                                damages[i]->amount += proj.damage;
+                              else
+                                reg.add_component(reg.entity_from_index(i), component::damage{proj.damage});
+
+                              _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(j)));
+                              reg.kill_entity(reg.entity_from_index(j));
+                            }
+                          }
+                        }
                       });
 
         // Update collision flags
@@ -173,7 +264,6 @@ void server::setup_systems()
             collisions[idx]->collided = newCollided[idx];
         }
       });
-
   constexpr float SCREEN_WIDTH = 1920.f;
   constexpr float SCREEN_HEIGHT = 1080.f;
   _registry.add_system<component::position, component::velocity,
@@ -248,53 +338,63 @@ void server::setup_systems()
 
 void server::game_handler()
 {
+  if (_tick % 30 == 0)
+  {
+    for (auto &p : _players)
+    {
+      auto proj = spawn_projectile(p.entityId);
+      _live_entities.insert(static_cast<uint32_t>(proj));
+    }
+  }
   for (auto &p : _players)
   {
     _live_entities.insert(static_cast<uint32_t>(p.entityId));
   }
-  for (auto e : systems::spawned_projectiles) {
+  for (auto e : systems::spawned_projectiles)
+  {
     _live_entities.insert(static_cast<uint32_t>(e));
   }
   systems::spawned_projectiles.clear();
+
   // // Zigzag enemy
-  // if (_tick % 200 == 0)
-  // {
-  //   try
-  //   {
-  //     EnemyConfig cfg =
-  //         EnemyConfig::load_enemy_config("configs/enemy/crawler.json");
-  //     auto e = _registry.spawn_entity();
-  //     _live_entities.insert((uint32_t)e);
+  if (_tick % 100 == 0)
+  {
+    try
+    {
+      EnemyConfig cfg =
+          EnemyConfig::load_enemy_config("configs/enemy/crawler.json");
+      auto e = _registry.spawn_entity();
+      _live_entities.insert((uint32_t)e);
 
-  //     _registry.add_component(e, component::position{1820, 300});
-  //     _registry.add_component(e, component::velocity{0, 0});
-  //     _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
-  //     _registry.add_component(e, component::entity_kind::enemy);
-  //     _registry.add_component(e, component::collision_state{false});
-  //     _registry.add_component(e, component::health{(uint8_t)cfg.hp});
+      _registry.add_component(e, component::position{1820, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
+      _registry.add_component(e, component::velocity{0, 0});
+      _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
+      _registry.add_component(e, component::entity_kind::enemy);
+      _registry.add_component(e, component::collision_state{false});
+      _registry.add_component(e, component::health{(uint8_t)cfg.hp});
 
-  //     component::ai_controller ai;
-  //     ai.behavior = cfg.behavior;
-  //     ai.speed = cfg.speed;
-  //     _registry.add_component<component::ai_controller>(e, std::move(ai));
-  //     std::cout << "Enemy spawned with behavior=" << ai.behavior
-  //               << " speed=" << ai.speed << "\n";
-  //     if (!cfg.spells.empty())
-  //     {
-  //       component::spellbook sb;
-  //       sb.spells = cfg.spells;
-  //       _registry.add_component<component::spellbook>(e, std::move(sb));
-  //     }
-  //     std::cout << "Spawned Zigzag enemy\n";
-  //   }
-  //   catch (std::exception &ex)
-  //   {
-  //     std::cerr << "Failed to load zigzag enemy: " << ex.what() << "\n";
-  //   }
-  // }
+      component::ai_controller ai;
+      ai.behavior = cfg.behavior;
+      ai.speed = cfg.speed;
+      _registry.add_component<component::ai_controller>(e, std::move(ai));
+      std::cout << "Enemy spawned with behavior=" << ai.behavior
+                << " speed=" << ai.speed << "\n";
+      if (!cfg.spells.empty())
+      {
+        component::spellbook sb;
+        sb.spells = cfg.spells;
+        _registry.add_component<component::spellbook>(e, std::move(sb));
+      }
+      std::cout << "Spawned Zigzag enemy\n";
+    }
+    catch (std::exception &ex)
+    {
+      std::cerr << "Failed to load zigzag enemy: " << ex.what() << "\n";
+    }
+  }
 
   // Shooter enemy
-  if (_tick % 400 == 0)
+  if (_tick % 200 == 0)
   {
     try
     {
@@ -303,7 +403,7 @@ void server::game_handler()
       auto e = _registry.spawn_entity();
       _live_entities.insert((uint32_t)e);
 
-      _registry.add_component(e, component::position{1820, 500});
+      _registry.add_component(e, component::position{1820, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
       _registry.add_component(e, component::velocity{0, 0});
       _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
       _registry.add_component(e, component::entity_kind::enemy);
@@ -338,7 +438,6 @@ void server::broadcast_snapshot()
   auto &healths = _registry.get_components<component::health>();
   auto &velocities = _registry.get_components<component::velocity>();
 
-  
   constexpr std::size_t SNAPSHOT_LIMIT = 10000;
   std::vector<EntityState> states;
   states.reserve(50);
@@ -352,7 +451,7 @@ void server::broadcast_snapshot()
   }
   for (uint32_t entityId : _live_entities)
   {
-    
+
     if (states.size() >= SNAPSHOT_LIMIT)
       break;
     size_t idx = static_cast<size_t>(entityId);
@@ -494,7 +593,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
       _registry, component::position{startX, startY},
       component::hitbox{projectileW, projectileH},
       component::collision_state{false}, component::entity_kind::projectile,
-      component::projectile_tag{static_cast<uint32_t>(owner), 120, 1.f, 0.f,
+      component::projectile_tag{static_cast<uint32_t>(owner), 300, 1.f, 0.f,
                                 8.f, 2},
       component::health{1});
   return proj;

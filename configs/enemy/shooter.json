@@ -1,7 +1,7 @@
 {
     "type": "enemy",
     "hp": 1,
-    "speed": 15,
+    "speed": 75,
     "behavior": "straight_shooter",
     "hitbox": {
         "w": 34,
@@ -12,7 +12,7 @@
             "name": "straight_bullet",
             "cooldown": 60,
             "damage": 1,
-            "speedX": -6,
+            "speedX": -1,
             "speedY": 0,
             "width": 10,
             "height": 10
