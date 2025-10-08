@@ -1,3 +1,43 @@
+/**
+ * @file System_ai.hpp
+ * @brief Defines AI behavior systems for enemy and boss entities in the server.
+ *
+ * This header provides the implementation of AI logic for various enemy types and boss phases
+ * in the game. It includes a dispatcher for AI behaviors, initialization of behavior functions,
+ * and systems for updating enemy and boss AI each tick.
+ *
+ * @namespace systems
+ * Contains all AI-related systems and utilities.
+ *
+ * Types:
+ * - AiFunc: Function signature for AI behavior callbacks.
+ *
+ * Functions:
+ * - void init_ai_behaviors()
+ *   Initializes the AI behavior dispatcher with predefined enemy and boss behaviors.
+ *
+ * - void enemy_ai_system(registry &r,
+ *                        sparse_array<component::position> &positions,
+ *                        sparse_array<component::velocity> &velocities,
+ *                        sparse_array<component::ai_controller> &ais,
+ *                        uint32_t tick)
+ *   Executes the AI logic for all enemies, updating their movement and actions based on their behavior.
+ *
+ * - void boss_phase_system(registry &r,
+ *                          sparse_array<component::health> &healths,
+ *                          sparse_array<component::ai_controller> &ai,
+ *                          sparse_array<component::boss_phase> &phases)
+ *   Handles boss phase transitions based on health thresholds, updating their AI behavior accordingly.
+ *
+ * AI Behaviors:
+ * - "basic": Simple leftward movement.
+ * - "zigzag": Leftward movement with vertical sine wave pattern.
+ * - "straight_shooter": Moves left and periodically shoots projectiles.
+ * - "boss_phase1": Boss moves left with sine wave and casts "fireball" spells.
+ * - "boss_phase2": Boss moves left with cosine wave and casts "spreadshot" spells in a spread pattern.
+ *
+ * @author marysekatary
+ */
 #pragma once
 #include "engine/ecs/Registry.hpp"
 #include "common/Components.hpp"
