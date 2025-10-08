@@ -15,5 +15,8 @@ namespace R_Type
             engine::R_Graphic::textureRect playerRect;
             engine::R_Graphic::textureRect projectileRect;
             component::animation playerAnimation;
+        public:
+            void playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
+                uint32_t player, engine::registry& registry, uint8_t keys);
     };
 }

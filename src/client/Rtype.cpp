@@ -36,7 +36,7 @@ R_Type::Rtype::Rtype()
         _registry.register_component<component::collision_state>();
         _registry.register_component<component::animation>();
         _background = std::make_unique<Background>(*this);
-        _playerTexture = std::make_unique<Player>(*this);
+        _playerData = std::make_unique<Player>(*this);
     }
     catch(const R_Graphic::Error& e)
     {
@@ -66,6 +66,7 @@ void R_Type::Rtype::update(float deltaTime,
         std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
         _client->send(ihdr, ibuf, *_serverEndpoint);
         receiveSnapshot();
+        _playerData->playerUpdateAnimation(_entityMap, _player, _registry, _keys);
         auto& positions = _registry.get_components<component::position>();
         auto& animations = _registry.get_components<component::animation>();
         auto& velocities = _registry.get_components<component::velocity>();
@@ -73,19 +74,6 @@ void R_Type::Rtype::update(float deltaTime,
         auto& kinds = _registry.get_components<component::entity_kind>();
         auto& drawables = _registry.get_components<component::drawable>();
         auto& collisions = _registry.get_components<component::collision_state>();
-        auto it = _entityMap.find(_player);
-        if (it != _entityMap.end()) {
-            size_t localId = it->second;
-            auto& animations = _registry.get_components<component::animation>();
-            if (localId < animations.size() && animations[localId].has_value()) {
-                auto &anim = *animations[localId];
-                if (_keys & keyToBit(engine::R_Events::Key::Up)) {
-                    setAnimation(anim, "move_up");
-                } else {
-                    setAnimation(anim, "idle");
-                }
-            }
-        }
         position_system(_registry, positions, velocities, deltaTime);
         control_system(_registry, velocities, controls, _keys);
         scroll_reset_system(_registry, positions, kinds, _app);
@@ -154,19 +142,19 @@ void R_Type::Rtype::receiveSnapshot()
                     switch (kinds[idLocal].value())
                     {
                         case component::entity_kind::projectile:
-                            tex = _playerTexture->texture;
-                            rect = _playerTexture->projectileRect;
+                            tex = _playerData->texture;
+                            rect = _playerData->projectileRect;
                             ensure_slot(drawables, idLocal, component::drawable{tex, rect, 5});
                             break;
                         case component::entity_kind::player:
-                            anim = _playerTexture->playerAnimation;
-                            tex = _playerTexture->texture;
-                            rect = _playerTexture->playerRect;
+                            anim = _playerData->playerAnimation;
+                            tex = _playerData->texture;
+                            rect = _playerData->playerRect;
                             ensure_slot(drawables, idLocal, component::drawable{tex, rect, 10});
                             break;
                         default:
-                            tex = _playerTexture->texture;
-                            rect = _playerTexture->playerRect;
+                            tex = _playerData->texture;
+                            rect = _playerData->playerRect;
                             ensure_slot(drawables, idLocal, component::drawable{tex, rect, 1});
                             break;
                     }
@@ -238,7 +226,7 @@ void R_Type::Rtype::waiting_connection()
     }
 }
 
-uint8_t R_Type::Rtype::keyToBit(engine::R_Events::Key key)
+uint8_t R_Type::keyToBit(engine::R_Events::Key key)
 {
     using namespace engine::R_Events;
     switch (key) {
@@ -251,7 +239,7 @@ uint8_t R_Type::Rtype::keyToBit(engine::R_Events::Key key)
     }
 }
 
-void R_Type::Rtype::setAnimation(component::animation &anim, const std::string &clip)
+void R_Type::setAnimation(component::animation &anim, const std::string &clip)
 {
     if (anim.currentClip != clip && anim.clips.find(clip) != anim.clips.end()) {
         anim.currentClip = clip;
