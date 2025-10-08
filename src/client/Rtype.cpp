@@ -142,6 +142,7 @@ void R_Type::Rtype::receiveSnapshot()
                     switch (kinds[idLocal].value())
                     {
                         case component::entity_kind::projectile:
+                            anim = _playerData->projectileAnimation;
                             tex = _playerData->texture;
                             rect = _playerData->projectileRect;
                             ensure_slot(drawables, idLocal, component::drawable{tex, rect, 5});

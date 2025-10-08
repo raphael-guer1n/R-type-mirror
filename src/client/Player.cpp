@@ -3,7 +3,7 @@
 #include "Player.hpp"
 
 R_Type::Player::Player(R_Type::Rtype &rtype)
-: playerRect(167, 0, 32, 17), projectileRect(225, 97, 24, 20)
+: playerRect(167, 0, 32, 17), projectileRect(232, 103, 16, 12)
 {
     texture = std::make_shared<engine::R_Graphic::Texture>(
         rtype.getApp().getWindow(),
@@ -45,6 +45,18 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
             .frameWidth = 33,
             .frameHeight = 17,
             .loop = false
+        }
+    });
+    projectileAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 2,
+            .frameTime = 0.12f,
+            .startX = 232,
+            .startY = 103,
+            .frameWidth = 17,
+            .frameHeight = 12,
+            .loop = true
         }
     });
 }
