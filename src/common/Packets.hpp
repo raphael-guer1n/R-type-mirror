@@ -46,7 +46,7 @@ struct InputPacket
 {
     uint32_t clientId;
     uint32_t tick;
-    uint8_t keys;
+    uint16_t keyCount;
 };
 /**    * @brief State of a single entity in a snapshot.
     */  

@@ -12,8 +12,7 @@ using namespace engine;
 
 inline void control_system(registry &r,
     sparse_array<component::velocity> &velocities,
-    sparse_array<component::controllable> &controls,
-    uint8_t keys)
+    sparse_array<component::controllable> &controls)
 {
     for (auto &&[i, vel, c] : indexed_zipper(velocities, controls))
     {
