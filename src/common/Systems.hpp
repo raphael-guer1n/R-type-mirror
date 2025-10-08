@@ -1,6 +1,7 @@
 #pragma once
 #include "engine/ecs/Registry.hpp"
 #include "common/Components.hpp"
+#include "common/Components_client_sdl.hpp"
 #include "engine/ecs/iterator/Zipper.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include <algorithm>
@@ -89,5 +90,33 @@ inline void spawn_system(registry &r,
         auto e = r.spawn_entity();
         if (copy.factory)
             copy.factory(r, e);
+    }
+}
+
+inline void animation_system(registry &r,
+    sparse_array<component::animation> &animations,
+    sparse_array<component::drawable> &drawables,
+    float deltaTime)
+{
+    for (auto &&[i, anim, draw] : indexed_zipper(animations, drawables)) {
+        if (anim.clips.empty()) continue;
+        auto it = anim.clips.find(anim.currentClip);
+        if (it == anim.clips.end()) continue;
+        auto &clip = it->second;
+        anim.timer += deltaTime;
+        if (anim.timer >= clip.frameTime) {
+            anim.timer = 0.f;
+            anim.currentFrame++;
+            if (anim.currentFrame >= clip.frameCount) {
+                anim.currentFrame = clip.loop ? 0 : clip.frameCount - 1;
+            }
+        }
+        if (!anim.reverse)
+            draw.rect.pos.x = clip.startX + anim.currentFrame * clip.frameWidth;
+        else
+            draw.rect.pos.x = clip.startX - anim.currentFrame * clip.frameWidth;
+        draw.rect.pos.y = clip.startY;
+        draw.rect.size.x = clip.frameWidth;
+        draw.rect.size.y = clip.frameHeight;
     }
 }

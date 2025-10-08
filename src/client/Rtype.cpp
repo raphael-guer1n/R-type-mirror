@@ -22,7 +22,6 @@ R_Type::Rtype::Rtype()
     _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
         _serverEndpoint = std::make_unique<asio::ip::udp::endpoint>(asio::ip::make_address("127.0.0.1"), 4242);
 
-        // --- STEP 1: Connect ---
         ConnectReq req{42};
         PacketHeader hdr{CONNECT_REQ, sizeof(ConnectReq), 0};
         std::vector<uint8_t> buf(sizeof(ConnectReq));
@@ -35,8 +34,9 @@ R_Type::Rtype::Rtype()
         _registry.register_component<component::controllable>();
         _registry.register_component<component::entity_kind>();
         _registry.register_component<component::collision_state>();
+        _registry.register_component<component::animation>();
         _background = std::make_unique<Background>(*this);
-        _playerTexture = std::make_unique<Player>(*this);
+        _playerData = std::make_unique<Player>(*this);
     }
     catch(const R_Graphic::Error& e)
     {
@@ -57,33 +57,33 @@ void R_Type::Rtype::update(float deltaTime,
                 _keys &= ~keyToBit(ev.key.code);
             }
         }
-        // if (R_Events::hasEvent(events, R_Events::Type::FocusGained)) {
-            InputPacket inp{};
-            inp.clientId = _player;
-            inp.tick = _tick++;
-            inp.keys = _keys;
-            PacketHeader ihdr{INPUT_PKT, sizeof(InputPacket), _tick};
-            std::vector<uint8_t> ibuf(sizeof(InputPacket));
-            std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
-            _client->send(ihdr, ibuf, *_serverEndpoint);
-        // }
+        InputPacket inp{};
+        inp.clientId = _player;
+        inp.tick = _tick++;
+        inp.keys = _keys;
+        PacketHeader ihdr{INPUT_PKT, sizeof(InputPacket), _tick};
+        std::vector<uint8_t> ibuf(sizeof(InputPacket));
+        std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
+        _client->send(ihdr, ibuf, *_serverEndpoint);
         receiveSnapshot();
+        _playerData->playerUpdateAnimation(_entityMap, _player, _registry, _keys);
         auto& positions = _registry.get_components<component::position>();
+        auto& animations = _registry.get_components<component::animation>();
         auto& velocities = _registry.get_components<component::velocity>();
         auto& controls = _registry.get_components<component::controllable>();
         auto& kinds = _registry.get_components<component::entity_kind>();
+        auto& drawables = _registry.get_components<component::drawable>();
         auto& collisions = _registry.get_components<component::collision_state>();
         position_system(_registry, positions, velocities, deltaTime);
         control_system(_registry, velocities, controls, _keys);
         scroll_reset_system(_registry, positions, kinds, _app);
+        animation_system(_registry, animations, drawables, deltaTime);
         _registry.run_systems();
 
 }
 
 void R_Type::Rtype::receiveSnapshot()
 {
-    const uint32_t NET_BASE = 1000;
-
     while (auto pkt_opt = _client->receive(_sender)) {
         auto [shdr, spayload] = *pkt_opt;
 
@@ -96,6 +96,7 @@ void R_Type::Rtype::receiveSnapshot()
             auto& drawables  = _registry.get_components<component::drawable>();
             auto& kinds      = _registry.get_components<component::entity_kind>();
             auto& collisions = _registry.get_components<component::collision_state>();
+            auto& animations = _registry.get_components<component::animation>();
 
             std::unordered_set<uint32_t> newActive;
 
@@ -115,8 +116,14 @@ void R_Type::Rtype::receiveSnapshot()
                 for (size_t i = 0; i < n; ++i) {
                     const EntityState& es = entities[i];
 
-                    uint32_t idLocal = NET_BASE + es.entityId;
-
+                    size_t idLocal;
+                    auto it = _entityMap.find(es.entityId);
+                    if (it == _entityMap.end()) {
+                        idLocal = drawables.size();
+                        _entityMap[es.entityId] = idLocal;
+                    } else {
+                        idLocal = it->second;
+                    }
                     if (idLocal < kinds.size() && kinds[idLocal] &&
                         kinds[idLocal].value() == component::entity_kind::decor) {
                         continue;
@@ -131,18 +138,28 @@ void R_Type::Rtype::receiveSnapshot()
                     kinds[idLocal] = static_cast<component::entity_kind>(es.type);
                     std::shared_ptr<R_Graphic::Texture> tex;
                     R_Graphic::textureRect rect;
+                    component::animation anim;
                     switch (kinds[idLocal].value())
                     {
                         case component::entity_kind::projectile:
-                            tex = _playerTexture->texture;
-                            rect = _playerTexture->projectileRect;
+                            anim = _playerData->projectileAnimation;
+                            tex = _playerData->texture;
+                            rect = _playerData->projectileRect;
+                            ensure_slot(drawables, idLocal, component::drawable{tex, rect, 5});
+                            break;
+                        case component::entity_kind::player:
+                            anim = _playerData->playerAnimation;
+                            tex = _playerData->texture;
+                            rect = _playerData->playerRect;
+                            ensure_slot(drawables, idLocal, component::drawable{tex, rect, 10});
                             break;
                         default:
-                            tex = _playerTexture->texture;
-                            rect = _playerTexture->playerRect;
+                            tex = _playerData->texture;
+                            rect = _playerData->playerRect;
+                            ensure_slot(drawables, idLocal, component::drawable{tex, rect, 1});
                             break;
                     }
-                    ensure_slot(drawables, idLocal, component::drawable{tex, rect});
+                    ensure_slot(animations, idLocal, anim);
 
                     positions[idLocal]->x = es.x;
                     positions[idLocal]->y = es.y;
@@ -204,38 +221,13 @@ void R_Type::Rtype::waiting_connection()
                 ConnectAck ack{};
                 std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
                 _player = ack.playerEntityId;
-                std::cout << "I am entity: " << _player << "\n";
                 connected = true;
-
-                // --- Bootstrap my entity locally ---
-                auto& positions  = _registry.get_components<component::position>();
-                auto& velocities = _registry.get_components<component::velocity>();
-                auto& drawables  = _registry.get_components<component::drawable>();
-                auto& kinds      = _registry.get_components<component::entity_kind>();
-                auto& collisions = _registry.get_components<component::collision_state>();
-
-                if (_player >= positions.size())
-                    positions.insert_at(_player,
-                        component::position{100.f, 100.f});
-
-                if (_player >= velocities.size())
-                    velocities.insert_at(_player, component::velocity{});
-
-                if (_player >= drawables.size()) {
-                    drawables.insert_at(_player,
-                        component::drawable{_playerTexture->texture, _playerTexture->playerRect});
-                }
-                if (_player >= kinds.size())
-                    kinds.insert_at(_player, component::entity_kind::player);
-
-                if (_player >= collisions.size())
-                    collisions.insert_at(_player, component::collision_state{});
             }
         }
     }
 }
 
-uint8_t R_Type::Rtype::keyToBit(engine::R_Events::Key key)
+uint8_t R_Type::keyToBit(engine::R_Events::Key key)
 {
     using namespace engine::R_Events;
     switch (key) {
@@ -245,5 +237,15 @@ uint8_t R_Type::Rtype::keyToBit(engine::R_Events::Key key)
         case Key::S: case Key::Down:  return 0x08;
         case Key::Space:              return 0x10;
         default: return 0x00;
+    }
+}
+
+void R_Type::setAnimation(component::animation &anim, const std::string &clip, bool reverse)
+{
+    if (anim.currentClip != clip && anim.clips.find(clip) != anim.clips.end()) {
+        anim.currentClip = clip;
+        anim.currentFrame = 0;
+        anim.timer = 0.f;
+        anim.reverse = reverse;
     }
 }
