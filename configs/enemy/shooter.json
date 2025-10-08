@@ -1,11 +1,11 @@
 {
     "type": "enemy",
-    "hp": 3,
-    "speed": 150,
+    "hp": 1,
+    "speed": 15,
     "behavior": "straight_shooter",
     "hitbox": {
-        "w": 30,
-        "h": 30
+        "w": 34,
+        "h": 20
     },
     "spells": [
         {

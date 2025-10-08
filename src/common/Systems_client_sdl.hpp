@@ -7,6 +7,7 @@
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Window.hpp"
+#include <SDL_ttf.h>
 
 using namespace engine;
 
@@ -30,13 +31,60 @@ inline void control_system(registry &r,
 inline void draw_system(registry &r,
     sparse_array<component::position> &positions,
     sparse_array<component::drawable> &drawables,
-    R_Graphic::Window &window)
+    sparse_array<component::entity_kind> &kinds,
+    R_Graphic::Window &window,
+    TTF_Font* font)
 {
-    for (auto &&[pos, dr] : zipper(positions, drawables))
+    SDL_Renderer* renderer = window.getRenderer();
+
+    for (auto &&[i, pos, dr, kind] : indexed_zipper(positions, drawables, kinds))
     {
-        if (dr.texture) {
-                dr.texture->position = {pos.x, pos.y};
-                dr.texture->draw(window, &dr.rect);
+        SDL_Color color;
+        switch (kind) {
+            case component::entity_kind::player:
+                color = {0, 255, 0, 255};
+                break;
+            case component::entity_kind::enemy:
+                color = {255, 0, 0, 255};
+                break;
+            case component::entity_kind::projectile:
+                color = {255, 255, 0, 255};
+                break;
+            default:
+                color = {200, 200, 200, 255};
+        }
+
+        SDL_Rect rect = {
+            static_cast<int>(pos.x),
+            static_cast<int>(pos.y),
+            static_cast<int>(dr.rect.size.x),
+            static_cast<int>(dr.rect.size.y)
+        };
+
+        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+        SDL_RenderFillRect(renderer, &rect);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderDrawRect(renderer, &rect);
+
+        // --- DEBUG: draw entity index above enemy rectangles ---
+        if (kind == component::entity_kind::enemy && font) {
+            std::string text = std::to_string(i);
+            SDL_Color white = {255, 255, 255, 255};
+            SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), white);
+            if (surf) {
+                SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+                if (tex) {
+                    SDL_Rect dst {
+                        rect.x,
+                        rect.y - surf->h - 2,
+                        surf->w,
+                        surf->h
+                    };
+                    SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                    SDL_DestroyTexture(tex);
+                }
+                SDL_FreeSurface(surf);
+            }
         }
     }
 }

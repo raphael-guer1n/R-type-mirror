@@ -8,6 +8,7 @@
 #include "engine/events/Events.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "Background.hpp"
+#include <SDL_ttf.h>
 
 namespace R_Type
 {
@@ -15,7 +16,12 @@ namespace R_Type
     {
         public:
             Rtype();
-            ~Rtype() = default;
+            ~Rtype() {
+                if (_font) {
+                    TTF_CloseFont(_font);
+                }
+                TTF_Quit();
+            };
             void update(float deltaTime, const std::vector<engine::R_Events::Event> &events);
             void receiveSnapshot();
             void draw();
@@ -38,5 +44,6 @@ namespace R_Type
             asio::io_context _ioContext;
             std::unique_ptr<engine::net::UdpSocket> _client;
             std::unique_ptr<Player> _playerTexture;
+            TTF_Font* _font = nullptr;
     };
 }

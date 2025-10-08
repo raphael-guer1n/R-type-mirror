@@ -12,8 +12,15 @@
 #include <SDL.h>
 #include <asio.hpp>
 #include <iostream>
+#include <SDL_ttf.h>
 
 R_Type::Rtype::Rtype() : _app("R-Type", 1920, 1080) {
+  if (TTF_Init() == -1) {
+    throw std::runtime_error(std::string("TTF_Init failed: ") + TTF_GetError());
+}
+_font = TTF_OpenFont("./Assets/fonts/arial.ttf", 14); // make sure font exists
+if (!_font)
+    throw std::runtime_error(std::string("Failed to load font: ") + TTF_GetError());
   try {
     _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
     _serverEndpoint = std::make_unique<asio::ip::udp::endpoint>(
@@ -173,8 +180,9 @@ void R_Type::Rtype::receiveSnapshot() {
 void R_Type::Rtype::draw() {
   auto &positions = _registry.get_components<component::position>();
   auto &drawables = _registry.get_components<component::drawable>();
+  auto &kinds = _registry.get_components<component::entity_kind>();
 
-  draw_system(_registry, positions, drawables, _app.getWindow());
+  draw_system(_registry, positions, drawables, kinds, _app.getWindow(), _font);
 }
 
 R_Graphic::App &R_Type::Rtype::getApp() { return _app; }
