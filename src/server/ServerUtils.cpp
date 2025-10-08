@@ -21,12 +21,13 @@ void resolve_block(std::size_t moverIdx, std::size_t blockerIdx,
   const auto &blockPos = positions[blockerIdx].value();
   const auto &blockHitbox = hitboxes[blockerIdx].value();
 
-  float ax1 = moverPos.x + moverHitbox.offset_x;
-  float ay1 = moverPos.y + moverHitbox.offset_y;
+  // Compute corners using center-based coordinates
+  float ax1 = moverPos.x - moverHitbox.width * 0.5f + moverHitbox.offset_x;
+  float ay1 = moverPos.y - moverHitbox.height * 0.5f + moverHitbox.offset_y;
   float ax2 = ax1 + moverHitbox.width;
   float ay2 = ay1 + moverHitbox.height;
-  float bx1 = blockPos.x + blockHitbox.offset_x;
-  float by1 = blockPos.y + blockHitbox.offset_y;
+  float bx1 = blockPos.x - blockHitbox.width * 0.5f + blockHitbox.offset_x;
+  float by1 = blockPos.y - blockHitbox.height * 0.5f + blockHitbox.offset_y;
   float bx2 = bx1 + blockHitbox.width;
   float by2 = by1 + blockHitbox.height;
 
@@ -36,10 +37,10 @@ void resolve_block(std::size_t moverIdx, std::size_t blockerIdx,
   if (overlapX <= 0.f || overlapY <= 0.f)
     return;
 
-  float acx = (ax1 + ax2) * 0.5f;
-  float bcx = (bx1 + bx2) * 0.5f;
-  float acy = (ay1 + ay2) * 0.5f;
-  float bcy = (by1 + by2) * 0.5f;
+  float acx = moverPos.x;
+  float bcx = blockPos.x;
+  float acy = moverPos.y;
+  float bcy = blockPos.y;
 
   if (overlapX < overlapY) {
     if (acx < bcx)
@@ -102,12 +103,9 @@ void try_add_entity(uint32_t entityId, std::vector<EntityState> &out,
 
   EntityState es{};
   es.entityId = entityId;
-
-  // Position
   es.x = ctx.positions[idx]->x;
   es.y = ctx.positions[idx]->y;
 
-  // Velocity (NEW – now included in snapshots)
   if (idx < ctx.velocities.size() && ctx.velocities[idx]) {
     es.vx = ctx.velocities[idx]->vx;
     es.vy = ctx.velocities[idx]->vy;
@@ -116,19 +114,16 @@ void try_add_entity(uint32_t entityId, std::vector<EntityState> &out,
     es.vy = 0.f;
   }
 
-  // Entity type
   if (idx < ctx.kinds.size() && ctx.kinds[idx])
     es.type = static_cast<uint8_t>(ctx.kinds[idx].value());
   else
     es.type = static_cast<uint8_t>(component::entity_kind::unknown);
 
-  // Health
   if (idx < ctx.healths.size() && ctx.healths[idx])
     es.hp = ctx.healths[idx]->hp;
   else
     es.hp = 100;
 
-  // Collision flag
   es.collided = (idx < ctx.collisions.size() && ctx.collisions[idx] &&
                  ctx.collisions[idx]->collided)
                     ? 1

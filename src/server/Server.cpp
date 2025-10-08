@@ -164,33 +164,6 @@ void server::setup_systems()
                         }
 
                         // --- Projectile ↔ Enemy ---
-                        if (kindI == component::entity_kind::projectile &&
-                            kindJ == component::entity_kind::enemy)
-                        {
-                          std::cout << "[Projectile Collision] proj=" << i
-                                    << " hit enemy=" << j << "\n";
-
-                          apply_damage_with_cooldown(j, _tick, reg, damages, cooldowns, collisions);
-                          newCollided[j] = true;
-
-                          // remove projectile
-                          _live_entities.erase(static_cast<uint32_t>(i));
-                          reg.kill_entity(reg.entity_from_index(i));
-                        }
-
-                        if (kindJ == component::entity_kind::projectile &&
-                            kindI == component::entity_kind::enemy)
-                        {
-                          std::cout << "[Projectile Collision] proj=" << j
-                                    << " hit enemy=" << i << "\n";
-
-                          apply_damage_with_cooldown(i, _tick, reg, damages, cooldowns, collisions);
-                          newCollided[i] = true;
-
-                          // remove projectile
-                          _live_entities.erase(static_cast<uint32_t>(j));
-                          reg.kill_entity(reg.entity_from_index(j));
-                        }
                       });
 
         // Update collision flags
@@ -275,6 +248,14 @@ void server::setup_systems()
 
 void server::game_handler()
 {
+  for (auto &p : _players)
+  {
+    _live_entities.insert(static_cast<uint32_t>(p.entityId));
+  }
+  for (auto e : systems::spawned_projectiles) {
+    _live_entities.insert(static_cast<uint32_t>(e));
+  }
+  systems::spawned_projectiles.clear();
   // // Zigzag enemy
   // if (_tick % 200 == 0)
   // {
@@ -357,7 +338,8 @@ void server::broadcast_snapshot()
   auto &healths = _registry.get_components<component::health>();
   auto &velocities = _registry.get_components<component::velocity>();
 
-  constexpr std::size_t SNAPSHOT_LIMIT = 80;
+  
+  constexpr std::size_t SNAPSHOT_LIMIT = 10000;
   std::vector<EntityState> states;
   states.reserve(50);
   std::unordered_set<uint32_t> inserted; // track inside this call
@@ -370,6 +352,7 @@ void server::broadcast_snapshot()
   }
   for (uint32_t entityId : _live_entities)
   {
+    
     if (states.size() >= SNAPSHOT_LIMIT)
       break;
     size_t idx = static_cast<size_t>(entityId);
