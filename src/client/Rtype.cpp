@@ -62,7 +62,7 @@ void R_Type::Rtype::update(float deltaTime,
             inp.clientId = _player;
             inp.tick = _tick++;
             inp.keys = _keys;
-            PacketHeader ihdr{INPUT, sizeof(InputPacket), _tick};
+            PacketHeader ihdr{INPUT_PKT, sizeof(InputPacket), _tick};
             std::vector<uint8_t> ibuf(sizeof(InputPacket));
             std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
             _client->send(ihdr, ibuf, *_serverEndpoint);

@@ -4,3 +4,7 @@ vcpkg/
 \# Built executables at repo root
 r-type_client
 r-type_server
+vcpkg_installed/
+vcpkg
+Debug/
+Release/

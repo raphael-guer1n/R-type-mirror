@@ -2,7 +2,7 @@
 #include "engine/events/Events.hpp"
 #include "Rtype.hpp"
 
-int main() {
+int main(int argc, char* argv[]) {
     try
     {
         R_Type::Rtype game;
