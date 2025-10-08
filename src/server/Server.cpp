@@ -40,6 +40,7 @@ void server::register_components() {
   _registry.register_component<component::entity_kind>();
   _registry.register_component<component::controlled_by>();
   _registry.register_component<component::damage_cooldown>();
+  _registry.register_component<component::projectile_tag>();
 
   // AI related
   systems::init_ai_behaviors();
