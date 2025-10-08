@@ -3,6 +3,7 @@
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Texture.hpp"
 #include "common/Components.hpp"
+#include "engine/events/Events.hpp"
 
 namespace R_Type
 {
@@ -18,6 +19,6 @@ namespace R_Type
             component::animation projectileAnimation;
         public:
             void playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
-                uint32_t player, engine::registry& registry, uint8_t keys);
+                uint32_t player, engine::registry& registry, const std::unordered_set<engine::R_Events::Key>& pressedKeys);
     };
 }

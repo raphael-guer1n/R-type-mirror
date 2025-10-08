@@ -62,7 +62,7 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
 }
 
 void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
-    uint32_t player, engine::registry& registry, uint8_t keys)
+    uint32_t player, engine::registry& registry, const std::unordered_set<engine::R_Events::Key>& pressedKeys)
 {
     auto it = entityMap.find(player);
     if (it != entityMap.end()) {
@@ -70,9 +70,10 @@ void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>&
         auto& animations = registry.get_components<component::animation>();
         if (localId < animations.size() && animations[localId].has_value()) {
             auto &anim = *animations[localId];
-            if (keys & keyToBit(engine::R_Events::Key::Up)) {
+            using engine::R_Events::Key;
+            if (pressedKeys.count(Key::Up)) {
                 setAnimation(anim, "move_up", false);
-            } else if (keys & keyToBit(engine::R_Events::Key::Down)) {
+            } else if (pressedKeys.count(Key::Down)) {
                 setAnimation(anim, "move_down", true);
             }
             else {
