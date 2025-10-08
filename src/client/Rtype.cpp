@@ -239,11 +239,12 @@ uint8_t R_Type::keyToBit(engine::R_Events::Key key)
     }
 }
 
-void R_Type::setAnimation(component::animation &anim, const std::string &clip)
+void R_Type::setAnimation(component::animation &anim, const std::string &clip, bool reverse)
 {
     if (anim.currentClip != clip && anim.clips.find(clip) != anim.clips.end()) {
         anim.currentClip = clip;
         anim.currentFrame = 0;
         anim.timer = 0.f;
+        anim.reverse = reverse;
     }
 }

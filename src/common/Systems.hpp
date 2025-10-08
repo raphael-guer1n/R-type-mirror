@@ -111,7 +111,10 @@ inline void animation_system(registry &r,
                 anim.currentFrame = clip.loop ? 0 : clip.frameCount - 1;
             }
         }
-        draw.rect.pos.x = clip.startX + anim.currentFrame * clip.frameWidth;
+        if (!anim.reverse)
+            draw.rect.pos.x = clip.startX + anim.currentFrame * clip.frameWidth;
+        else
+            draw.rect.pos.x = clip.startX - anim.currentFrame * clip.frameWidth;
         draw.rect.pos.y = clip.startY;
         draw.rect.size.x = clip.frameWidth;
         draw.rect.size.y = clip.frameHeight;

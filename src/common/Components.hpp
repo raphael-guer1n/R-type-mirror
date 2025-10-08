@@ -156,6 +156,7 @@ namespace component
         std::string currentClip = "idle";
         int currentFrame = 0;
         float timer = 0.f;
+        bool reverse = false;
     };
 
 } // namespace component

@@ -39,5 +39,5 @@ namespace R_Type
             std::unordered_map<uint32_t, size_t> _entityMap;
     };
     uint8_t keyToBit(engine::R_Events::Key key);
-    void setAnimation(component::animation &anim, const std::string &clip);
+    void setAnimation(component::animation &anim, const std::string &clip, bool reverse);
 }

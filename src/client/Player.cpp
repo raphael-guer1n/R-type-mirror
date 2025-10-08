@@ -35,6 +35,18 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
             .loop = false
         }
     });
+    playerAnimation.clips.insert({
+        "move_down",
+        component::AnimationClip{
+            .frameCount = 3,
+            .frameTime = 0.12f,
+            .startX = 167,
+            .startY = 0,
+            .frameWidth = 33,
+            .frameHeight = 17,
+            .loop = false
+        }
+    });
 }
 
 void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
@@ -47,9 +59,12 @@ void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>&
         if (localId < animations.size() && animations[localId].has_value()) {
             auto &anim = *animations[localId];
             if (keys & keyToBit(engine::R_Events::Key::Up)) {
-                setAnimation(anim, "move_up");
-            } else {
-                setAnimation(anim, "idle");
+                setAnimation(anim, "move_up", false);
+            } else if (keys & keyToBit(engine::R_Events::Key::Down)) {
+                setAnimation(anim, "move_down", true);
+            }
+            else {
+                setAnimation(anim, "idle", false);
             }
         }
     }
