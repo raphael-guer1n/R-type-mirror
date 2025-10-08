@@ -20,7 +20,7 @@ enum PacketType : uint16_t
 {
     CONNECT_REQ = 1,
     CONNECT_ACK = 2,
-    INPUT = 3,
+    INPUT_PKT = 3,
     SNAPSHOT = 4,
     EVENT_PKT = 5,
     PING = 6,
