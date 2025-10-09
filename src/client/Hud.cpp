@@ -112,11 +112,12 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
 
     // === HEARTS ===
     int maxHearts = 3;
+    std::uint8_t currentHP = 1;
     float heartX = 690.0f;
     float heartY = 780.0f;
     float heartSpacing = 45.0f;
 
-    for (int i = 0; i < maxHearts; ++i)
+    for (std::uint8_t i = 0; i < currentHP && i < maxHearts; ++i)
     {
         auto heartEntity = registry.spawn_entity();
         registry.add_component(heartEntity, component::position{
