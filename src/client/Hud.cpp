@@ -23,6 +23,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
 
     registry.register_component<component::beam_charge>();
     registry.register_component<component::score>();
+    registry.register_component<component::health>();
     registry.register_component<component::hud_tag>();
 
     auto e = registry.spawn_entity();
@@ -107,5 +108,30 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
 
         engine::R_Graphic::textureRect rectHigh(0, 0, 128, 128);
         registry.emplace_component<component::drawable>(highEntity, tex, rectHigh);
+    }
+
+    // === HEARTS ===
+    int maxHearts = 3;
+    float heartX = 690.0f;
+    float heartY = 780.0f;
+    float heartSpacing = 45.0f;
+
+    for (int i = 0; i < maxHearts; ++i)
+    {
+        auto heartEntity = registry.spawn_entity();
+        registry.add_component(heartEntity, component::position{
+                                                static_cast<float>(heartX + i * heartSpacing),
+                                                static_cast<float>(heartY)});
+        registry.add_component(heartEntity, component::hud_tag{});
+        registry.add_component(heartEntity, component::health{1});
+
+        auto heartTex = std::make_shared<engine::R_Graphic::Texture>(
+            window,
+            "./Assets/Hud/heart.png",
+            engine::R_Graphic::doubleVec2(heartX + i * heartSpacing, heartY),
+            engine::R_Graphic::intVec2(32, 32));
+
+        engine::R_Graphic::textureRect heartRect(0, 0, 32, 32);
+        registry.emplace_component<component::drawable>(heartEntity, heartTex, heartRect);
     }
 }
