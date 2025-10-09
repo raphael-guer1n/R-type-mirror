@@ -1,9 +1,20 @@
+/**
+ * @class engine::zipper
+ * @brief Utility class to iterate over multiple containers in parallel (zip).
+ *
+ * The `zipper` class allows simultaneous iteration over several containers,
+ * providing a zipped view where each iteration yields elements from all containers.
+ * The iteration stops at the shortest container's end.
+ *
+ * @tparam Containers Variadic template parameter pack for container types to zip.
+ *
+ * @note The containers must support `.size()` and be compatible with the zipper_iterator.
+ *
+ * @see engine::zipper_iterator
+ */
 #pragma once
 #include "Zipper_iterator.hpp"
-/**
-    * @file Zipper.hpp
-    * @brief A utility to zip multiple containers together.
-    */
+
 namespace engine
 {
     template <class... Containers>

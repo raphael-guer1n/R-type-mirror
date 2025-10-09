@@ -1,3 +1,36 @@
+
+/**
+ * @class EnemyConfig
+ * @brief Represents the configuration for an enemy entity, loaded from a JSON file.
+ *
+ * This class encapsulates the properties and behaviors of an enemy, such as type, health points,
+ * movement speed, AI behavior, hitbox dimensions, and available spells. It provides a static method
+ * to load these configurations from a JSON file.
+ *
+ * @var EnemyConfig::type
+ * The type identifier of the enemy.
+ *
+ * @var EnemyConfig::hp
+ * The health points of the enemy.
+ *
+ * @var EnemyConfig::speed
+ * The movement speed of the enemy.
+ *
+ * @var EnemyConfig::behavior
+ * The AI behavior type of the enemy.
+ *
+ * @var EnemyConfig::hitbox
+ * The hitbox dimensions of the enemy.
+ *
+ * @var EnemyConfig::spells
+ * The list of spells the enemy can use.
+ *
+ * @fn static EnemyConfig load_enemy_config(const std::string &path)
+ * @brief Loads enemy configuration from a JSON file.
+ * @param path The path to the JSON configuration file.
+ * @return EnemyConfig The loaded enemy configuration.
+ * @throws std::runtime_error If the file cannot be opened.
+ */
 #pragma once
 #include <string>
 #include <vector>

@@ -1,3 +1,23 @@
+/**
+ * @file Events.hpp
+ * @brief Defines event types and key mappings for the engine's input system.
+ *
+ * This header provides the core event and key abstractions for the engine,
+ * mapping SDL events and keycodes to engine-specific types. It includes:
+ * - The `Type` enumeration for supported event types (keyboard, mouse, focus, quit).
+ * - The `Key` enumeration, mapping engine keys to SDL_Keycode values for comprehensive keyboard input handling.
+ * - The `Event` struct, representing a single event with type and associated data (keyboard or mouse).
+ * - Utility functions for mapping SDL keycodes to engine keys and for checking event presence in a collection.
+ *
+ * Usage:
+ * - Use `engine::R_Events::Event` to represent and process input events in the engine.
+ * - Use `engine::R_Events::mapSDLKey()` to convert SDL_Keycode values to engine key enums.
+ * - Use `engine::R_Events::hasEvent()` to check for specific event types in an event list.
+ *
+ * @namespace engine::R_Events
+ * @author marysekatary
+ * @date 2024
+ */
 #pragma once
 #include <SDL.h>
 #include <vector>

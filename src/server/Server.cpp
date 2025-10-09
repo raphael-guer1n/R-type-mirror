@@ -1,3 +1,34 @@
+
+/**
+ * @file Server.cpp
+ * @brief Implementation of the main server logic for the R-Type game.
+ *
+ * This file contains the core server-side logic, including entity management,
+ * network communication, game tick handling, system registration, and enemy spawning.
+ * The server uses an ECS (Entity Component System) architecture to manage game entities
+ * and their behaviors, and communicates with clients via UDP sockets.
+ *
+ * Main functionalities:
+ * - Registers and manages game components and systems.
+ * - Handles player connections and spawns player entities.
+ * - Processes network inputs from clients to update player states.
+ * - Spawns enemies and projectiles at regular intervals based on game ticks.
+ * - Runs game logic and updates entity states each tick.
+ * - Broadcasts game state snapshots to all connected players.
+ *
+ * Key classes and functions:
+ * - server::server: Constructor, initializes server and registers components/systems.
+ * - server::run: Main game loop, processes inputs, updates game state, and broadcasts snapshots.
+ * - server::register_components: Registers all ECS components used in the game.
+ * - server::setup_systems: Registers all ECS systems, including AI and collision handling.
+ * - server::game_handler: Spawns enemies and handles game-specific logic per tick.
+ * - server::broadcast_snapshot: Sends the current game state to all players.
+ * - server::wait_for_players: Waits for player connections and spawns player entities.
+ * - server::process_network_inputs: Handles incoming network packets and updates player states.
+ * - server::spawn_player: Spawns a new player entity with default components.
+ * - server::spawn_projectile: Spawns a projectile entity for a given owner.
+ *
+ */
 #include "server/Server.hpp"
 #include "common/Systems.hpp"
 #include "common/Systems_client_sdl.hpp"

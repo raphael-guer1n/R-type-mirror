@@ -3,10 +3,26 @@
 #include <type_traits>
 #include <utility>
 #include <stdexcept>
+/**
+ * @file EntityFactory.hpp
+ * @brief Defines utilities for creating entities with components in the ECS engine.
+ */
 
 namespace engine
 {
-
+    /**
+     * @brief Creates a new entity and adds the specified components to it.
+     *
+     * Ensures that the registry is prepared to store each component type, then spawns a new entity
+     * and adds the provided components to it.
+     *
+     * @tparam Components Variadic list of component types to add to the entity.
+     * @param r Reference to the registry.
+     * @param comps Instances of components to add to the entity.
+     * @return entity_t The newly created entity.
+     *
+     * @throws std::bad_any_cast If a component array exists but is of the wrong type.
+     */
     namespace detail
     {
         template <typename Component>

@@ -1,3 +1,4 @@
+
 #pragma once
 #include <iostream>
 #include "engine/ecs/Registry.hpp"
@@ -7,6 +8,37 @@
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Window.hpp"
+/**
+ * @file Systems_client_sdl.hpp
+ * @brief Defines ECS systems for client-side SDL rendering and control in the R-Type project.
+ *
+ * This header provides implementations for several core systems used in the client-side
+ * entity-component-system (ECS) architecture, specifically tailored for SDL rendering and
+ * input handling. The systems operate on sparse arrays of components and interact with
+ * the rendering engine and application window.
+ *
+ * @details
+ * - control_system: Resets the velocity of all controllable entities to zero. This is typically
+ *   called at the start of each frame before input is processed, ensuring that velocity is only
+ *   set in response to current input.
+ *
+ * - draw_system: Renders all drawable entities whose position and drawable components are present.
+ *   Entities are drawn in order of their layer property, allowing for correct layering of sprites.
+ *   The system updates the texture position and invokes the draw method for each entity.
+ *
+ * - scroll_reset_system: Handles background scrolling for entities marked as 'decor'. When a
+ *   background entity moves out of the visible window (to the left), its position is reset to
+ *   create a seamless scrolling effect. Requires at least two background entities to function
+ *   correctly.
+ *
+ * @note
+ * These systems are designed to be used with the custom ECS framework and rendering engine
+ * provided in the R-Type project. They assume the presence of specific component types and
+ * engine interfaces.
+ *
+ * @author marysekatary
+ */
+
 
 using namespace engine;
 

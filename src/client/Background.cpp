@@ -1,3 +1,13 @@
+/**
+ * @brief Initializes the background entities for the R-Type client.
+ *
+ * This constructor creates two background entities to enable a seamless scrolling starfield effect.
+ * Each entity is assigned a position, velocity, and decor kind, and is associated with a drawable
+ * component using the starfield texture. The second entity is positioned to the right of the first,
+ * allowing for continuous background movement as the game progresses.
+ *
+ * @param rtype Reference to the main Rtype application, used to access the window, registry, and resources.
+ */
 #include <iostream>
 #include "Background.hpp"
 #include "common/Systems.hpp"
