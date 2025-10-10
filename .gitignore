@@ -4,3 +4,4 @@ vcpkg/
 \# Built executables at repo root
 r-type_client
 r-type_server
+.DS_Store

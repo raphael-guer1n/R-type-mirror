@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <asio.hpp>
 #include "Hud.hpp"
+#include "Menu.hpp"
 #include "Player.hpp"
 #include "engine/network/Udpsocket.hpp"
 #include "engine/renderer/App.hpp"
@@ -41,5 +42,7 @@ namespace R_Type
             std::unique_ptr<engine::net::UdpSocket> _client;
             std::unique_ptr<Player> _playerTexture;
             std::unique_ptr<Hud> _hud;
+            std::unique_ptr<R_Type::Menu> _menu;
+            bool _inMenu = true;
     };
 }

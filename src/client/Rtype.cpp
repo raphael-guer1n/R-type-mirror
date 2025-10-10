@@ -24,12 +24,6 @@ R_Type::Rtype::Rtype()
         _serverEndpoint = std::make_unique<asio::ip::udp::endpoint>(asio::ip::make_address("127.0.0.1"), 4242);
 
         // --- STEP 1: Connect ---
-        ConnectReq req{42};
-        PacketHeader hdr{CONNECT_REQ, sizeof(ConnectReq), 0};
-        std::vector<uint8_t> buf(sizeof(ConnectReq));
-        std::memcpy(buf.data(), &req, sizeof(ConnectReq));
-        _client->send(hdr, buf, *_serverEndpoint);
-        std::cout << "Sent CONNECT_REQ\n";
         _registry.register_component<component::drawable>();
         _registry.register_component<component::position>();
         _registry.register_component<component::velocity>();
@@ -39,6 +33,7 @@ R_Type::Rtype::Rtype()
         _background = std::make_unique<Background>(*this);
         _playerTexture = std::make_unique<Player>(*this);
         _hud = std::make_unique<Hud>(*this);
+        _menu = std::make_unique<R_Type::Menu>(_app);
     }
     catch(const R_Graphic::Error& e)
     {
@@ -49,6 +44,20 @@ R_Type::Rtype::Rtype()
 void R_Type::Rtype::update(float deltaTime,
     const std::vector<R_Events::Event> &events)
     {
+        if (_inMenu) {
+            bool start = _menu->update(events);
+            if (start) {
+                _inMenu = false;
+                ConnectReq req{42};
+                PacketHeader hdr{CONNECT_REQ, sizeof(ConnectReq), 0};
+                std::vector<uint8_t> buf(sizeof(ConnectReq));
+                std::memcpy(buf.data(), &req, sizeof(ConnectReq));
+                _client->send(hdr, buf, *_serverEndpoint);
+                std::cout << "Sent CONNECT_REQ\n";
+                this->waiting_connection();
+            }
+        return;
+        }
         for (auto &ev : events) {
             if (ev.type == R_Events::Type::KeyDown)
             {
@@ -178,6 +187,8 @@ void R_Type::Rtype::receiveSnapshot()
 
 void R_Type::Rtype::draw()
 {
+    if (_inMenu)
+        return;
     auto& positions = _registry.get_components<component::position>();
     auto& drawables = _registry.get_components<component::drawable>();
 

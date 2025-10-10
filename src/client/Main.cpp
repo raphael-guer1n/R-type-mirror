@@ -6,7 +6,6 @@ int main() {
     try
     {
         R_Type::Rtype game;
-        game.waiting_connection();
         game.getApp().run(
             [&game](float dt, const std::vector<engine::R_Events::Event> &events)
             {

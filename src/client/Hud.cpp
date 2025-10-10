@@ -112,7 +112,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
 
     // === HEARTS ===
     int maxHearts = 3;
-    std::uint8_t currentHP = 1;
+    std::uint8_t currentHP = 3;
     float heartX = 690.0f;
     float heartY = 780.0f;
     float heartSpacing = 45.0f;

@@ -4,6 +4,7 @@ add_executable(r-type_client
     Background.cpp
     Player.cpp
     Hud.cpp
+    Menu.cpp
 )
 
 find_package(asio CONFIG REQUIRED)
