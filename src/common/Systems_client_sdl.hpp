@@ -1,3 +1,4 @@
+
 #pragma once
 #include <iostream>
 #include "engine/ecs/Registry.hpp"
@@ -8,22 +9,48 @@
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Window.hpp"
+/**
+ * @file Systems_client_sdl.hpp
+ * @brief Defines ECS systems for client-side SDL rendering and control in the R-Type project.
+ *
+ * This header provides implementations for several core systems used in the client-side
+ * entity-component-system (ECS) architecture, specifically tailored for SDL rendering and
+ * input handling. The systems operate on sparse arrays of components and interact with
+ * the rendering engine and application window.
+ *
+ * @details
+ * - control_system: Resets the velocity of all controllable entities to zero. This is typically
+ *   called at the start of each frame before input is processed, ensuring that velocity is only
+ *   set in response to current input.
+ *
+ * - draw_system: Renders all drawable entities whose position and drawable components are present.
+ *   Entities are drawn in order of their layer property, allowing for correct layering of sprites.
+ *   The system updates the texture position and invokes the draw method for each entity.
+ *
+ * - scroll_reset_system: Handles background scrolling for entities marked as 'decor'. When a
+ *   background entity moves out of the visible window (to the left), its position is reset to
+ *   create a seamless scrolling effect. Requires at least two background entities to function
+ *   correctly.
+ *
+ * @note
+ * These systems are designed to be used with the custom ECS framework and rendering engine
+ * provided in the R-Type project. They assume the presence of specific component types and
+ * engine interfaces.
+ *
+ * @author marysekatary
+ */
+
 
 using namespace engine;
 
 inline void control_system(registry &r,
     sparse_array<component::velocity> &velocities,
-    sparse_array<component::controllable> &controls,
-    uint8_t keys)
+    sparse_array<component::controllable> &controls)
 {
     for (auto &&[i, vel, c] : indexed_zipper(velocities, controls))
     {
         vel.vx = 0.f;
         vel.vy = 0.f;
-        // if (keys & 0x01) vel.vx = -200.f;
-        // if (keys & 0x02) vel.vx =  200.f;
-        // if (keys & 0x04) vel.vy = -200.f;
-        // if (keys & 0x08) vel.vy =  200.f;
     }
 }
 
@@ -33,12 +60,19 @@ inline void draw_system(registry &r,
     sparse_array<component::drawable> &drawables,
     R_Graphic::Window &window)
 {
-    for (auto &&[pos, dr] : zipper(positions, drawables))
-    {
-        if (dr.texture) {
-                dr.texture->position = {pos.x, pos.y};
-                dr.texture->draw(window, &dr.rect);
-        }
+    std::vector<size_t> indices;
+    for (size_t i = 0; i < drawables.size(); i++) {
+        if (drawables[i] && positions[i])
+            indices.push_back(i);
+    }
+    std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
+        return drawables[a]->layer < drawables[b]->layer;
+    });
+    for (size_t idx: indices) {
+        auto &d = *drawables[idx];
+        auto &p = *positions[idx];
+        d.texture->position = {p.x, p.y};
+        d.texture->draw(window, &d.rect);
     }
 }
 

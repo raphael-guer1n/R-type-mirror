@@ -2,10 +2,42 @@
 #include <tuple>
 #include <optional>
 #include <cstddef>
+
 /**
-    * @file Zipper_iterator.hpp
-    * @brief An iterator that zips multiple containers together.
-    */
+ * @file Zipper_iterator.hpp
+ * @brief Defines the engine::zipper_iterator class template for iterating over multiple containers in parallel.
+ *
+ * @namespace engine
+ * @class zipper_iterator
+ * @tparam Containers Variadic template parameter pack representing the container types to be zipped.
+ *
+ * @brief The zipper_iterator class template allows parallel iteration over multiple containers, 
+ *        providing access to corresponding elements from each container as a tuple of references.
+ *        It skips over indices where any container does not have a valid value (i.e., where std::optional is not set).
+ *
+ * @details
+ * - The iterator is constructed with pointers to the containers, a starting index, and a maximum index.
+ * - At each valid position, dereferencing the iterator yields a tuple of references to the values in each container.
+ * - The iterator automatically skips indices where any container's element is not set (i.e., has_value() is false).
+ * - The containers are expected to store elements of type std::optional<T>, and the value_type is a tuple of references to the contained values.
+ *
+ * @note
+ * - The containers must support operator[] and return std::optional for their elements.
+ * - The iterator is not a standard STL iterator, but provides similar semantics for use in range-based loops or manual iteration.
+ *
+ * @example
+ * @code
+ * std::vector<std::optional<int>> a = {1, std::nullopt, 3};
+ * std::vector<std::optional<float>> b = {2.0f, 4.0f, std::nullopt};
+ * engine::zipper_iterator<std::vector<std::optional<int>>, std::vector<std::optional<float>>> it({&a, &b}, 0, 3);
+ * while (it != end) {
+ *     auto [ai, bi] = *it;
+ *     // Use ai and bi
+ *     ++it;
+ * }
+ * @endcode
+ */
+ 
 namespace engine
 {
     template <class... Containers>

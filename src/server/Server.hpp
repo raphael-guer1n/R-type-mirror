@@ -11,7 +11,32 @@
 #include "engine/network/Udpsocket.hpp"
 
 #define PLAYER_SPEED 200.0f
-
+/**
+ * @class server
+ * @brief Main server class for managing game state, networking, and player entities.
+ *
+ * This class encapsulates the core logic for running the game server, including player registration,
+ * network communication, game loop management, and entity handling using an ECS (Entity Component System) architecture.
+ *
+ * @note Uses ASIO for networking and custom ECS/UDP socket implementations.
+ *
+ * @section Responsibilities
+ * - Accepts and manages player connections via UDP.
+ * - Handles game loop phases: waiting for players, processing inputs, updating game state, and broadcasting snapshots.
+ * - Spawns and manages player and projectile entities.
+ * - Centralizes entity removal logic to maintain ECS pipeline integrity.
+ *
+ * @section Usage
+ * Instantiate with an ASIO io_context and optional port, then call run() to start the server loop.
+ *
+ * @section Members
+ * - _registry: ECS registry for managing entities and components.
+ * - _socket: UDP socket for network communication.
+ * - _players: List of connected players and their associated entities.
+ * - _live_entities: Set of currently active entities.
+ * - _tick: Current server tick for synchronization.
+ * - _gen: Random number generator for entity spawning and game logic.
+ */
 class server
 {
 public:

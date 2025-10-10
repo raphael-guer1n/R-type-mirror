@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+#include <unordered_map>
+#include <string>
 #include <functional>
 
 namespace engine
@@ -137,6 +139,24 @@ namespace component
         float dirY{0.f};
         float speed{20.f};
         int damage{1};
+    };
+
+    struct AnimationClip {
+        int frameCount = 1;
+        float frameTime = 0.1f;
+        int startX = 0;
+        int startY = 0;
+        int frameWidth = 0;
+        int frameHeight = 0;
+        bool loop = false;
+    };
+
+    struct animation {
+        std::unordered_map<std::string, AnimationClip> clips;
+        std::string currentClip = "idle";
+        int currentFrame = 0;
+        float timer = 0.f;
+        bool reverse = false;
     };
 
 } // namespace component

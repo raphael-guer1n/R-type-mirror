@@ -20,7 +20,7 @@ enum PacketType : uint16_t
 {
     CONNECT_REQ = 1,
     CONNECT_ACK = 2,
-    INPUT = 3,
+    INPUT_PKT = 3,
     SNAPSHOT = 4,
     EVENT_PKT = 5,
     PING = 6,
@@ -46,7 +46,7 @@ struct InputPacket
 {
     uint32_t clientId;
     uint32_t tick;
-    uint8_t keys;
+    uint16_t keyCount;
 };
 /**    * @brief State of a single entity in a snapshot.
     */  
