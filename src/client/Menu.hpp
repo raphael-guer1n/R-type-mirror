@@ -10,10 +10,8 @@ namespace R_Type {
         explicit Menu(engine::R_Graphic::App &app);
         ~Menu() = default;
 
-        // Affiche et gère le menu — renvoie true si le jeu doit démarrer
         bool update(const std::vector<engine::R_Events::Event> &events);
 
-        // Dessine le menu (fond + boutons)
         void draw();
 
     private:
@@ -21,6 +19,7 @@ namespace R_Type {
         std::shared_ptr<engine::R_Graphic::Texture> _background;
         std::shared_ptr<engine::R_Graphic::Texture> _startButton;
         std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;
 
         bool _startPressed = false;
         bool _quitPressed = false;
