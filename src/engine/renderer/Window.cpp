@@ -50,6 +50,18 @@ std::vector<engine::R_Events::Event> engine::R_Graphic::Window::pollEvents(bool 
             case SDL_KEYUP:
                 events.push_back({R_Events::Type::KeyUp, .key={R_Events::mapSDLKey(event.key.keysym.sym)}});
                 break;
+            case SDL_MOUSEBUTTONDOWN:
+                events.push_back({
+                    R_Events::Type::MouseButtonDown,
+                    .mouse = { event.button.x, event.button.y, event.button.button }
+                });
+                break;
+            case SDL_MOUSEBUTTONUP:
+                events.push_back({
+                    R_Events::Type::MouseButtonUp,
+                    .mouse = { event.button.x, event.button.y, event.button.button }
+                });
+                break;
             case SDL_WINDOWEVENT:
                 switch (event.window.event) {
                     case SDL_WINDOWEVENT_FOCUS_GAINED:
