@@ -20,6 +20,7 @@ namespace R_Type {
         std::shared_ptr<engine::R_Graphic::Texture> _startButton;
         std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
         std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;
+        std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
 
         bool _startPressed = false;
         bool _quitPressed = false;

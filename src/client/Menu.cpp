@@ -5,6 +5,14 @@
 R_Type::Menu::Menu(engine::R_Graphic::App &app)
     : _app(app)
 {
+    static std::unordered_map<char, std::string> fontMap = {
+    {'R', "CK_StarGlowing_R.png"},
+    {'-', "CK_StarGlowing_-.png"},
+    {'T', "CK_StarGlowing_T.png"},
+    {'Y', "CK_StarGlowing_Y.png"},
+    {'P', "CK_StarGlowing_P.png"},
+    {'E', "CK_StarGlowing_E.png"}
+    };
 
     _background = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
@@ -34,6 +42,26 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::intVec2(400, 120)
     );
 
+    float startX = 430.0f; 
+    float startY = 60.0f;
+    float spacing = 100.0f;
+    float scale = 1.5f;
+
+    for (size_t i = 0; i < 6; ++i) {
+        std::string title = "R-TYPE";
+        char ch = std::toupper(title[i]);
+        if (!fontMap.count(ch))
+            continue;
+
+        std::string path = "./Assets/Hud/Score/" + fontMap[ch];
+        auto tex = std::make_shared<engine::R_Graphic::Texture>(
+            _app.getWindow(),
+            path,
+            engine::R_Graphic::doubleVec2(startX + i * spacing, startY),
+            engine::R_Graphic::intVec2(static_cast<int>(128 * scale), static_cast<int>(128 * scale))
+        );
+        _titleLetters.push_back(tex);
+    }
 }
 
 bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
@@ -61,6 +89,8 @@ void R_Type::Menu::draw()
 {
     _app.getRenderer().clear();
     _background->draw(_app.getWindow(), nullptr);
+    for (auto &tex : _titleLetters)
+        tex->draw(_app.getWindow(), nullptr);
     _startButton->draw(_app.getWindow(), nullptr);
     _settingsButton->draw(_app.getWindow(), nullptr);
     _quitButton->draw(_app.getWindow(), nullptr);
