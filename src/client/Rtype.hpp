@@ -2,6 +2,8 @@
 #include <memory>
 #include <unordered_set>
 #include <asio.hpp>
+#include "Hud.hpp"
+#include "Menu.hpp"
 #include "Player.hpp"
 #include "engine/network/Udpsocket.hpp"
 #include "engine/renderer/App.hpp"
@@ -64,6 +66,7 @@
  */
 namespace R_Type
 {
+    class Hud;
     class Rtype
     {
         public:
@@ -90,6 +93,9 @@ namespace R_Type
             std::unique_ptr<engine::net::UdpSocket> _client;
             std::unique_ptr<Player> _playerData;
             std::unordered_map<uint32_t, size_t> _entityMap;
+            std::unique_ptr<Hud> _hud;
+            std::unique_ptr<R_Type::Menu> _menu;
+            bool _inMenu = true;
     };
     void setAnimation(component::animation &anim, const std::string &clip, bool reverse);
 }

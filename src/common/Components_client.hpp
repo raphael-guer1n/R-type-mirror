@@ -11,4 +11,21 @@ namespace component
 
     // Optional tag to mark remote players (other clients)
     struct remote_player_tag {};
+    
+    struct hud_tag {};
+
+    // struct health {
+    //     int current;
+    //     int max;
+    // };
+
+    struct beam_charge {
+        float value;
+        bool isCharging;
+    };
+
+    struct score {
+        int current;
+        int highScore;
+    };
 }

@@ -3,6 +3,8 @@ add_executable(r-type_client
     Rtype.cpp
     Background.cpp
     Player.cpp
+    Hud.cpp
+    Menu.cpp
 )
 
 find_package(asio CONFIG REQUIRED)

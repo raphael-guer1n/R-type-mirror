@@ -70,3 +70,8 @@ engine::R_Graphic::Window& engine::R_Graphic::App::getWindow()
 {
     return _window;
 }
+
+engine::R_Graphic::Renderer& engine::R_Graphic::App::getRenderer() 
+{
+    return *_renderer;
+}

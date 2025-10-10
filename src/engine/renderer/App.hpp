@@ -28,6 +28,7 @@ namespace engine {
                 const std::vector<R_Events::Event>& getEvents() const {
                     return _events;
                 }
+                Renderer& getRenderer();
             private:
                 std::vector<R_Events::Event> _events;
                 std::unique_ptr<Renderer> _renderer;

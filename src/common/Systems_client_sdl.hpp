@@ -4,6 +4,7 @@
 #include "engine/ecs/Registry.hpp"
 #include "common/Components.hpp"
 #include "common/Components_client_sdl.hpp"
+#include "common/Components_client.hpp"
 #include "engine/ecs/iterator/Zipper.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include "engine/renderer/App.hpp"
@@ -102,3 +103,5 @@ inline void scroll_reset_system(engine::registry& r,
     if (bg2.x + width <= 0)
         bg2.x = bg1.x + width;
 }
+
+
