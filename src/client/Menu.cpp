@@ -1,17 +1,18 @@
 #include "Menu.hpp"
 #include <iostream>
-#include <cstdlib> 
+#include <cstdlib>
+#include "engine/audio/Music.hpp"
 
 R_Type::Menu::Menu(engine::R_Graphic::App &app)
     : _app(app)
 {
     static std::unordered_map<char, std::string> fontMap = {
-    {'R', "CK_StarGlowing_R.png"},
-    {'-', "CK_StarGlowing_-.png"},
-    {'T', "CK_StarGlowing_T.png"},
-    {'Y', "CK_StarGlowing_Y.png"},
-    {'P', "CK_StarGlowing_P.png"},
-    {'E', "CK_StarGlowing_E.png"}
+        {'R', "CK_StarGlowing_R.png"},
+        {'-', "CK_StarGlowing_-.png"},
+        {'T', "CK_StarGlowing_T.png"},
+        {'Y', "CK_StarGlowing_Y.png"},
+        {'P', "CK_StarGlowing_P.png"},
+        {'E', "CK_StarGlowing_E.png"}
     };
 
     _background = std::make_shared<engine::R_Graphic::Texture>(
@@ -62,6 +63,12 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         );
         _titleLetters.push_back(tex);
     }
+
+    if (_menuMusic.load("./Assets/Music/Menu.ogg")) {
+        _menuMusic.play(true);
+    } else {
+        std::cerr << "[AUDIO] Failed to load Menu.ogg\n";
+    }
 }
 
 bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
@@ -73,14 +80,26 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
 
             if (x >= 550 && x <= 950 && y >= 300 && y <= 420) {
                 _startPressed = true;
+
+                _menuMusic.stop();
+
+                if (_gameMusic.load("./Assets/Music/Game.ogg")) {
+                    _gameMusic.play(true);
+                } else {
+                    std::cerr << "[AUDIO] Failed to load Game.ogg\n";
+                }
+
                 return true;
             }
+
             if (x >= 550 && x <= 950 && y >= 600 && y <= 720) {
                 _quitPressed = true;
+                _menuMusic.stop();
                 std::exit(0);
             }
         }
     }
+
     draw();
     return false;
 }

@@ -1,3 +1,25 @@
+/**
+ * @file Hud.hpp
+ * @brief Definition of the Hud class used in the R-Type engine.
+ *
+ * The Hud class represents the Heads-Up Display (HUD) in the R-Type game. 
+ * It is responsible for displaying and tracking information visible to 
+ * the player (e.g., score, lives, etc.).
+ *
+ * @details 
+ * - The class is tightly coupled with the Rtype class, from which it depends.
+ * - It is constructed using a reference to an existing Rtype instance.
+ * - The destructor is defaulted.
+ *
+ * @namespace R_Type
+ * Namespace for the R-Type project.
+ *
+ * @class R_Type::Hud
+ * @brief Class managing the in-game HUD (Heads-Up Display) for R-Type.
+ *
+ * @see R_Type::Rtype
+ */
+
 #pragma once
 
 #include "Rtype.hpp"
