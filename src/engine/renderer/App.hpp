@@ -6,6 +6,7 @@
 #include "Window.hpp"
 #include "Renderer.hpp"
 #include "engine/events/Events.hpp"
+#include "engine/audio/Music.hpp"
 
 /**
  * @brief Déclaration de la classe App pour gérer la boucle principale d'une application graphique.
@@ -29,10 +30,12 @@ namespace engine {
                     return _events;
                 }
                 Renderer& getRenderer();
+                engine::audio::Music& getMusic() { return _music; }
             private:
                 std::vector<R_Events::Event> _events;
                 std::unique_ptr<Renderer> _renderer;
                 Window _window;
+                engine::audio::Music _music;
         };
     }
 }
