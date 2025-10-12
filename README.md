@@ -11,22 +11,49 @@ The goal is twofold:
 ## Build and Run
 
 ### Requirements
-- C++17 compatible compiler (GCC, Clang, or MSVC on Windows)
+- C++17 compatible compiler (GCC/Clang on Linux, MSVC on Windows)
 - [CMake](https://cmake.org/) (>= 3.18 recommended)
-- Package manager: Conan, Vcpkg, or CMake-CPM
+- [vcpkg](https://github.com/microsoft/vcpkg) (manifest mode, vcpkg.json provided)
 
-### Build instructions
-```bash
-git clone https://github.com/<your-repo>/r-type.git
-cd r-type
-mkdir build && cd build
-cmake ..
-cmake --build .
-```
+### Quick build
 
-Binaries:
+- Linux/macOS
+	- Run at the repository root:
+		- `./build.sh`
+	- This configures CMake with the vcpkg toolchain and builds at the root of the project
+
+- Windows
+	- Run at the repository root:
+		- `build.bat`
+	- This generates a Visual Studio 2022 x64 solution, uses the vcpkg toolchain, and builds into `Release`
+
+Built binaries (depending on configuration):
+
+**Linux / MacOS**
+
+at the root of the project :
+
 - `r-type_server`
 - `r-type_client`
+
+**Windows**
+
+in the `Release\` folder :
+
+- `r-type_server.exe`
+- `r-type_client.exe`
+
+### Using vcpkg
+
+This project uses vcpkg in manifest mode via `vcpkg.json`.
+
+Minimal setup:
+- Clone vcpkg: `git clone https://github.com/microsoft/vcpkg.git`
+- Bootstrap vcpkg:
+	- Linux/macOS: `./vcpkg/bootstrap-vcpkg.sh`
+	- Windows: `vcpkg\bootstrap-vcpkg.bat`
+
+That’s it. The provided build scripts already pass the vcpkg toolchain file to CMake.
 
 ---
 
@@ -58,4 +85,3 @@ Choose one or several:
 - Liza Goulmot
 - Maryse Katary
 - Kevin Poly
-License: MIT
