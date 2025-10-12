@@ -141,10 +141,6 @@ void R_Type::Rtype::receiveSnapshot() {
           positions[idLocal]->x = es.x;
           positions[idLocal]->y = es.y;
           collisions[idLocal]->collided = (es.collided != 0);
-          std::cout << "[Client] recv ID=" << es.entityId
-                    << " type=" << (int)es.type << " pos=(" << es.x << ","
-                    << es.y << ")"
-                    << " vel=(" << es.vx << "," << es.vy << ")\n";
         }
       }
 

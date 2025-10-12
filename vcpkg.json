@@ -8,6 +8,7 @@
       "features": ["x11"]
     },
     "sdl2-image",
+    "sdl2-ttf",
     "asio",
     "nlohmann-json"
   ]
