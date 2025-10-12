@@ -8,25 +8,25 @@ This document describes the runtime architecture of the project in a language- a
 flowchart LR
   %% --- SERVER SIDE ---
   subgraph Server
-    Loop[Main Loop (~60 Hz)]
-    NetS[UDP Socket (non-blocking)]
-    ECS[ECS Systems]
+    Loop["Main Loop (~60 Hz)"]
+    NetS["UDP Socket (non-blocking)"]
+    ECS["ECS Systems"]
   end
 
   %% --- CLIENT SIDE ---
   subgraph Client
-    Input[Input Capture]
-    NetC[UDP Socket]
-    View[Presentation (ECS-backed)]
+    Input["Input Capture"]
+    NetC["UDP Socket"]
+    View["Presentation (ECS-backed)"]
   end
 
   %% --- CONNECTIONS ---
   Input --> NetC
-  NetC -->|INPUT| NetS
-  NetS -->|SNAPSHOT / EVENT| NetC
+  NetC -->|"INPUT"| NetS
+  NetS -->|"SNAPSHOT / EVENT"| NetC
   Loop --> ECS
   ECS --> Loop
-  Loop -->|Broadcast SNAPSHOT| NetS
+  Loop -->|"Broadcast SNAPSHOT"| NetS
   NetC --> View
 ```
 
@@ -39,9 +39,9 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    MainLoop[Main Loop (~60 Hz)] --> ECS[ECS Systems]
-    ECS -->|Update Entities| MainLoop
-    MainLoop -->|non-blocking recv/send| Net[UDP Socket]
+  MainLoop["Main Loop (~60 Hz)"] --> ECS["ECS Systems"]
+  ECS -->|"Update Entities"| MainLoop
+  MainLoop -->|"non-blocking recv/send"| Net["UDP Socket"]
 ```
 
 - Single deterministic main loop (~60 Hz).
