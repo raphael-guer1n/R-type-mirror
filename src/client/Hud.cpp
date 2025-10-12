@@ -1,6 +1,7 @@
 #include "Hud.hpp"
 #include "common/Components_client_sdl.hpp"
 #include "Rtype.hpp"
+#include "common/Layers.hpp"
 #include <memory>
 #include <unordered_map>
 #include <cctype>
@@ -43,7 +44,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
         engine::R_Graphic::intVec2(500, 120));
 
     engine::R_Graphic::textureRect rect(0, 530, 1200, 140);
-    registry.emplace_component<component::drawable>(e, bar, rect);
+    registry.emplace_component<component::drawable>(e, bar, rect, layers::HudBase);
 
     // === SCORE  ===
     float hudScale = 0.5f;
@@ -77,7 +78,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
             scaledSize);
 
         engine::R_Graphic::textureRect rectDigit(0, 0, 128, 128);
-        registry.emplace_component<component::drawable>(digitEntity, tex, rectDigit);
+    registry.emplace_component<component::drawable>(digitEntity, tex, rectDigit, layers::HudText);
     }
 
     // === HIGH SCORE ===
@@ -107,7 +108,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
             scaledSize);
 
         engine::R_Graphic::textureRect rectHigh(0, 0, 128, 128);
-        registry.emplace_component<component::drawable>(highEntity, tex, rectHigh);
+    registry.emplace_component<component::drawable>(highEntity, tex, rectHigh, layers::HudText);
     }
 
     // === HEARTS ===
@@ -133,6 +134,6 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
             engine::R_Graphic::intVec2(32, 32));
 
         engine::R_Graphic::textureRect heartRect(0, 0, 32, 32);
-        registry.emplace_component<component::drawable>(heartEntity, heartTex, heartRect);
+    registry.emplace_component<component::drawable>(heartEntity, heartTex, heartRect, layers::HudIcons);
     }
 }

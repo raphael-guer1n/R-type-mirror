@@ -1,14 +1,16 @@
 find_package(SDL2 CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
 find_package(SDL2_mixer CONFIG REQUIRED)
-
+find_package(asio CONFIG REQUIRED)
 
 add_library(engine
     renderer/App.cpp
     renderer/Renderer.cpp
     renderer/Texture.cpp
     renderer/Window.cpp
-    audio/Music.cpp)
+    audio/Music.cpp
+    network/IoContext.cpp
+    network/UdpSocket.cpp)
 
 target_include_directories(engine
     PUBLIC

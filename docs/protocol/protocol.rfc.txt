@@ -40,6 +40,7 @@ Abstract
    are to be interpreted as described in RFC 2119.
 
    All integers are little-endian unless otherwise specified.
+   Floating point values use IEEE-754 binary32 (32-bit), little-endian.
    All packets start with a fixed-size header.
    Time is expressed in ticks, synchronized by the server.
    UDP is used as transport; no retransmission is guaranteed.
@@ -47,21 +48,17 @@ Abstract
 
 3. Packet Header
 
-   Every packet begins with a 12-byte header:
+   Every packet begins with an 8-byte header:
 
       0               1               2               3
       +-------+-------+---------------+---------------+
       | Type  | Size  |     Sequence Number (32)      |
       +-------+-------+---------------+---------------+
-      |                 Ack Number (32)               |
-      +-----------------------------------------------+
 
    Fields:
-
       - type: 16-bit unsigned integer, packet type
-      - size: 16-bit unsigned integer, total size in bytes
+      - size: 16-bit unsigned integer, payload size in bytes (header excluded)
       - seq:  32-bit unsigned integer, incremented per packet
-      - ack:  32-bit unsigned integer, last seq received from peer
 
 
 4. Packet Types
@@ -80,51 +77,43 @@ Abstract
 
    4.3 INPUT (0x03)
 
-      Sent by client to provide one or more input commands.
+      Sent by client to report keys pressed at a given tick.
 
-      InputPacket:
-         - clientId (32 bits)
-         - cmdCount (8 bits)
-
-      UserCmd (repeated cmdCount times):
-         - tick  (32 bits)
-         - dx    (16 bits)
-         - dy    (16 bits)
-         - act   (8 bits) bitmask of actions
-           * bit 0 = SHOOT
-           * bit 1 = BOMB
-           * others reserved
+      Fields:
+         - clientId  (32-bit unsigned)
+         - tick      (32-bit unsigned)
+         - keyCount  (16-bit unsigned)
+         - keys      (keyCount × 32-bit signed integers)
 
    4.4 SNAPSHOT (0x04)
 
-      Sent by server to broadcast world state. Snapshots use delta
-      compression: only changed fields are included.
+      Sent by server to broadcast world state.
 
-      SnapshotHeader:
-         - tick        (32 bits)
-         - entityCount (16 bits)
+      Snapshot header:
+         - tick        (32-bit unsigned)
+         - entityCount (16-bit unsigned)
 
       EntityState (repeated entityCount times):
-         - entityId (32 bits)
-         - flags    (8 bits) bitmask: which fields follow
-         - x        (float, 32 bits, if flagged)
-         - y        (float, 32 bits, if flagged)
-         - vx       (float, 32 bits, if flagged)
-         - vy       (float, 32 bits, if flagged)
-         - type     (8 bits, if flagged)
-         - hp       (8 bits, if flagged)
+         - entityId  (32-bit unsigned)
+         - x         (float32)
+         - y         (float32)
+         - vx        (float32)
+         - vy        (float32)
+         - type      (8-bit unsigned)
+         - hp        (8-bit unsigned)
+         - collided  (8-bit unsigned, 0 or 1)
 
    4.5 EVENT (0x05)
 
-      Sent by server for critical events.
-         - eventId (32 bits)
-         - data    (32 bits)
-      Examples: player death, enemy spawn, explosion.
+      Sent by server for discrete events.
+         - tick      (32-bit unsigned)
+         - eventType (16-bit unsigned)
+         - entityId  (32-bit unsigned)
 
    4.6 PING (0x06) / PONG (0x07)
 
       Used for latency measurement and keep-alive.
-         - time (64 bits, microseconds)
+         - timestamp (64-bit unsigned, format implementation-defined)
 
 
 5. Message Flow
@@ -134,8 +123,8 @@ Abstract
       Server -> CONNECT_ACK
 
    2. Game Loop:
-      Client -> INPUT (batched UserCmds)
-      Server -> SNAPSHOT (delta world state)
+      Client -> INPUT (keys)
+      Server -> SNAPSHOT (world state)
       Server -> EVENT (when needed)
 
    3. Keep-alive:
@@ -147,8 +136,7 @@ Abstract
 
    - Packets with invalid type or size MUST be discarded.
    - Clients inactive for >5 seconds (no INPUT/PING) SHOULD be dropped.
-   - seq/ack MUST be used to detect and ignore out-of-order packets.
-   - SNAPSHOTs MAY be resent if a client reports desynchronization.
+   - seq MAY be used to detect out-of-order packets; there is no ack field.
 
 
 7. Security Considerations

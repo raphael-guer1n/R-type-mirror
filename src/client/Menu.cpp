@@ -99,19 +99,15 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
             }
         }
     }
-
-    draw();
     return false;
 }
 
 void R_Type::Menu::draw()
 {
-    _app.getRenderer().clear();
     _background->draw(_app.getWindow(), nullptr);
     for (auto &tex : _titleLetters)
         tex->draw(_app.getWindow(), nullptr);
     _startButton->draw(_app.getWindow(), nullptr);
     _settingsButton->draw(_app.getWindow(), nullptr);
     _quitButton->draw(_app.getWindow(), nullptr);
-    _app.getRenderer().display();
 }
