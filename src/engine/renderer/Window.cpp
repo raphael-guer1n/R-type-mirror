@@ -61,14 +61,22 @@ std::vector<engine::R_Events::Event> engine::R_Graphic::Window::pollEvents(bool 
             case SDL_MOUSEBUTTONDOWN: {
                 engine::R_Events::Event e{};
                 e.type = engine::R_Events::Type::MouseButtonDown;
-                e.mouse = { event.button.x, event.button.y, event.button.button };
+                e.mouse = {
+                    .x = event.button.x,
+                    .y = event.button.y,
+                    .button = event.button.button
+                };
                 events.push_back(e);
                 break;
             }
             case SDL_MOUSEBUTTONUP: {
                 engine::R_Events::Event e{};
-                e.type = engine::R_Events::Type::MouseButtonDown;
-                e.mouse = { event.button.x, event.button.y, event.button.button };
+                e.type = engine::R_Events::Type::MouseButtonUp;
+                e.mouse = {
+                    .x = event.button.x,
+                    .y = event.button.y,
+                    .button = event.button.button
+                };
                 events.push_back(e);
                 break;
             }
