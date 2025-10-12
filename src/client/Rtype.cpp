@@ -1,6 +1,5 @@
 #include <iostream>
 #include <SDL.h>
-#include <asio.hpp>
 #include "Rtype.hpp"
 #include "engine/renderer/Vectors.hpp"
 #include "engine/renderer/Error.hpp"
@@ -9,7 +8,7 @@
 #include "common/Components_client.hpp"
 #include "common/Components_client_sdl.hpp"
 #include "common/Packets.hpp"
-#include "engine/network/Udpsocket.hpp"
+#include "engine/network/UdpSocket.hpp"
 #include "common/Systems.hpp"
 #include "Background.hpp"
 #include "Hud.hpp"
@@ -21,8 +20,8 @@ R_Type::Rtype::Rtype()
 {
     try
     {
-        _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
-        _serverEndpoint = std::make_unique<asio::ip::udp::endpoint>(asio::ip::make_address("127.0.0.1"), 4242);
+    _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
+    _serverEndpoint = std::make_unique<engine::net::Endpoint>(engine::net::make_endpoint("127.0.0.1", 4242));
 
         // --- STEP 1: Connect ---
         _registry.register_component<component::drawable>();
@@ -257,7 +256,7 @@ void R_Type::Rtype::waiting_connection()
 
     while (!connected)
     {
-        if (auto pkt_opt = _client->receive(_sender))
+    if (auto pkt_opt = _client->receive(_sender))
         {
             auto [recvHdr, payload] = *pkt_opt;
             if (recvHdr.type == CONNECT_ACK &&
