@@ -25,7 +25,7 @@ jobs:
             curl zip unzip tar pkg-config \
             build-essential cmake ninja-build git \
             autoconf automake libtool \
-            libasound2-dev libpulse-dev \
+            libpulse-dev \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
             libgl1-mesa-dev libegl1-mesa-dev libwayland-dev wayland-protocols
           apt-get clean
@@ -47,8 +47,11 @@ jobs:
           export VCPKG_FORCE_SYSTEM_BINARIES=1
           ./vcpkg/bootstrap-vcpkg.sh
 
-      - name: Ensure valid features
+      - name: Switch SDL2 to PulseAudio
         run: |
+          # Remove ALSA from Linux/macOS SDL2 feature list
+          sed -i 's/"alsa"/"pulse"/' vcpkg.json
+          # Remove trailing commas
           sed -i 's/,\s*]/]/' vcpkg.json
 
       - name: Build project (including tests)
