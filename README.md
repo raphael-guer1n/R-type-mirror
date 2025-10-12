@@ -76,6 +76,7 @@ Choose one or several:
 ## Documentation
 - [Architecture](./docs/architecture/ARCHITECTURE.md)
 - [Protocol](./docs/protocol/PROTOCOL.md)
+- [Comparative study for choosen technos](./docs/comparative_study.md)
 
 ---
 
