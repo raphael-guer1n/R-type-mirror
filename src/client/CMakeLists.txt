@@ -7,7 +7,6 @@ add_executable(r-type_client
     Menu.cpp
 )
 
-find_package(asio CONFIG REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 
 target_include_directories(r-type_client PRIVATE
@@ -16,5 +15,4 @@ target_include_directories(r-type_client PRIVATE
 
 target_link_libraries(r-type_client PRIVATE
     engine
-    asio::asio
 )

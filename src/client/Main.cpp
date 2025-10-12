@@ -1,6 +1,7 @@
 #include "engine/renderer/Error.hpp"
 #include "engine/events/Events.hpp"
 #include "Rtype.hpp"
+#include <iostream>
 
 int main(int argc, char* argv[]) {
     try

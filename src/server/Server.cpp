@@ -53,7 +53,7 @@ using json = nlohmann::json;
 
 using namespace serverutils;
 
-server::server(asio::io_context &ctx, unsigned short port)
+server::server(engine::net::IoContext &ctx, unsigned short port)
     : _socket(ctx, port), _io(ctx), _port(port)
 {
     register_components();
@@ -341,7 +341,7 @@ void server::wait_for_players()
 
     while (_players.size() < 1)
     {
-        asio::ip::udp::endpoint sender;
+    engine::net::Endpoint sender;
         auto pkt_opt = _socket.receive(sender);
         if (pkt_opt)
         {
@@ -355,7 +355,7 @@ void server::wait_for_players()
                 auto eid = spawn_player(sender, playerIndex);
                 PlayerInfo pi{sender, eid};
                 _live_entities.insert(static_cast<uint32_t>(eid));
-                std::cout << "Spawned player entity: " << eid << " for " << sender << "\n";
+                std::cout << "Spawned player entity: " << eid << " for " << sender.address << ":" << sender.port << "\n";
 
                 _players.push_back(pi);
                 ConnectAck ack{1234, 60, static_cast<uint32_t>(eid)};
@@ -372,7 +372,7 @@ void server::wait_for_players()
 
 void server::process_network_inputs()
 {
-    asio::ip::udp::endpoint sender;
+    engine::net::Endpoint sender;
     while (auto pkt_opt = _socket.receive(sender))
     {
         auto [hdr, payload] = *pkt_opt;
@@ -422,7 +422,7 @@ void server::process_network_inputs()
     }
 }
 
-engine::entity_t server::spawn_player(asio::ip::udp::endpoint endpoint, std::size_t index)
+engine::entity_t server::spawn_player(engine::net::Endpoint endpoint, std::size_t index)
 {
     float spawnX = 100.f;
     float spawnY = 100.f + 120.f * static_cast<float>(index);
