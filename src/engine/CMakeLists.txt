@@ -2,6 +2,8 @@ find_package(SDL2 CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
 find_package(SDL2_mixer CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
+find_package(WavPack CONFIG REQUIRED)
+
 
 add_library(engine
     renderer/App.cpp
@@ -18,7 +20,7 @@ target_include_directories(engine
         ${SDL2_INCLUDE_DIRS}
         ${SDL2_IMAGE_INCLUDE_DIRS}
         ${SDL2_MIXER_INCLUDE_DIRS}
-
+        $<TARGET_PROPERTY:WavPack::WavPack,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_link_directories(engine
@@ -34,8 +36,8 @@ target_link_libraries(engine
         $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
         $<IF:$<TARGET_EXISTS:SDL2_image::SDL2_image>,SDL2_image::SDL2_image,SDL2_image::SDL2_image-static>
         $<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>
+        WavPack::WavPack
         ogg
         vorbis
         vorbisfile
-        wavpack
 )
