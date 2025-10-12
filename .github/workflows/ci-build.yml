@@ -47,9 +47,9 @@ jobs:
           export VCPKG_FORCE_SYSTEM_BINARIES=1
           ./vcpkg/bootstrap-vcpkg.sh
 
-      - name: Disable ALSA feature in manifest
+      - name: Ensure valid features
         run: |
-          sed -i 's/"alsa",\?//g' vcpkg.json || true
+          sed -i 's/,\s*]/]/' vcpkg.json
 
       - name: Build project (including tests)
         run: |
