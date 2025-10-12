@@ -14,6 +14,7 @@
 #include "Background.hpp"
 #include "Hud.hpp"
 #include "common/Systems_client_sdl.hpp"
+#include "common/Layers.hpp"
 
 R_Type::Rtype::Rtype()
     : _app("R-Type", 1920, 1080)
@@ -173,18 +174,18 @@ void R_Type::Rtype::receiveSnapshot()
                         anim = _playerData->projectileAnimation;
                         tex = _playerData->texture;
                         rect = _playerData->projectileRect;
-                        ensure_slot(drawables, idLocal, component::drawable{tex, rect, 5});
+                        ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
                         break;
                     case component::entity_kind::player:
                         anim = _playerData->playerAnimation;
                         tex = _playerData->texture;
                         rect = _playerData->playerRect;
-                        ensure_slot(drawables, idLocal, component::drawable{tex, rect, 10});
+                        ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Players});
                         break;
                     default:
                         tex = _playerData->texture;
                         rect = _playerData->playerRect;
-                        ensure_slot(drawables, idLocal, component::drawable{tex, rect, 1});
+                        ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Effects});
                         break;
                     }
                     ensure_slot(animations, idLocal, anim);
