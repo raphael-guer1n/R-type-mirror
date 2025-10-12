@@ -230,8 +230,10 @@ void R_Type::Rtype::receiveSnapshot()
 
 void R_Type::Rtype::draw()
 {
-    if (_inMenu)
+    if (_inMenu) {
+        _menu->draw();
         return;
+    }
     auto& positions = _registry.get_components<component::position>();
     auto& drawables = _registry.get_components<component::drawable>();
 
