@@ -4,8 +4,8 @@
     "speed": 75,
     "behavior": "straight_shooter",
     "hitbox": {
-        "w": 34,
-        "h": 20
+        "w": 132,
+        "h": 72
     },
     "spells": [
         {

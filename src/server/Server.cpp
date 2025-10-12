@@ -42,7 +42,6 @@ void server::register_components()
   _registry.register_component<component::damage_cooldown>();
   _registry.register_component<component::projectile_tag>();
 
-  // AI related
   systems::init_ai_behaviors();
   _registry.add_system<component::position, component::velocity,
                        component::ai_controller>(
@@ -100,7 +99,6 @@ void server::setup_systems()
   _registry.add_system<component::health, component::damage>(health_system);
   _registry.add_system<component::spawn_request>(spawn_system);
 
-  // Collision/hitbox
   _registry.add_system<component::position, component::projectile_tag>(
       [this](engine::registry &reg,
              engine::sparse_array<component::position> &positions,
@@ -128,7 +126,6 @@ void server::setup_systems()
              engine::sparse_array<component::position> &positions,
              engine::sparse_array<component::hitbox> &hitboxes)
       {
-        // References to other component arrays we need
         auto &collisions = _registry.get_components<component::collision_state>();
         auto &velocities = _registry.get_components<component::velocity>();
         auto &kinds = _registry.get_components<component::entity_kind>();
@@ -137,7 +134,6 @@ void server::setup_systems()
         auto &projectiles = _registry.get_components<component::projectile_tag>();
         std::vector<bool> newCollided(collisions.size(), false);
 
-        // Main collision check
         hitbox_system(reg, positions, hitboxes,
                       [&](std::size_t i, std::size_t j)
                       {
@@ -148,7 +144,6 @@ void server::setup_systems()
                                          ? kinds[j].value()
                                          : component::entity_kind::unknown;
 
-                        // --- Player ↔ Enemy ---
                         if (kindI == component::entity_kind::player &&
                             kindJ == component::entity_kind::enemy)
                         {
@@ -164,7 +159,6 @@ void server::setup_systems()
                           resolve_block(j, i, positions, hitboxes, collisions, velocities);
                         }
 
-                        // --- Projectile ↔ Enemy ---
                         if (kindI == component::entity_kind::projectile &&
                             kindJ == component::entity_kind::enemy)
                         {
@@ -210,7 +204,6 @@ void server::setup_systems()
                           }
                         }
 
-                        // --- Projectile ↔ Player ---
                         if (kindI == component::entity_kind::projectile &&
                             kindJ == component::entity_kind::player)
                         {
@@ -256,8 +249,6 @@ void server::setup_systems()
                           }
                         }
                       });
-
-        // Update collision flags
         for (std::size_t idx = 0; idx < collisions.size(); ++idx)
         {
           if (collisions[idx])
@@ -282,7 +273,6 @@ void server::setup_systems()
           float x = pos.x;
           float y = pos.y;
 
-          // For projectiles: kill if off-screen
           if (kind == component::entity_kind::projectile)
           {
             if (x < -50.f || x > SCREEN_WIDTH + 50.f || y < -50.f ||
@@ -315,19 +305,15 @@ void server::setup_systems()
             y = SCREEN_HEIGHT;
             corrected = true;
           }
-
           if (corrected)
           {
             pos.x = x;
             pos.y = y;
-
-            // Stop velocity on collision with map bounds
             vel.vx = (x <= 0.f || x >= SCREEN_WIDTH) ? 0.f : vel.vx;
             vel.vy = (y <= 0.f || y >= SCREEN_HEIGHT) ? 0.f : vel.vy;
           }
         }
 
-        // Cleanup destroyed projectiles
         for (auto e : toKill)
         {
           _live_entities.erase(static_cast<uint32_t>(e));
@@ -441,7 +427,7 @@ void server::broadcast_snapshot()
   constexpr std::size_t SNAPSHOT_LIMIT = 10000;
   std::vector<EntityState> states;
   states.reserve(50);
-  std::unordered_set<uint32_t> inserted; // track inside this call
+  std::unordered_set<uint32_t> inserted;
 
   SnapshotBuilderContext ctx{positions, velocities, kinds, collisions, healths};
   for (auto &pInfo : _players)
@@ -524,12 +510,11 @@ void server::process_network_inputs()
         auto is_known = (_live_entities.find(input.clientId) != _live_entities.end());
         if (!is_known)
         {
-          // still check if this ID belongs to a connected player
           bool is_player = std::any_of(_players.begin(), _players.end(),
                                        [&](const PlayerInfo &p)
                                        { return p.entityId == input.clientId; });
           if (!is_player)
-            continue; // ignore stray packets
+            continue;
         }
 
         for (auto &p : _players)
@@ -577,7 +562,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
   auto &hitboxes = _registry.get_components<component::hitbox>();
   size_t idx = static_cast<size_t>(owner);
   if (idx >= positions.size() || !positions[idx])
-    return owner; // invalid -> no spawn
+    return owner;
   auto pos = positions[idx].value();
   float playerW = 0.f, playerH = 0.f;
   if (idx < hitboxes.size() && hitboxes[idx])
@@ -585,8 +570,8 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
     playerW = hitboxes[idx]->width;
     playerH = hitboxes[idx]->height;
   }
-  constexpr float projectileW = 10.f;
-  constexpr float projectileH = 10.f;
+  constexpr float projectileW = 24.f;
+  constexpr float projectileH = 20.f;
   float startX = pos.x + playerW + 4.f;
   float startY = pos.y + (playerH * 0.5f) - (projectileH * 0.5f);
   auto proj = engine::make_entity(
