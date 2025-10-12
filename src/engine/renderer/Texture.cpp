@@ -13,7 +13,7 @@
 /// @param filepath Chemin du fichier image à charger.
 /// @param pos Position initiale de la texture à l'écran.
 /// @param size Taille de la texture (si (0,0), la taille de l'image chargée sera utilisée).
-/// @throws R_Graphic::Error si le chargement de l'image ou la création de la texture échoue.
+/// @throws engine::Error si le chargement de l'image ou la création de la texture échoue.
 
 /// @brief Dessine la texture sur la fenêtre spécifiée.
 /// @param window Référence vers la fenêtre SDL où dessiner la texture.
@@ -37,14 +37,14 @@ engine::R_Graphic::Texture::Texture(R_Graphic::Window& window,
 
     if (!surface) {
         oss << "Texture: Error load img: " << IMG_GetError();
-        throw R_Graphic::Error(oss.str());
+        throw engine::Error(oss.str());
     }
 
     _texture = SDL_CreateTextureFromSurface(window.getRenderer(), surface);
     if (!_texture) {
         oss << "Texture: Error creating texture: " << SDL_GetError();
         SDL_FreeSurface(surface);
-        throw R_Graphic::Error(oss.str());
+        throw engine::Error(oss.str());
     }
 
     if (_size.x == 0 || _size.y == 0) {

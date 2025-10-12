@@ -9,7 +9,7 @@
     {
       "name": "sdl2",
       "default-features": false,
-      "features": ["x11"],
+      "features": ["x11", "alsa"],
       "platform": "linux | osx"
     },
     "sdl2-image",

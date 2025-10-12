@@ -32,15 +32,16 @@
  * @see Mix_PlayMusic
  */
 
-#include "Music.hpp"
 #include <stdexcept>
 #include <iostream>
+#include "Music.hpp"
+#include "engine/renderer/Error.hpp"
 
 namespace engine::audio {
 
     Music::Music() {
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
-            throw std::runtime_error(std::string("SDL_mixer error: ") + Mix_GetError());
+            throw engine::Error(std::string("SDL_mixer: ") + Mix_GetError());
         }
     }
 

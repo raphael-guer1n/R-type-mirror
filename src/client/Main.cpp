@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
             },
             [&game]() { game.draw(); }
         );
-    } catch(const engine::R_Graphic::Error& e)
+    } catch(const engine::Error& e)
     {
         std::cerr << e.what() << std::endl;
     }
