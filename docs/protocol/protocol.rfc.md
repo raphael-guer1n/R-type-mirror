@@ -14,8 +14,8 @@ It is based on **UDP** and a **server-authoritative architecture**.
 The protocol borrows concepts from the **Quake networking model**:
 
 - Compact client commands (`UserCmd`) to minimize input bandwidth.  
-- Server-to-client **snapshots** using delta compression for efficient state sync.  
-- Reliability mechanisms via sequence numbers (`seq`) and acknowledgments (`ack`).
+- Server-to-client **snapshots** for efficient state sync.  
+- Sequence numbers (`seq`) for ordering; no acknowledgment field in the header.
 
 Goals:  
 - Low latency suitable for action gameplay.  
@@ -27,6 +27,7 @@ Goals:
 ## 2. Conventions
 
 - All integers are little-endian.  
+- Floating point values use IEEE-754 binary32 (32-bit), little-endian.  
 - All packets start with a **Packet Header**.  
 - Time is expressed in **ticks**, controlled by the server.  
 - UDP is the transport layer. No retransmission is guaranteed.  
@@ -37,14 +38,13 @@ Goals:
 
 Every packet begins with the following header:
 
-| Field   | Type     | Size | Description                                      |
-|---------|----------|------|--------------------------------------------------|
-| `type`  | uint16_t | 2    | Packet type (see Section 4)                      |
-| `size`  | uint16_t | 2    | Total packet size in bytes                       |
-| `seq`   | uint32_t | 4    | Sequence number of this packet (monotonic)       |
-| `ack`   | uint32_t | 4    | Last sequence number received from peer          |
+| Field   | Type                              | Size | Description                                      |
+|---------|-----------------------------------|------|--------------------------------------------------|
+| `type`  | Unsigned integer (16-bit)         | 2    | Packet type (see Section 4)                      |
+| `size`  | Unsigned integer (16-bit)         | 2    | Payload size in bytes (header excluded)          |
+| `seq`   | Unsigned integer (32-bit)         | 4    | Sequence number of this packet (monotonic)       |
 
-**Total size:** 12 bytes  
+**Total size:** 8 bytes  
 
 ---
 
@@ -54,9 +54,9 @@ Every packet begins with the following header:
 
 Client → Server
 
-| Field      | Type     | Size | Description                  |
-|------------|----------|------|------------------------------|
-| `clientId` | uint32_t | 4    | Client-provided identifier   |
+| Field      | Type                             | Size | Description                  |
+|------------|----------------------------------|------|------------------------------|
+| `clientId` | Unsigned integer (32-bit)        | 4    | Client-provided identifier   |
 
 ---
 
@@ -64,11 +64,11 @@ Client → Server
 
 Server → Client
 
-| Field            | Type     | Size | Description                     |
-|------------------|----------|------|---------------------------------|
-| `serverId`       | uint32_t | 4    | Unique server identifier        |
-| `playerEntityId` | uint32_t | 4    | Entity ID controlled by client  |
-| `tickRate`       | uint32_t | 4    | Ticks per second                |
+| Field            | Type                             | Size | Description                     |
+|------------------|----------------------------------|------|---------------------------------|
+| `serverId`       | Unsigned integer (32-bit)        | 4    | Unique server identifier        |
+| `tickRate`       | Unsigned integer (32-bit)        | 4    | Ticks per second                |
+| `playerEntityId` | Unsigned integer (32-bit)        | 4    | Entity ID controlled by client  |
 
 ---
 
@@ -76,21 +76,12 @@ Server → Client
 
 Client → Server
 
-**InputPacket**
-
-| Field      | Type     | Size | Description                            |
-|------------|----------|------|----------------------------------------|
-| `clientId` | uint32_t | 4    | ID of client                          |
-| `cmdCount` | uint8_t  | 1    | Number of commands included           |
-
-**UserCmd** (repeated `cmdCount` times)
-
-| Field   | Type    | Size | Description                             |
-|---------|---------|------|-----------------------------------------|
-| `tick`  | uint32  | 4    | Client tick for this command            |
-| `dx`    | int16   | 2    | Movement on X (-1,0,+1)                 |
-| `dy`    | int16   | 2    | Movement on Y (-1,0,+1)                 |
-| `act`   | uint8   | 1    | Action bits (bit0=shoot, bit1=bomb…)    |
+| Field       | Type                                | Size | Description                                    |
+|-------------|-------------------------------------|------|------------------------------------------------|
+| `clientId`  | Unsigned integer (32-bit)           | 4    | ID of the controlled player/entity             |
+| `tick`      | Unsigned integer (32-bit)           | 4    | Client-local tick when input was captured      |
+| `keyCount`  | Unsigned integer (16-bit)           | 2    | Number of following key codes                  |
+| `keys[i]`   | Signed integer (32-bit each)        | 4×N  | Sequence of 32-bit key codes (impl.-defined)   |
 
 ---
 
@@ -98,27 +89,23 @@ Client → Server
 
 Server → Clients
 
-**SnapshotHeader**
-
-| Field         | Type     | Size | Description                        |
-|---------------|----------|------|------------------------------------|
-| `tick`        | uint32_t | 4    | Tick number of snapshot            |
-| `entityCount` | uint16_t | 2    | Number of entities in snapshot     |
+| Field         | Type                             | Size | Description                        |
+|---------------|----------------------------------|------|------------------------------------|
+| `tick`        | Unsigned integer (32-bit)        | 4    | Tick number of snapshot            |
+| `entityCount` | Unsigned integer (16-bit)        | 2    | Number of entities in snapshot     |
 
 **EntityState** (repeated `entityCount` times)
 
-| Field     | Type     | Size | Description                                |
-|-----------|----------|------|--------------------------------------------|
-| `entityId`| uint32_t | 4    | Unique entity ID                           |
-| `flags`   | uint8_t  | 1    | Bitmask: which fields are present/changed  |
-| `x`       | float    | 4    | X coordinate (if flagged)                  |
-| `y`       | float    | 4    | Y coordinate (if flagged)                  |
-| `vx`      | float    | 4    | Velocity X (if flagged)                    |
-| `vy`      | float    | 4    | Velocity Y (if flagged)                    |
-| `type`    | uint8_t  | 1    | Entity type (if flagged)                   |
-| `hp`      | uint8_t  | 1    | Health points (if flagged)                 |
-
-**Note:** Entities are delta-compressed: only fields with changes since last acknowledged snapshot are sent.  
+| Field       | Type                                | Size | Description                         |
+|-------------|-------------------------------------|------|-------------------------------------|
+| `entityId`  | Unsigned integer (32-bit)           | 4    | Unique entity ID                    |
+| `x`         | Float32 (IEEE-754)                  | 4    | X coordinate                        |
+| `y`         | Float32 (IEEE-754)                  | 4    | Y coordinate                        |
+| `vx`        | Float32 (IEEE-754)                  | 4    | Velocity X                          |
+| `vy`        | Float32 (IEEE-754)                  | 4    | Velocity Y                          |
+| `type`      | Unsigned integer (8-bit)            | 1    | Entity type code                    |
+| `hp`        | Unsigned integer (8-bit)            | 1    | Health points                       |
+| `collided`  | Unsigned integer (8-bit)            | 1    | Collision marker (0 or 1)           |
 
 ---
 
@@ -126,18 +113,19 @@ Server → Clients
 
 Server → Clients
 
-| Field     | Type     | Size | Description                     |
-|-----------|----------|------|---------------------------------|
-| `eventId` | uint32_t | 4    | Event identifier                |
-| `data`    | uint32_t | 4    | Event-specific data             |
+| Field       | Type                             | Size | Description                     |
+|-------------|----------------------------------|------|---------------------------------|
+| `tick`      | Unsigned integer (32-bit)        | 4    | Tick number                     |
+| `eventType` | Unsigned integer (16-bit)        | 2    | Event type (e.g., death, spawn) |
+| `entityId`  | Unsigned integer (32-bit)        | 4    | Related entity ID                |
 
 ---
 
 ### 4.6 PING (0x06) / PONG (0x07)
 
-| Field  | Type     | Size | Description                      |
-|--------|----------|------|----------------------------------|
-| `time` | uint64_t | 8    | Client timestamp in microseconds |
+| Field       | Type                             | Size | Description                               |
+|-------------|----------------------------------|------|-------------------------------------------|
+| `timestamp` | Unsigned integer (64-bit)        | 8    | Monotonic timestamp (implementation-defined) |
 
 ---
 
@@ -148,9 +136,9 @@ Server → Clients
    - Server → CONNECT_ACK  
 
 2. **Game Loop**  
-   - Client → INPUT (with batched UserCmds)  
-   - Server → SNAPSHOT (delta-compressed world state)  
-   - Server → EVENT (critical game events)  
+   - Client → INPUT (keys pressed)  
+   - Server → SNAPSHOT (world state)  
+   - Server → EVENT (when needed)  
 
 3. **Keep-Alive**  
    - Client → PING  
@@ -162,7 +150,7 @@ Server → Clients
 
 - Invalid packets MUST be discarded.  
 - Timeout: clients inactive >5s SHOULD be dropped.  
-- `seq`/`ack` numbers detect out-of-order and lost packets.  
+- `seq` helps detect out-of-order packets; no `ack` field is present in the header.  
 
 ---
 
