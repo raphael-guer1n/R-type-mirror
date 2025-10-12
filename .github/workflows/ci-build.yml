@@ -25,11 +25,18 @@ jobs:
             curl zip unzip tar pkg-config \
             build-essential cmake ninja-build git \
             autoconf automake libtool \
-            libpulse-dev \
+            libasound2-dev libpulse-dev \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
             libgl1-mesa-dev libegl1-mesa-dev libwayland-dev wayland-protocols
           apt-get clean
           rm -rf /var/lib/apt/lists/*
+
+      - name: Remove ALSA feature from vcpkg.json
+        run: |
+          # Remove "alsa" from any features array
+          sed -i 's/"alsa"\s*,\?//g' vcpkg.json
+          # Remove trailing commas before closing brackets
+          sed -i 's/,\s*]/]/g' vcpkg.json
 
       - name: Cache vcpkg packages
         uses: actions/cache@v4
@@ -46,10 +53,6 @@ jobs:
           fi
           export VCPKG_FORCE_SYSTEM_BINARIES=1
           ./vcpkg/bootstrap-vcpkg.sh
-
-      - name: Pin SDL2 to older version
-        run: |
-          sed -i 's/"name": "sdl2"/"name": "sdl2", "version>=": "2.28.0"/' vcpkg.json
 
       - name: Build project (including tests)
         run: |
