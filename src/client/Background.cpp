@@ -10,6 +10,7 @@
  */
 #include <iostream>
 #include "Background.hpp"
+#include "common/Layers.hpp"
 #include "common/Systems.hpp"
 #include "Rtype.hpp"
 
@@ -32,7 +33,7 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
         rtype.getApp().getWindow().getSize().x,
         rtype.getApp().getWindow().getSize().y
     );
-    registry.emplace_component<component::drawable>(e, tex, rect, 0);
+    registry.emplace_component<component::drawable>(e, tex, rect, layers::Background);
     auto e1 = registry.spawn_entity();
     registry.add_component(e1, component::position{static_cast<float>(pos.x), 0.0f});
     registry.add_component(e1, component::velocity{-100.0f, 0.0f});
@@ -47,5 +48,5 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
         rtype.getApp().getWindow().getSize().x,
         rtype.getApp().getWindow().getSize().y
     );
-    registry.emplace_component<component::drawable>(e1, tex1, rect1, 0);
+    registry.emplace_component<component::drawable>(e1, tex1, rect1, layers::Background);
 }
