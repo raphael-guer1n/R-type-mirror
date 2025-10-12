@@ -58,18 +58,28 @@ std::vector<engine::R_Events::Event> engine::R_Graphic::Window::pollEvents(bool 
                 events.push_back(e);
                 break;
             }
-            case SDL_MOUSEBUTTONDOWN:
-                events.push_back({
-                    R_Events::Type::MouseButtonDown,
-                    .mouse = { event.button.x, event.button.y, event.button.button }
-                });
+            case SDL_MOUSEBUTTONDOWN: {
+                engine::R_Events::Event e{};
+                e.type = engine::R_Events::Type::MouseButtonDown;
+                e.mouse = {
+                    .x = event.button.x,
+                    .y = event.button.y,
+                    .button = event.button.button
+                };
+                events.push_back(e);
                 break;
-            case SDL_MOUSEBUTTONUP:
-                events.push_back({
-                    R_Events::Type::MouseButtonUp,
-                    .mouse = { event.button.x, event.button.y, event.button.button }
-                });
+            }
+            case SDL_MOUSEBUTTONUP: {
+                engine::R_Events::Event e{};
+                e.type = engine::R_Events::Type::MouseButtonUp;
+                e.mouse = {
+                    .x = event.button.x,
+                    .y = event.button.y,
+                    .button = event.button.button
+                };
+                events.push_back(e);
                 break;
+            }
             case SDL_WINDOWEVENT:
                 switch (event.window.event) {
                     case SDL_WINDOWEVENT_FOCUS_GAINED:
