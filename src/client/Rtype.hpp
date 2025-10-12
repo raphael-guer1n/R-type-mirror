@@ -97,6 +97,7 @@ namespace R_Type
             std::unique_ptr<Hud> _hud;
             std::unique_ptr<R_Type::Menu> _menu;
             bool _inMenu = true;
+            std::unordered_map<size_t, int> _playerIndexByLocalId;
     };
     void setAnimation(component::animation &anim, const std::string &clip, bool reverse);
 }

@@ -171,18 +171,29 @@ void R_Type::Rtype::receiveSnapshot()
                     {
                     case component::entity_kind::projectile:
                         anim = _playerData->projectileAnimation;
-                        tex = _playerData->texture;
+                        tex = _playerData->projectileTexture;
                         rect = _playerData->projectileRect;
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
                         break;
                     case component::entity_kind::player:
                         anim = _playerData->playerAnimation;
-                        tex = _playerData->texture;
+                        tex = _playerData->playerTexture;
                         rect = _playerData->playerRect;
+                        if (_playerIndexByLocalId.find(idLocal) == _playerIndexByLocalId.end()) {
+                            int assigned = static_cast<int>((_playerIndexByLocalId.size() % 5) + 1);
+                            _playerIndexByLocalId[idLocal] = assigned;
+                        }
+                        {
+                            const int playerIndex = _playerIndexByLocalId[idLocal];
+                            const int rowOffset = (playerIndex - 1) * 17;
+                            for (auto &kv : anim.clips) {
+                                kv.second.startY = rowOffset;
+                            }
+                        }
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Players});
                         break;
                     default:
-                        tex = _playerData->texture;
+                        tex = _playerData->playerTexture;
                         rect = _playerData->playerRect;
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Effects});
                         break;

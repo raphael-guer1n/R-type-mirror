@@ -48,7 +48,8 @@ namespace R_Type
              * @param pressedKeys Set of currently pressed keys.
              */
             
-            std::shared_ptr<engine::R_Graphic::Texture> texture;
+            std::shared_ptr<engine::R_Graphic::Texture> playerTexture;
+            std::shared_ptr<engine::R_Graphic::Texture> projectileTexture;
             engine::R_Graphic::textureRect playerRect;
             engine::R_Graphic::textureRect projectileRect;
             component::animation playerAnimation;

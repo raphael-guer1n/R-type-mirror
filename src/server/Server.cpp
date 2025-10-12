@@ -339,7 +339,7 @@ void server::wait_for_players()
 {
     std::cout << "Waiting for 4 players..." << std::endl;
 
-    while (_players.size() < 1)
+    while (_players.size() < 2)
     {
     engine::net::Endpoint sender;
         auto pkt_opt = _socket.receive(sender);
@@ -465,7 +465,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
         component::hitbox{projectileW, projectileH},
         component::collision_state{false},
         component::entity_kind::projectile,
-        component::projectile_tag{static_cast<uint32_t>(owner), 120, 1.f, 0.f, 25.f, 2},
+        component::projectile_tag{static_cast<uint32_t>(owner), 120, 1.f, 0.f, 2.f, 2},
         component::health{1});
     return proj;
 }
