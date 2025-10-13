@@ -11,7 +11,7 @@
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
 
-#define PLAYER_SPEED 200.0f
+#define PLAYER_SPEED 400.0f
 /**
  * @class server
  * @brief Main server class for managing game state, networking, and player entities.
