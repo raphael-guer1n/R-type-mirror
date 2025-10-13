@@ -5,28 +5,35 @@
 
 /**
  * @file Texture.cpp
- * @brief Implémentation de la classe Texture pour la gestion et l'affichage des textures avec SDL2.
+ * @brief Implementation of the Texture class, responsible for handling and rendering textures using SDL2.
+ *
+ * The Texture class encapsulates the process of loading, managing, and displaying
+ * 2D textures within the R-Type graphical engine. It uses SDL2 for image handling
+ * and rendering, providing a convenient abstraction layer for texture operations.
+ *
+ * @details
+ * - Loads image files via SDL_image.
+ * - Converts loaded surfaces into SDL textures.
+ * - Supports position and size management for each texture instance.
+ * - Provides drawing functionality with optional source rectangles.
+ * - Automatically releases SDL texture resources upon destruction.
+ *
+ * @namespace engine::R_Graphic
+ * Namespace containing all graphical rendering components of the engine.
+ *
+ * @class engine::R_Graphic::Texture
+ * @brief Represents a 2D texture that can be rendered to a window.
+ *
+ * @param window Reference to the rendering window used to create the texture.
+ * @param filepath Path to the image file to be loaded.
+ * @param pos Initial position of the texture on the screen.
+ * @param size Desired size of the texture. If (0,0), the image’s original size is used.
+ *
+ * @throws engine::R_Graphic::Error If image loading or texture creation fails.
+ *
+ * @see engine::R_Graphic::Window
+ * @see engine::R_Graphic::Renderer
  */
-
-/// @brief Constructeur de la classe Texture. Charge une image depuis un fichier, crée une texture SDL et initialise sa position et sa taille.
-/// @param window Référence vers la fenêtre SDL utilisée pour la création de la texture.
-/// @param filepath Chemin du fichier image à charger.
-/// @param pos Position initiale de la texture à l'écran.
-/// @param size Taille de la texture (si (0,0), la taille de l'image chargée sera utilisée).
-/// @throws engine::Error si le chargement de l'image ou la création de la texture échoue.
-
-/// @brief Dessine la texture sur la fenêtre spécifiée.
-/// @param window Référence vers la fenêtre SDL où dessiner la texture.
-/// @param srcrect Rectangle source optionnel pour dessiner seulement une partie de la texture (nullptr pour dessiner toute la texture).
-
-/// @brief Retourne la taille actuelle de la texture.
-/// @return Taille de la texture sous forme de intVec2.
-
-/// @brief Définit la position de la texture à l'écran.
-/// @param x Nouvelle position horizontale.
-/// @param y Nouvelle position verticale.
-
-/// @brief Destructeur de la classe Texture. Libère les ressources associées à la texture SDL.
 
 engine::R_Graphic::Texture::Texture(R_Graphic::Window& window,
     const std::string &filepath, R_Graphic::doubleVec2 pos, R_Graphic::intVec2 size)

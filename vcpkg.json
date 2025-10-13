@@ -16,6 +16,6 @@
     "sdl2-mixer",
     "asio",
     "nlohmann-json",
-    "wavpack"
+    "catch2"
   ]
 }

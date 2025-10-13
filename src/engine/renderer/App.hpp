@@ -9,12 +9,32 @@
 #include "engine/audio/Music.hpp"
 
 /**
- * @brief Déclaration de la classe App pour gérer la boucle principale d'une application graphique.
- * 
- * Cette classe encapsule une fenêtre (Window) et un renderer (Renderer).
- * Elle fournit une méthode run pour exécuter la boucle principale, prenant en paramètres
- * des fonctions de mise à jour et de dessin du jeu.
+ * @file App.hpp
+ * @brief Definition of the App class, responsible for managing the main loop of the R-Type engine.
+ *
+ * The App class serves as the central component of the graphical engine.
+ * It encapsulates a rendering window and a renderer, and provides a simple interface
+ * to manage the main application loop, including update and draw phases.
+ *
+ * @details
+ * - Holds references to the rendering window and renderer.
+ * - Handles the collection and propagation of user input events.
+ * - Manages a Music instance to control background audio playback.
+ * - Provides the run() method to execute the game loop, invoking user-defined
+ *   update and draw functions each frame.
+ *
+ * @namespace engine::R_Graphic
+ * Namespace grouping all graphical components of the engine.
+ *
+ * @class engine::R_Graphic::App
+ * @brief Core application class handling window, rendering, events, and audio.
+ *
+ * @see engine::R_Graphic::Window
+ * @see engine::R_Graphic::Renderer
+ * @see engine::R_Events::Event
+ * @see engine::audio::Music
  */
+
 namespace engine {
     namespace R_Graphic
     {

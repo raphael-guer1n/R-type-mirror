@@ -11,3 +11,16 @@ echo "Building project..."
 cmake --build build
 
 echo "✅ Build complete!"
+
+if [ -f "./tests/unit_tests" ]; then
+    echo ""
+    echo "=============================="
+    echo " Running Unit Tests 🎯"
+    echo "=============================="
+    ./tests/unit_tests
+    echo "=============================="
+    echo " Unit Tests Finished ✅"
+    echo "=============================="
+else
+    echo "⚠️  No tests found in ./tests/"
+fi
