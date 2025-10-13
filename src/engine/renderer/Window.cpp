@@ -44,12 +44,42 @@ std::vector<engine::R_Events::Event> engine::R_Graphic::Window::pollEvents(bool 
                 running = false;
                 events.push_back({R_Events::Type::Quit});
                 break;
-            case SDL_KEYDOWN:
-                events.push_back({R_Events::Type::KeyDown, .key={R_Events::mapSDLKey(event.key.keysym.sym)}});
+            case SDL_KEYDOWN: {
+                engine::R_Events::Event e{};
+                e.type = engine::R_Events::Type::KeyDown;
+                e.key.code = engine::R_Events::mapSDLKey(event.key.keysym.sym);
+                events.push_back(e);
                 break;
-            case SDL_KEYUP:
-                events.push_back({R_Events::Type::KeyUp, .key={R_Events::mapSDLKey(event.key.keysym.sym)}});
+            }
+            case SDL_KEYUP: {
+                engine::R_Events::Event e{};
+                e.type = engine::R_Events::Type::KeyUp;
+                e.key.code = engine::R_Events::mapSDLKey(event.key.keysym.sym);
+                events.push_back(e);
                 break;
+            }
+            case SDL_MOUSEBUTTONDOWN: {
+                engine::R_Events::Event e{};
+                e.type = engine::R_Events::Type::MouseButtonDown;
+                e.mouse = {
+                    .x = event.button.x,
+                    .y = event.button.y,
+                    .button = event.button.button
+                };
+                events.push_back(e);
+                break;
+            }
+            case SDL_MOUSEBUTTONUP: {
+                engine::R_Events::Event e{};
+                e.type = engine::R_Events::Type::MouseButtonUp;
+                e.mouse = {
+                    .x = event.button.x,
+                    .y = event.button.y,
+                    .button = event.button.button
+                };
+                events.push_back(e);
+                break;
+            }
             case SDL_WINDOWEVENT:
                 switch (event.window.event) {
                     case SDL_WINDOWEVENT_FOCUS_GAINED:

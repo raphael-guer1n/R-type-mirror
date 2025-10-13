@@ -1,3 +1,34 @@
+
+/**
+ * @file Server.cpp
+ * @brief Implementation of the main server logic for the R-Type game.
+ *
+ * This file contains the core server-side logic, including entity management,
+ * network communication, game tick handling, system registration, and enemy spawning.
+ * The server uses an ECS (Entity Component System) architecture to manage game entities
+ * and their behaviors, and communicates with clients via UDP sockets.
+ *
+ * Main functionalities:
+ * - Registers and manages game components and systems.
+ * - Handles player connections and spawns player entities.
+ * - Processes network inputs from clients to update player states.
+ * - Spawns enemies and projectiles at regular intervals based on game ticks.
+ * - Runs game logic and updates entity states each tick.
+ * - Broadcasts game state snapshots to all connected players.
+ *
+ * Key classes and functions:
+ * - server::server: Constructor, initializes server and registers components/systems.
+ * - server::run: Main game loop, processes inputs, updates game state, and broadcasts snapshots.
+ * - server::register_components: Registers all ECS components used in the game.
+ * - server::setup_systems: Registers all ECS systems, including AI and collision handling.
+ * - server::game_handler: Spawns enemies and handles game-specific logic per tick.
+ * - server::broadcast_snapshot: Sends the current game state to all players.
+ * - server::wait_for_players: Waits for player connections and spawns player entities.
+ * - server::process_network_inputs: Handles incoming network packets and updates player states.
+ * - server::spawn_player: Spawns a new player entity with default components.
+ * - server::spawn_projectile: Spawns a projectile entity for a given owner.
+ *
+ */
 #include "server/Server.hpp"
 #include "common/Systems.hpp"
 #include "engine/ecs/EntityFactory.hpp"
@@ -20,7 +51,7 @@ using json = nlohmann::json;
 
 using namespace serverutils;
 
-server::server(asio::io_context &ctx, unsigned short port)
+server::server(engine::net::IoContext &ctx, unsigned short port)
     : _socket(ctx, port), _io(ctx), _port(port)
 {
   register_components();
@@ -70,17 +101,17 @@ void server::run()
   {
     process_network_inputs();
 
-    auto now = clock::now();
-    if (now - last_tick >= tick_duration)
-    {
-      auto &positions = _registry.get_components<component::position>();
-      auto &velocities = _registry.get_components<component::velocity>();
-      auto &controls = _registry.get_components<component::controllable>();
-      game_handler();
-      _registry.run_systems();
-      position_system(_registry, positions, velocities, 1.0f / 60.0f);
-      broadcast_snapshot();
-      _tick++;
+        auto now = clock::now();
+        if (now - last_tick >= tick_duration)
+        {
+            auto &positions = _registry.get_components<component::position>();
+            auto &velocities = _registry.get_components<component::velocity>();
+            auto &controls = _registry.get_components<component::controllable>();
+            game_handler();
+            position_system(_registry, positions, velocities, 1.0f / 60.0f);
+            _registry.run_systems();
+            broadcast_snapshot();
+            _tick++;
 
       last_tick += tick_duration;
 
@@ -463,7 +494,7 @@ void server::wait_for_players()
 
   while (_players.size() < 1)
   {
-    asio::ip::udp::endpoint sender;
+engine::net::Endpoint sender;
     auto pkt_opt = _socket.receive(sender);
     if (pkt_opt)
     {
@@ -477,7 +508,7 @@ void server::wait_for_players()
         auto eid = spawn_player(sender, playerIndex);
         PlayerInfo pi{sender, eid};
         _live_entities.insert(static_cast<uint32_t>(eid));
-        std::cout << "Spawned player entity: " << eid << " for " << sender
+        std::cout << "Spawned player entity: " << eid << " for " << sender.address << ":" << sender.port
                   << "\n";
 
         _players.push_back(pi);
@@ -496,11 +527,11 @@ void server::wait_for_players()
 
 void server::process_network_inputs()
 {
-  asio::ip::udp::endpoint sender;
+  engine::net::Endpoint sender;
   while (auto pkt_opt = _socket.receive(sender))
   {
     auto [hdr, payload] = *pkt_opt;
-    if (hdr.type == INPUT)
+    if (hdr.type == INPUT_PKT)
     {
       if (payload.size() >= sizeof(InputPacket))
       {
@@ -516,22 +547,32 @@ void server::process_network_inputs()
           if (!is_player)
             continue;
         }
+                std::unordered_set<engine::R_Events::Key> keys;
+                const size_t expectedSize = sizeof(InputPacket) + static_cast<size_t>(input.keyCount) * sizeof(int32_t);
+                if (payload.size() >= expectedSize && input.keyCount > 0)
+                {
+                    const int32_t *kptr = reinterpret_cast<const int32_t *>(payload.data() + sizeof(InputPacket));
+                    for (uint16_t i = 0; i < input.keyCount; ++i)
+                        keys.insert(static_cast<engine::R_Events::Key>(kptr[i]));
+                }
 
         for (auto &p : _players)
         {
           if (p.endpoint == sender && p.entityId == input.clientId)
           {
             auto &velocities = _registry.get_components<component::velocity>();
-            if (static_cast<size_t>(p.entityId) < velocities.size() &&
-                velocities[p.entityId])
+            if (static_cast<size_t>(p.entityId) < velocities.size() && velocities[p.entityId])
             {
               auto &vel = *velocities[p.entityId];
-              vel.vx = (input.keys & 0x01)   ? -PLAYER_SPEED
-                       : (input.keys & 0x02) ? PLAYER_SPEED
-                                             : 0;
-              vel.vy = (input.keys & 0x04)   ? -PLAYER_SPEED
-                       : (input.keys & 0x08) ? PLAYER_SPEED
-                                             : 0;
+              using engine::R_Events::Key;
+              bool left = keys.count(Key::Left) > 0 || keys.count(Key::Q) > 0;
+              bool right = keys.count(Key::Right) > 0 || keys.count(Key::D) > 0;
+              bool up = keys.count(Key::Up) > 0 || keys.count(Key::Z) > 0;
+              bool down = keys.count(Key::Down) > 0 || keys.count(Key::S) > 0;
+              vel.vx = left ? -PLAYER_SPEED : right ? PLAYER_SPEED
+                                                    : 0.f;
+              vel.vy = up ? -PLAYER_SPEED : down ? PLAYER_SPEED
+                                                 : 0.f;
             }
             break;
           }
@@ -541,8 +582,7 @@ void server::process_network_inputs()
   }
 }
 
-engine::entity_t server::spawn_player(asio::ip::udp::endpoint endpoint,
-                                      std::size_t index)
+engine::entity_t server::spawn_player(engine::net::Endpoint endpoint, std::size_t index)
 {
   float spawnX = 100.f;
   float spawnY = 100.f + 120.f * static_cast<float>(index);
@@ -558,28 +598,29 @@ engine::entity_t server::spawn_player(asio::ip::udp::endpoint endpoint,
 
 engine::entity_t server::spawn_projectile(engine::entity_t owner)
 {
-  auto &positions = _registry.get_components<component::position>();
-  auto &hitboxes = _registry.get_components<component::hitbox>();
-  size_t idx = static_cast<size_t>(owner);
-  if (idx >= positions.size() || !positions[idx])
-    return owner;
-  auto pos = positions[idx].value();
-  float playerW = 0.f, playerH = 0.f;
-  if (idx < hitboxes.size() && hitboxes[idx])
-  {
-    playerW = hitboxes[idx]->width;
-    playerH = hitboxes[idx]->height;
-  }
-  constexpr float projectileW = 24.f;
-  constexpr float projectileH = 20.f;
-  float startX = pos.x + playerW + 4.f;
-  float startY = pos.y + (playerH * 0.5f) - (projectileH * 0.5f);
-  auto proj = engine::make_entity(
-      _registry, component::position{startX, startY},
-      component::hitbox{projectileW, projectileH},
-      component::collision_state{false}, component::entity_kind::projectile,
-      component::projectile_tag{static_cast<uint32_t>(owner), 300, 1.f, 0.f,
-                                8.f, 2},
-      component::health{1});
-  return proj;
+    auto &positions = _registry.get_components<component::position>();
+    auto &hitboxes = _registry.get_components<component::hitbox>();
+    size_t idx = static_cast<size_t>(owner);
+    if (idx >= positions.size() || !positions[idx])
+        return owner;
+    auto pos = positions[idx].value();
+    float playerW = 0.f, playerH = 0.f;
+    if (idx < hitboxes.size() && hitboxes[idx])
+    {
+        playerW = hitboxes[idx]->width;
+        playerH = hitboxes[idx]->height;
+    }
+    constexpr float projectileW = 24.f;
+    constexpr float projectileH = 20.f;
+    float startX = pos.x + playerW + 4.f;
+    float startY = pos.y + (playerH * 0.5f) - (projectileH * 0.5f);
+    auto proj = engine::make_entity(
+        _registry,
+        component::position{startX, startY},
+        component::hitbox{projectileW, projectileH},
+        component::collision_state{false},
+        component::entity_kind::projectile,
+        component::projectile_tag{static_cast<uint32_t>(owner), 300, 1.f, 0.f, 8.f, 2},
+        component::health{1});
+    return proj;
 }

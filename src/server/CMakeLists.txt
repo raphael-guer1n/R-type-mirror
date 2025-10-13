@@ -14,11 +14,6 @@ target_include_directories(r-type_server PRIVATE
 
 target_link_libraries(r-type_server PRIVATE
     engine
-    sfml-system
-    sfml-window
-    sfml-graphics
-    sfml-audio
-    sfml-network
     Threads::Threads
     asio::asio
 )

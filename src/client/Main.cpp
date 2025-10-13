@@ -1,12 +1,12 @@
 #include "engine/renderer/Error.hpp"
 #include "engine/events/Events.hpp"
 #include "Rtype.hpp"
+#include <iostream>
 
-int main() {
+int main(int argc, char* argv[]) {
     try
     {
         R_Type::Rtype game;
-        game.waiting_connection();
         game.getApp().run(
             [&game](float dt, const std::vector<engine::R_Events::Event> &events)
             {

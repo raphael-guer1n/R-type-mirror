@@ -1,5 +1,16 @@
+/**
+ * @brief Initializes the background entities for the R-Type client.
+ *
+ * This constructor creates two background entities to enable a seamless scrolling starfield effect.
+ * Each entity is assigned a position, velocity, and decor kind, and is associated with a drawable
+ * component using the starfield texture. The second entity is positioned to the right of the first,
+ * allowing for continuous background movement as the game progresses.
+ *
+ * @param rtype Reference to the main Rtype application, used to access the window, registry, and resources.
+ */
 #include <iostream>
 #include "Background.hpp"
+#include "common/Layers.hpp"
 #include "common/Systems.hpp"
 #include "Rtype.hpp"
 
@@ -22,7 +33,7 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
         rtype.getApp().getWindow().getSize().x,
         rtype.getApp().getWindow().getSize().y
     );
-    registry.emplace_component<component::drawable>(e, tex, rect);
+    registry.emplace_component<component::drawable>(e, tex, rect, layers::Background);
     auto e1 = registry.spawn_entity();
     registry.add_component(e1, component::position{static_cast<float>(pos.x), 0.0f});
     registry.add_component(e1, component::velocity{-100.0f, 0.0f});
@@ -37,5 +48,5 @@ R_Type::Background::Background(R_Type::Rtype& rtype)
         rtype.getApp().getWindow().getSize().x,
         rtype.getApp().getWindow().getSize().y
     );
-    registry.emplace_component<component::drawable>(e1, tex1, rect1);
+    registry.emplace_component<component::drawable>(e1, tex1, rect1, layers::Background);
 }

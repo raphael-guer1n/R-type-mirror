@@ -4,6 +4,20 @@
 
 namespace serverutils {
 
+/**
+ * @brief Resolves collision between a moving entity and a blocking entity.
+ *
+ * This function checks for a collision between two entities identified by their indices.
+ * If a collision is detected, it updates the collision state, adjusts the position of the mover
+ * to resolve the overlap, and sets the velocity component to zero along the axis of collision.
+ *
+ * @param moverIdx Index of the moving entity in the arrays.
+ * @param blockerIdx Index of the blocking entity in the arrays.
+ * @param positions Sparse array of position components for all entities.
+ * @param hitboxes Sparse array of hitbox components for all entities.
+ * @param collisions Sparse array of collision state components for all entities.
+ * @param velocities Sparse array of velocity components for all entities.
+ */
 void resolve_block(std::size_t moverIdx, std::size_t blockerIdx,
                    engine::sparse_array<component::position> &positions,
                    engine::sparse_array<component::hitbox> &hitboxes,
