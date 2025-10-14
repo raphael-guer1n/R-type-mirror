@@ -113,7 +113,7 @@ inline void hitbox_overlay_system(registry &r, sparse_array<component::position>
             SDL_SetRenderDrawColor(ren, 0, 200, 255, 220);
         } else if (kind == component::entity_kind::enemy) {
             SDL_SetRenderDrawColor(ren, 255, 60, 60, 220);
-        } else if (kind == component::entity_kind::projectile) {
+        } else if (kind == component::entity_kind::playerProjectile) {
             SDL_SetRenderDrawColor(ren, 255, 255, 0, 220);
         } else if (kind == component::entity_kind::projectile_bomb) {
             SDL_SetRenderDrawColor(ren, 255, 180, 0, 220);

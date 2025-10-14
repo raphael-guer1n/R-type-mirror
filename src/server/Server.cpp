@@ -721,7 +721,7 @@ engine::entity_t server::spawn_projectile_basic(engine::entity_t owner)
     component::position{startX, startY}, component::velocity{1.f, 0.f},
         component::hitbox{w, h},
         component::collision_state{false},
-        component::entity_kind::projectile,
+        component::entity_kind::playerProjectile,
         component::projectile_tag{static_cast<uint32_t>(owner), 120, 1.f, 0.f, 2.0f, 2},
         component::health{1});
 }
@@ -743,7 +743,7 @@ engine::entity_t server::spawn_projectile_alt(engine::entity_t owner)
     component::position{startX, startY}, component::velocity{1.f, 0.f},
         component::hitbox{w, h},
         component::collision_state{false},
-        component::entity_kind::projectile,
+        component::entity_kind::playerProjectile,
         component::projectile_tag{static_cast<uint32_t>(owner), 120, 1.f, 0.f, 3.0f, 2},
         component::health{1});
 }

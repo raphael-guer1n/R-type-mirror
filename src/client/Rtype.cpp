@@ -439,7 +439,7 @@ void R_Type::Rtype::handle_collision(engine::registry &reg, size_t i, size_t j)
     component::animation anim = _playerData->explosionAnimation;
     reg.add_component(explosion, component::lifetime{0.8f});
     reg.add_component(explosion, component::drawable{
-      _playerData->texture,
+      _playerData->playerTexture,
       _playerData->explosionRect,
       layers::Effects});
     reg.add_component(explosion, component::animation{anim});

@@ -6,7 +6,8 @@
 
 R_Type::Player::Player(R_Type::Rtype &rtype)
 : playerRect(0, 0, 33, 17),
-    projectileRect(232, 103, 16, 12), explosionRect(247, 296, 33, 33),
+    projectileRect(232, 103, 16, 12),
+    explosionRect(247, 296, 33, 33),
     chargeRect(0, 5, 32, 32),
     chargeProjectileRect(203, 276, 220, 287),
     missileProjectileRect(0, 238, 152, 254),
