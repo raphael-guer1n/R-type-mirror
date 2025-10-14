@@ -143,6 +143,15 @@ void try_add_entity(uint32_t entityId, std::vector<EntityState> &out,
                     ? 1
                     : 0;
 
+  if (idx < ctx.hitboxes.size() && ctx.hitboxes[idx]) {
+    es.hb_w = ctx.hitboxes[idx]->width;
+    es.hb_h = ctx.hitboxes[idx]->height;
+    es.hb_ox = ctx.hitboxes[idx]->offset_x;
+    es.hb_oy = ctx.hitboxes[idx]->offset_y;
+  } else {
+    es.hb_w = 0.f; es.hb_h = 0.f; es.hb_ox = 0.f; es.hb_oy = 0.f;
+  }
+
   out.push_back(es);
   inserted.insert(entityId);
 }

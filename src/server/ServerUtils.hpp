@@ -66,6 +66,7 @@ struct SnapshotBuilderContext {
   engine::sparse_array<component::entity_kind> &kinds;
   engine::sparse_array<component::collision_state> &collisions;
   engine::sparse_array<component::health> &healths;
+  engine::sparse_array<component::hitbox> &hitboxes;
 };
 /**
  * @brief Attempts to add an entity to the snapshot output.
