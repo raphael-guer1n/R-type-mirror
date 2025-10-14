@@ -233,7 +233,7 @@ void server::register_collision_system()
                   if (i < posArr.size() && posArr[i])
                   {
                     auto pPos = posArr[i].value();
-                    auto exp = spawn_explosion(pPos.x, pPos.y, proj.damage, 180.f);
+                    auto exp = spawn_missile_explosion(pPos.x, pPos.y, proj.damage, 180.f);
                     _live_entities.insert(static_cast<uint32_t>(exp));
                   }
                 }
@@ -260,7 +260,7 @@ void server::register_collision_system()
                   if (j < posArr.size() && posArr[j])
                   {
                     auto pPos = posArr[j].value();
-                    auto exp = spawn_explosion(pPos.x, pPos.y, proj.damage, 180.f);
+                    auto exp = spawn_missile_explosion(pPos.x, pPos.y, proj.damage, 180.f);
                     _live_entities.insert(static_cast<uint32_t>(exp));
                   }
                 }
@@ -367,7 +367,7 @@ void server::register_area_effect_system()
         for (auto &&[i, pos, area, kind] : indexed_zipper(positions, areas, kinds))
         {
           (void)i;
-          if (kind != component::entity_kind::explosion) continue;
+          if (kind != component::entity_kind::missile_explosion) continue;
           if (area.applied) continue;
           auto &kindsArr = _registry.get_components<component::entity_kind>();
           auto &posArr = _registry.get_components<component::position>();
@@ -813,7 +813,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
     return proj;
 }
 
-engine::entity_t server::spawn_explosion(float x, float y, int damage, float radius)
+engine::entity_t server::spawn_missile_explosion(float x, float y, int damage, float radius)
 {
   float size = radius * 2.f;
   float topLeftX = x - radius;
@@ -824,7 +824,7 @@ engine::entity_t server::spawn_explosion(float x, float y, int damage, float rad
     component::velocity{0.f, 0.f},
     component::hitbox{size, size},
     component::collision_state{false},
-    component::entity_kind::explosion,
+    component::entity_kind::missile_explosion,
     component::projectile_tag{0u, 30u, 0.f, 0.f, 0.f, damage}, // ~0.5s lifetime to match animation
     component::area_effect{radius, damage, false},
     component::health{1});

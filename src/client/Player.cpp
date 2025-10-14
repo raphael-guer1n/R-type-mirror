@@ -10,7 +10,7 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
     chargeRect(0, 5, 32, 32),
     chargeProjectileRect(203, 276, 220, 287),
     missileProjectileRect(0, 238, 152, 254),
-    explosionRect(240, 0, 1039, 47)
+    missileexplosionRect(240, 0, 1039, 47)
 {
     playerTexture = std::make_shared<engine::R_Graphic::Texture>(
         rtype.getApp().getWindow(),
@@ -42,7 +42,7 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
         engine::R_Graphic::doubleVec2(0, 0),
         engine::R_Graphic::intVec2(120, 120)
     );
-    explosionTexture = std::make_shared<engine::R_Graphic::Texture>(
+    missileExplosionTexture = std::make_shared<engine::R_Graphic::Texture>(
         rtype.getApp().getWindow(),
         "./Assets/sprites/explosion-b.png",
         engine::R_Graphic::doubleVec2(0, 0),
@@ -101,7 +101,7 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
         }
     });
 
-    explosionAnimation.clips.insert({
+    missileexplosionAnimation.clips.insert({
         "idle",
         component::AnimationClip{
             .frameCount = 10,

@@ -216,10 +216,10 @@ void R_Type::Rtype::receiveSnapshot()
                       rect = _playerData->missileProjectileRect;
                       ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
                       break;
-                    case component::entity_kind::explosion:
-                      anim = _playerData->explosionAnimation;
-                      tex = _playerData->explosionTexture;
-                      rect = _playerData->explosionRect;
+                    case component::entity_kind::missile_explosion:
+                      anim = _playerData->missileexplosionAnimation;
+                      tex = _playerData->missileExplosionTexture;
+                      rect = _playerData->missileexplosionRect;
                       ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Effects});
                       break;
                     case component::entity_kind::player:

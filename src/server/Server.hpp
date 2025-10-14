@@ -71,7 +71,7 @@ private:
     engine::entity_t spawn_projectile_alt(engine::entity_t owner);
     engine::entity_t spawn_projectile_charged(engine::entity_t owner, uint32_t heldTicks);
     engine::entity_t spawn_projectile_bomb(engine::entity_t owner);
-    engine::entity_t spawn_explosion(float x, float y, int damage, float radius);
+    engine::entity_t spawn_missile_explosion(float x, float y, int damage, float radius);
 
     // Internal utility: ensure an entity is scheduled for removal by setting/adding despawn_tag.
     // Centralises logic so systems never call kill_entity directly (uniform ECS pipeline).

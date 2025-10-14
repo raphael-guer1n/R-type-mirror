@@ -29,7 +29,7 @@ namespace component
         projectile_charged = 8,
         pickup = 4,
         decor = 5,
-        explosion = 9
+        missile_explosion = 9
     };
     /**
      * @brief Basic 2D position component.
