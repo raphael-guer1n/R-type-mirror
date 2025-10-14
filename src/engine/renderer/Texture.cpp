@@ -29,7 +29,7 @@
  * @param pos Initial position of the texture on the screen.
  * @param size Desired size of the texture. If (0,0), the image’s original size is used.
  *
- * @throws engine::R_Graphic::Error If image loading or texture creation fails.
+ * @throws engine::Error If image loading or texture creation fails.
  *
  * @see engine::R_Graphic::Window
  * @see engine::R_Graphic::Renderer
