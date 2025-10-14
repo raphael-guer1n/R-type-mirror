@@ -30,7 +30,7 @@
  *
  * @note This class is not copyable.
  */
- 
+
 /**
  * @brief Updates the game state based on elapsed time and input events.
  * @param deltaTime Time elapsed since the last update (in seconds).
@@ -70,34 +70,37 @@ namespace R_Type
     class Hud;
     class Rtype
     {
-        public:
-            Rtype();
-            ~Rtype() = default;
-            void update(float deltaTime, const std::vector<engine::R_Events::Event> &events);
-            void receiveSnapshot();
-            void draw();
-            engine::R_Graphic::App& getApp();
-            engine::registry& getRegistry();
-        public:
-            void waiting_connection();
-        private:
-            std::unique_ptr<engine::net::Endpoint> _serverEndpoint;
-            uint32_t _tick = 0;
-            std::unordered_set<engine::R_Events::Key> _pressedKeys;
-            uint32_t _player = 0;
-            std::unordered_set<uint32_t> _activeEntities;
-            engine::net::Endpoint _sender;
-            engine::R_Graphic::App _app;
-            engine::registry _registry;
-            std::unique_ptr<Background> _background;
-            engine::net::IoContext _ioContext;
-            std::unique_ptr<engine::net::UdpSocket> _client;
-            std::unique_ptr<Player> _playerData;
-            std::unordered_map<uint32_t, size_t> _entityMap;
-            std::unique_ptr<Hud> _hud;
+    public:
+        Rtype();
+        ~Rtype() = default;
+        void update(float deltaTime, const std::vector<engine::R_Events::Event> &events);
+        void receiveSnapshot();
+        void draw();
+        engine::R_Graphic::App &getApp();
+        engine::registry &getRegistry();
+
+    public:
+        void setServerEndpoint(const std::string &ip, unsigned short port);
+        void waiting_connection();
+
+    private:
+        std::unique_ptr<engine::net::Endpoint> _serverEndpoint;
+        uint32_t _tick = 0;
+        std::unordered_set<engine::R_Events::Key> _pressedKeys;
+        uint32_t _player = 0;
+        std::unordered_set<uint32_t> _activeEntities;
+        engine::net::Endpoint _sender;
+        engine::R_Graphic::App _app;
+        engine::registry _registry;
+        std::unique_ptr<Background> _background;
+        engine::net::IoContext _ioContext;
+        std::unique_ptr<engine::net::UdpSocket> _client;
+        std::unique_ptr<Player> _playerData;
+        std::unordered_map<uint32_t, size_t> _entityMap;
+        std::unique_ptr<Hud> _hud;
             std::vector<float> _hbW, _hbH, _hbOX, _hbOY;
-            std::unique_ptr<R_Type::Menu> _menu;
-            bool _inMenu = true;
+        std::unique_ptr<R_Type::Menu> _menu;
+        bool _inMenu = true;
             std::unordered_map<size_t, int> _playerIndexByLocalId;
             bool _showHitboxes = false;
             int _hitboxOverlayThickness = 3;
