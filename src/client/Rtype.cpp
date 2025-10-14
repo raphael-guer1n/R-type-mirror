@@ -90,7 +90,7 @@ void R_Type::Rtype::update(float deltaTime,
     }
     if (spaceHeld)
         spaceHoldTicks++;
-    else spaceHoldTicks = 0;
+    else
         spaceHoldTicks = 0;
     float chargeLevel = std::min(1.0f, spaceHoldTicks / 60.0f);
     if (_hud)
