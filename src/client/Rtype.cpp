@@ -276,6 +276,12 @@ engine::registry &R_Type::Rtype::getRegistry()
   return _registry;
 }
 
+void  R_Type::Rtype::setServerEndpoint(const std::string &ip, unsigned short port)
+{
+    _serverEndpoint = std::make_unique<engine::net::Endpoint>(
+        engine::net::make_endpoint(ip, port));
+}
+
 void R_Type::Rtype::waiting_connection()
 {
   bool connected = false;

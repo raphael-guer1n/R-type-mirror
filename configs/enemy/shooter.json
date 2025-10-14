@@ -12,7 +12,7 @@
             "name": "straight_bullet",
             "cooldown": 60,
             "damage": 1,
-            "speedX": -1,
+            "speedX": -5,
             "speedY": 0,
             "width": 10,
             "height": 10
