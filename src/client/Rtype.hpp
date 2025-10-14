@@ -103,6 +103,7 @@ namespace R_Type
         std::unique_ptr<Hud> _hud;
         std::unique_ptr<R_Type::Menu> _menu;
         bool _inMenu = true;
+        bool _connected = false;
     };
     void setAnimation(component::animation &anim, const std::string &clip, bool reverse);
 }

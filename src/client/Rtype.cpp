@@ -58,8 +58,11 @@ void R_Type::Rtype::update(float deltaTime,
       std::memcpy(buf.data(), &req, sizeof(ConnectReq));
       _client->send(hdr, buf, *_serverEndpoint);
       std::cout << "Sent CONNECT_REQ\n";
-      this->waiting_connection();
     }
+    return;
+  }
+  if (!_connected && !_inMenu) {
+    waiting_connection();
     return;
   }
   for (auto &ev : events)
@@ -260,6 +263,8 @@ void R_Type::Rtype::draw()
     _menu->draw();
     return;
   }
+  if (!_connected)
+    return;
   auto &positions = _registry.get_components<component::position>();
   auto &drawables = _registry.get_components<component::drawable>();
 
@@ -284,9 +289,7 @@ void  R_Type::Rtype::setServerEndpoint(const std::string &ip, unsigned short por
 
 void R_Type::Rtype::waiting_connection()
 {
-  bool connected = false;
-
-  while (!connected)
+  if (!_connected)
   {
     if (auto pkt_opt = _client->receive(_sender))
     {
@@ -297,7 +300,7 @@ void R_Type::Rtype::waiting_connection()
         ConnectAck ack{};
         std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
         _player = ack.playerEntityId;
-        connected = true;
+        _connected = true;
         _registry.spawn_entity();
       }
     }
