@@ -12,6 +12,8 @@
 #include "engine/network/Endpoint.hpp"
 
 #define PLAYER_SPEED 400.0f
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 /**
  * @class server
  * @brief Main server class for managing game state, networking, and player entities.
@@ -55,6 +57,8 @@ private:
     void process_network_inputs();
     void game_handler();
     void broadcast_snapshot();
+    void broadcast_game_over(uint32_t winnerEntityId);
+    void check_game_over();
 
     // Spawning helpers
     engine::entity_t spawn_player(engine::net::Endpoint endpoint, std::size_t index);

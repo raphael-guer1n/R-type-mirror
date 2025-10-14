@@ -79,6 +79,11 @@ void engine::R_Graphic::Texture::draw(R_Graphic::Window& window, R_Graphic::text
     }
 }
 
+void engine::R_Graphic::Texture::changeColors(int r, int g, int b)
+{
+    SDL_SetTextureColorMod(_texture, r, g, b);
+}
+
 engine::R_Graphic::intVec2 engine::R_Graphic::Texture::getSize() const {
     return _size;
 }

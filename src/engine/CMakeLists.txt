@@ -12,7 +12,8 @@ add_library(engine
     renderer/Window.cpp
     audio/Music.cpp
     network/IoContext.cpp
-    network/UdpSocket.cpp)
+    network/UdpSocket.cpp
+)
 
 target_include_directories(engine
     PUBLIC

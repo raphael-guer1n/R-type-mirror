@@ -5,6 +5,8 @@ add_executable(r-type_client
     Player.cpp
     Hud.cpp
     Menu.cpp
+    Enemy.cpp
+    Gameover.cpp
 )
 
 target_include_directories(r-type_client PRIVATE
