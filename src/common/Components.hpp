@@ -25,6 +25,9 @@ namespace component
         player = 1,
         enemy = 2,
         projectile = 3,
+        projectile_basic = 6,
+        projectile_alt = 7,
+        projectile_charged = 8,
         pickup = 4,
         decor = 5
     };
