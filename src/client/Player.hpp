@@ -47,12 +47,14 @@ namespace R_Type
              * @param registry Reference to the entity-component registry.
              * @param pressedKeys Set of currently pressed keys.
              */
-            
+
             std::shared_ptr<engine::R_Graphic::Texture> texture;
             engine::R_Graphic::textureRect playerRect;
             engine::R_Graphic::textureRect projectileRect;
+            engine::R_Graphic::textureRect explosionRect;
             component::animation playerAnimation;
             component::animation projectileAnimation;
+            component::animation explosionAnimation;
         public:
             void playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
                 uint32_t player, engine::registry& registry, const std::unordered_set<engine::R_Events::Key>& pressedKeys);

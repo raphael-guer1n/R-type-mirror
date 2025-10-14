@@ -29,10 +29,14 @@ R_Type::Rtype::Rtype()
     _registry.register_component<component::entity_kind>();
     _registry.register_component<component::collision_state>();
     _registry.register_component<component::animation>();
+    _registry.register_component<component::lifetime>();
+    _registry.register_component<component::hitbox>();
     _background = std::make_unique<Background>(*this);
     _playerData = std::make_unique<Player>(*this);
+    _enemyData = std::make_unique<Enemy>(*this);
     _hud = std::make_unique<Hud>(*this);
     _menu = std::make_unique<R_Type::Menu>(_app);
+    _gameOverScreen = std::make_unique<Gameover>(_app);
   }
   catch (const R_Graphic::Error &e)
   {
@@ -43,6 +47,8 @@ R_Type::Rtype::Rtype()
 void R_Type::Rtype::update(float deltaTime,
                            const std::vector<R_Events::Event> &events)
 {
+  if (_gameOver)
+    return;
   if (_inMenu)
   {
     bool start = _menu->update(events);
@@ -55,14 +61,18 @@ void R_Type::Rtype::update(float deltaTime,
       std::memcpy(buf.data(), &req, sizeof(ConnectReq));
       _client->send(hdr, buf, *_serverEndpoint);
       std::cout << "Sent CONNECT_REQ\n";
-      this->waiting_connection();
     }
+    return;
+  }
+  if (!_connected && !_inMenu) {
+    waiting_connection();
     return;
   }
   for (auto &ev : events)
   {
-    if (ev.type == R_Events::Type::KeyDown)
+    if (ev.type == R_Events::Type::KeyDown) {
       _pressedKeys.insert(ev.key.code);
+    }
     else if (ev.type == R_Events::Type::KeyUp)
       _pressedKeys.erase(ev.key.code);
   }
@@ -91,10 +101,15 @@ void R_Type::Rtype::update(float deltaTime,
   auto &kinds = _registry.get_components<component::entity_kind>();
   auto &drawables = _registry.get_components<component::drawable>();
   auto &collisions = _registry.get_components<component::collision_state>();
+  auto &hitboxes = _registry.get_components<component::hitbox>();
   position_system(_registry, positions, velocities, deltaTime);
   control_system(_registry, velocities, controls);
   scroll_reset_system(_registry, positions, kinds, _app);
   animation_system(_registry, animations, drawables, deltaTime);
+  hitbox_system(_registry, positions, hitboxes, [this](size_t i, size_t j) {
+    this->handle_collision(_registry, i, j);
+  });
+  lifetime_system(_registry, deltaTime);
   _registry.run_systems();
 }
 
@@ -104,6 +119,17 @@ void R_Type::Rtype::receiveSnapshot()
   {
     auto [shdr, spayload] = *pkt_opt;
 
+    if (shdr.type == GAME_OVER && spayload.size() >= sizeof(GameOverPayload)) {
+      GameOverPayload go{};
+      std::memcpy(&go, spayload.data(), sizeof(go));
+      _gameOver = true;
+      uint32_t winnerEntityId = go.winnerEntityId;
+      if (_player == winnerEntityId)
+        _won = true;
+      else
+        _won = false;
+      continue;
+    }
     if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))
     {
       Snapshot snap{};
@@ -115,6 +141,7 @@ void R_Type::Rtype::receiveSnapshot()
       auto &kinds = _registry.get_components<component::entity_kind>();
       auto &collisions = _registry.get_components<component::collision_state>();
       auto &animations = _registry.get_components<component::animation>();
+      auto &hitboxes = _registry.get_components<component::hitbox>();
 
       std::unordered_set<uint32_t> newActive;
 
@@ -169,17 +196,32 @@ void R_Type::Rtype::receiveSnapshot()
           component::animation anim;
           switch (kinds[idLocal].value())
           {
-          case component::entity_kind::projectile:
+          case component::entity_kind::playerProjectile:
             anim = _playerData->projectileAnimation;
             tex = _playerData->texture;
             rect = _playerData->projectileRect;
+            ensure_slot(hitboxes, idLocal, component::hitbox{100, 24});
             ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
             break;
           case component::entity_kind::player:
             anim = _playerData->playerAnimation;
             tex = _playerData->texture;
             rect = _playerData->playerRect;
+            ensure_slot(hitboxes, idLocal, component::hitbox{34, 20});
             ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Players});
+            break;
+          case component::entity_kind::enemyProjectile:
+            anim = _enemyData->projectileAnimation;
+            tex = _enemyData->projectileTexture;
+            rect = _enemyData->projectileRect;
+            ensure_slot(hitboxes, idLocal, component::hitbox{60, 60});
+            ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
+            break;
+          case component::entity_kind::enemy:
+            tex = _enemyData->enemyTexture;
+            rect = _enemyData->enemyRect;
+            ensure_slot(hitboxes, idLocal, component::hitbox{152, 100});
+            ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Enemies});
             break;
           default:
             tex = _playerData->texture;
@@ -235,6 +277,12 @@ void R_Type::Rtype::draw()
     _menu->draw();
     return;
   }
+  if (!_connected)
+    return;
+  if (_gameOver) {
+    _gameOverScreen->draw(_won);
+    return;
+  }
   auto &positions = _registry.get_components<component::position>();
   auto &drawables = _registry.get_components<component::drawable>();
 
@@ -259,9 +307,7 @@ void  R_Type::Rtype::setServerEndpoint(const std::string &ip, unsigned short por
 
 void R_Type::Rtype::waiting_connection()
 {
-  bool connected = false;
-
-  while (!connected)
+  if (!_connected)
   {
     if (auto pkt_opt = _client->receive(_sender))
     {
@@ -272,9 +318,41 @@ void R_Type::Rtype::waiting_connection()
         ConnectAck ack{};
         std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
         _player = ack.playerEntityId;
-        connected = true;
+        _connected = true;
+        _registry.spawn_entity();
       }
     }
+  }
+}
+
+void R_Type::Rtype::handle_collision(engine::registry &reg, size_t i, size_t j)
+{
+  auto &positions = reg.get_components<component::position>();
+  auto &hitboxes = reg.get_components<component::hitbox>();
+  auto &kinds = reg.get_components<component::entity_kind>();
+  auto &drawables = reg.get_components<component::drawable>();
+  auto &animations = reg.get_components<component::animation>();
+
+  auto kindI = (i < kinds.size() && kinds[i]) ? kinds[i].value() : component::entity_kind::unknown;
+  auto kindJ = (j < kinds.size() && kinds[j]) ? kinds[j].value() : component::entity_kind::unknown;
+
+  if ((kindI == component::entity_kind::playerProjectile && kindJ == component::entity_kind::enemy) ||
+      (kindJ == component::entity_kind::playerProjectile && kindI == component::entity_kind::enemy))
+  {
+    size_t enemyIdx = (kindI == component::entity_kind::enemy) ? i : j;
+    float x = positions[enemyIdx]->x;
+    float y = positions[enemyIdx]->y;
+    auto explosion = reg.spawn_entity();
+    reg.add_component(explosion, component::position{x, y});
+    reg.add_component(explosion, component::entity_kind::decor);
+    component::animation anim = _playerData->explosionAnimation;
+    reg.add_component(explosion, component::lifetime{0.8f});
+    reg.add_component(explosion, component::drawable{
+      _playerData->texture,
+      _playerData->explosionRect,
+      layers::Effects});
+    reg.add_component(explosion, component::animation{anim});
+    return;
   }
 }
 

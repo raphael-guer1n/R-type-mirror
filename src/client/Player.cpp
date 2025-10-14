@@ -3,7 +3,7 @@
 #include "Player.hpp"
 
 R_Type::Player::Player(R_Type::Rtype &rtype)
-: playerRect(167, 0, 32, 17), projectileRect(232, 103, 16, 12)
+: playerRect(167, 0, 32, 17), projectileRect(232, 103, 16, 12), explosionRect(247, 296, 33, 33)
 {
     texture = std::make_shared<engine::R_Graphic::Texture>(
         rtype.getApp().getWindow(),
@@ -59,6 +59,19 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
             .loop = true
         }
     });
+    explosionAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 6,
+            .frameTime = 0.15f,
+            .startX = 247,
+            .startY = 296,
+            .frameWidth = 33,
+            .frameHeight = 33,
+            .loop = false
+        }
+    });
+    explosionAnimation.reverse = true;
 }
 
 void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
