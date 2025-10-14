@@ -188,7 +188,7 @@ void R_Type::Rtype::receiveSnapshot()
                         rect = _playerData->projectileRect;
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
                         break;
-                    case component::entity_kind::projectile_bomb:
+                    case component::entity_kind::projectile_charged:
                         anim = _playerData->chargeProjectileAnimation;
                         tex = _playerData->chargeProjectileTexture; 
                         rect = _playerData->chargeProjectileRect;
