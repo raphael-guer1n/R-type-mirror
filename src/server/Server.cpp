@@ -211,7 +211,7 @@ void server::setup_systems()
                             }
                           }
                         }
-                        if (kindJ == component::entity_kind::projectile &&
+                        if ((kindJ == component::entity_kind::projectile || kindJ == component::entity_kind::projectile_bomb) &&
                             kindI == component::entity_kind::enemy)
                         {
                           if (j < projectiles.size() && projectiles[j])
@@ -649,8 +649,8 @@ engine::entity_t server::spawn_projectile_charged(engine::entity_t owner, uint32
     }
     float scale = std::min(1.0f + (heldTicks / 60.0f), 3.0f);
     float w = 14.f * scale, h = 14.f * scale;
-    float speed = 2.5f + 1.0f * scale;
-    int dmg = static_cast<int>(2 * scale);
+    float speed = 5.5f + 1.0f * scale;
+    int dmg = static_cast<int>(2 * scale) + 1;
     float startX = pos.x + playerW + 4.f;
     float startY = pos.y + (playerH * 0.5f) - (h * 0.5f);
     return engine::make_entity(
@@ -658,7 +658,7 @@ engine::entity_t server::spawn_projectile_charged(engine::entity_t owner, uint32
         component::position{startX, startY},
         component::hitbox{w, h},
         component::collision_state{false},
-        component::entity_kind::projectile,
+        component::entity_kind::projectile_bomb,
         component::projectile_tag{static_cast<uint32_t>(owner), 180, 1.f, 0.f, speed, dmg},
         component::health{1});
 }
