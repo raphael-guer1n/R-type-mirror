@@ -5,7 +5,7 @@
     "behavior": "straight_shooter",
     "hitbox": {
         "w": 132,
-        "h": 100
+        "h": 120
     },
     "spells": [
         {

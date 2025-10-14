@@ -5,7 +5,7 @@
     "behavior": "zigzag",
     "hitbox": {
         "w": 132,
-        "h": 100
+        "h": 120
     },
     "color": "red"
 }

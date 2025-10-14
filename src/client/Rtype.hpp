@@ -79,8 +79,9 @@ namespace R_Type
             void draw();
             engine::R_Graphic::App& getApp();
             engine::registry& getRegistry();
-        public:
+        private:
             void waiting_connection();
+            void handle_collision(engine::registry &reg, size_t i, size_t j);
         private:
             std::unique_ptr<engine::net::Endpoint> _serverEndpoint;
             uint32_t _tick = 0;

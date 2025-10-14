@@ -11,7 +11,7 @@ namespace component
 
     // Optional tag to mark remote players (other clients)
     struct remote_player_tag {};
-    
+
     struct hud_tag {};
 
     // struct health {
@@ -27,5 +27,9 @@ namespace component
     struct score {
         int current;
         int highScore;
+    };
+
+    struct lifetime {
+        float remaining;
     };
 }

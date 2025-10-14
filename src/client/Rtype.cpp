@@ -29,6 +29,8 @@ R_Type::Rtype::Rtype()
     _registry.register_component<component::entity_kind>();
     _registry.register_component<component::collision_state>();
     _registry.register_component<component::animation>();
+    _registry.register_component<component::lifetime>();
+    _registry.register_component<component::hitbox>();
     _background = std::make_unique<Background>(*this);
     _playerData = std::make_unique<Player>(*this);
     _enemyData = std::make_unique<Enemy>(*this);
@@ -64,7 +66,6 @@ void R_Type::Rtype::update(float deltaTime,
   {
     if (ev.type == R_Events::Type::KeyDown) {
       _pressedKeys.insert(ev.key.code);
-      // std::cout << "SIZE:" << _playerData->projectileRect.si
     }
     else if (ev.type == R_Events::Type::KeyUp)
       _pressedKeys.erase(ev.key.code);
@@ -94,10 +95,15 @@ void R_Type::Rtype::update(float deltaTime,
   auto &kinds = _registry.get_components<component::entity_kind>();
   auto &drawables = _registry.get_components<component::drawable>();
   auto &collisions = _registry.get_components<component::collision_state>();
+  auto &hitboxes = _registry.get_components<component::hitbox>();
   position_system(_registry, positions, velocities, deltaTime);
   control_system(_registry, velocities, controls);
   scroll_reset_system(_registry, positions, kinds, _app);
   animation_system(_registry, animations, drawables, deltaTime);
+  hitbox_system(_registry, positions, hitboxes, [this](size_t i, size_t j) {
+    this->handle_collision(_registry, i, j);
+  });
+  lifetime_system(_registry, deltaTime);
   _registry.run_systems();
 }
 
@@ -118,6 +124,7 @@ void R_Type::Rtype::receiveSnapshot()
       auto &kinds = _registry.get_components<component::entity_kind>();
       auto &collisions = _registry.get_components<component::collision_state>();
       auto &animations = _registry.get_components<component::animation>();
+      auto &hitboxes = _registry.get_components<component::hitbox>();
 
       std::unordered_set<uint32_t> newActive;
 
@@ -176,23 +183,27 @@ void R_Type::Rtype::receiveSnapshot()
             anim = _playerData->projectileAnimation;
             tex = _playerData->texture;
             rect = _playerData->projectileRect;
+            ensure_slot(hitboxes, idLocal, component::hitbox{100, 24});
             ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
             break;
           case component::entity_kind::player:
             anim = _playerData->playerAnimation;
             tex = _playerData->texture;
             rect = _playerData->playerRect;
+            ensure_slot(hitboxes, idLocal, component::hitbox{34, 20});
             ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Players});
             break;
           case component::entity_kind::enemyProjectile:
             anim = _enemyData->projectileAnimation;
             tex = _enemyData->projectileTexture;
             rect = _enemyData->projectileRect;
+            ensure_slot(hitboxes, idLocal, component::hitbox{60, 60});
             ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
             break;
           case component::entity_kind::enemy:
             tex = _enemyData->enemyTexture;
             rect = _enemyData->enemyRect;
+            ensure_slot(hitboxes, idLocal, component::hitbox{152, 100});
             ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Enemies});
             break;
           default:
@@ -281,8 +292,40 @@ void R_Type::Rtype::waiting_connection()
         std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
         _player = ack.playerEntityId;
         connected = true;
+        _registry.spawn_entity();
       }
     }
+  }
+}
+
+void R_Type::Rtype::handle_collision(engine::registry &reg, size_t i, size_t j)
+{
+  auto &positions = reg.get_components<component::position>();
+  auto &hitboxes = reg.get_components<component::hitbox>();
+  auto &kinds = reg.get_components<component::entity_kind>();
+  auto &drawables = reg.get_components<component::drawable>();
+  auto &animations = reg.get_components<component::animation>();
+
+  auto kindI = (i < kinds.size() && kinds[i]) ? kinds[i].value() : component::entity_kind::unknown;
+  auto kindJ = (j < kinds.size() && kinds[j]) ? kinds[j].value() : component::entity_kind::unknown;
+
+  if ((kindI == component::entity_kind::playerProjectile && kindJ == component::entity_kind::enemy) ||
+      (kindJ == component::entity_kind::playerProjectile && kindI == component::entity_kind::enemy))
+  {
+    size_t enemyIdx = (kindI == component::entity_kind::enemy) ? i : j;
+    float x = positions[enemyIdx]->x;
+    float y = positions[enemyIdx]->y;
+    auto explosion = reg.spawn_entity();
+    reg.add_component(explosion, component::position{x, y});
+    reg.add_component(explosion, component::entity_kind::decor);
+    component::animation anim = _playerData->explosionAnimation;
+    reg.add_component(explosion, component::lifetime{0.8f});
+    reg.add_component(explosion, component::drawable{
+      _playerData->texture,
+      _playerData->explosionRect,
+      layers::Effects});
+    reg.add_component(explosion, component::animation{anim});
+    return;
   }
 }
 

@@ -9,6 +9,8 @@
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Window.hpp"
+#include "Layers.hpp"
+#include "../client/Rtype.hpp"
 /**
  * @file Systems_client_sdl.hpp
  * @brief Defines ECS systems for client-side SDL rendering and control in the R-Type project.
@@ -72,6 +74,18 @@ inline void draw_system(registry &r,
         auto &p = *positions[idx];
         d.texture->position = {p.x, p.y};
         d.texture->draw(window, &d.rect);
+    }
+}
+
+inline void lifetime_system(registry &r, float dt)
+{
+    auto &lifetimes = r.get_components<component::lifetime>();
+
+    for (auto &&[i, life] : indexed_zipper(lifetimes)) {
+        life.remaining -= dt;
+        if (life.remaining <= 0.f) {
+            r.kill_entity(r.entity_from_index(i));
+        }
     }
 }
 
