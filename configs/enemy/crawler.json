@@ -1,11 +1,11 @@
 {
     "type": "enemy",
     "hp": 1,
-    "speed": 120,
+    "speed": 250,
     "behavior": "zigzag",
     "hitbox": {
         "w": 132,
-        "h": 72
+        "h": 100
     },
     "color": "red"
 }
