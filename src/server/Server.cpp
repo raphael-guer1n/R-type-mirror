@@ -394,15 +394,12 @@ void server::game_handler()
       ai.behavior = cfg.behavior;
       ai.speed = cfg.speed;
       _registry.add_component<component::ai_controller>(e, std::move(ai));
-      std::cout << "Enemy spawned with behavior=" << ai.behavior
-                << " speed=" << ai.speed << "\n";
       if (!cfg.spells.empty())
       {
         component::spellbook sb;
         sb.spells = cfg.spells;
         _registry.add_component<component::spellbook>(e, std::move(sb));
       }
-      std::cout << "Spawned Zigzag enemy\n";
     }
     catch (std::exception &ex)
     {
@@ -443,6 +440,40 @@ void server::game_handler()
     catch (std::exception &ex)
     {
       std::cerr << "Failed to load shooter enemy: " << ex.what() << "\n";
+    }
+  }
+  if (_tick == 600)
+  {
+    try
+    {
+      EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/boss.json");
+      auto boss = _registry.spawn_entity();
+      _live_entities.insert(static_cast<uint32_t>(boss));
+
+      _registry.add_component(boss, component::position{1800.f, 400.f});
+      _registry.add_component(boss, component::velocity{0.f, 0.f});
+      _registry.add_component<component::hitbox>(boss, std::move(cfg.hitbox));
+      _registry.add_component(boss, component::entity_kind::enemy);
+      _registry.add_component(boss, component::collision_state{false});
+      _registry.add_component(boss, component::health{(uint8_t)cfg.hp});
+
+      component::ai_controller ai;
+      ai.behavior = cfg.behavior; // "boss"
+      ai.speed = cfg.speed;
+      _registry.add_component<component::ai_controller>(boss, std::move(ai));
+
+      if (!cfg.spells.empty())
+      {
+          component::spellbook sb;
+          sb.spells = cfg.spells;
+          _registry.add_component<component::spellbook>(boss, std::move(sb));
+      }
+
+      std::cout << "Boss spawned! HP: " << cfg.hp << " Behavior: " << ai.behavior << "\n";
+    }
+    catch (std::exception &ex)
+    {
+      std::cerr << "Failed to spawn boss: " << ex.what() << "\n";
     }
   }
 }
