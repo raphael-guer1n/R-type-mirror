@@ -13,6 +13,7 @@
       "platform": "linux | osx"
     },
     "sdl2-image",
+    "sdl2-ttf",
     "asio",
     "nlohmann-json"
   ]
