@@ -5,7 +5,12 @@
 #include "common/Layers.hpp"
 
 R_Type::Player::Player(R_Type::Rtype &rtype)
-: playerRect(0, 0, 33, 17), projectileRect(232, 103, 16, 12), chargeRect(0, 5, 32, 32), chargeProjectileRect(203, 276, 220, 287), missileProjectileRect(0, 238, 152, 254)
+: playerRect(0, 0, 33, 17),
+    projectileRect(232, 103, 16, 12),
+    chargeRect(0, 5, 32, 32),
+    chargeProjectileRect(203, 276, 220, 287),
+    missileProjectileRect(0, 238, 152, 254),
+    explosionRect(240, 0, 1039, 47)
 {
     playerTexture = std::make_shared<engine::R_Graphic::Texture>(
         rtype.getApp().getWindow(),
@@ -35,7 +40,13 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
         rtype.getApp().getWindow(),
         "./Assets/sprites/r-typesheet1.gif",
         engine::R_Graphic::doubleVec2(0, 0),
-        engine::R_Graphic::intVec2(123, 72)
+        engine::R_Graphic::intVec2(120, 120)
+    );
+    explosionTexture = std::make_shared<engine::R_Graphic::Texture>(
+        rtype.getApp().getWindow(),
+        "./Assets/sprites/explosion-b.png",
+        engine::R_Graphic::doubleVec2(0, 0),
+        engine::R_Graphic::intVec2(800, 480)
     );
 
     chargeAnimation.clips.insert({
@@ -65,15 +76,41 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
     });
 
     missileProjectileAnimation.clips.insert({
-        "idle",
+        "rotation",
         component::AnimationClip{
             .frameCount = 9,
             .frameTime = 0.06f,
             .startX = 0,
             .startY = 238,
-            .frameWidth = 16,
-            .frameHeight = 16,
-            .loop = true
+            .frameWidth = 17,
+            .frameHeight = 17,
+            .loop = false
+        }
+    });
+
+    missileProjectileAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 1,
+            .frameTime = 0.0f,
+            .startX = 136,
+            .startY = 238,
+            .frameWidth = 17,
+            .frameHeight = 17,
+            .loop = false
+        }
+    });
+
+    explosionAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 10,
+            .frameTime = 0.1f,
+            .startX = 240,
+            .startY = 0,
+            .frameWidth = 80,
+            .frameHeight = 48,
+            .loop = false
         }
     });
 

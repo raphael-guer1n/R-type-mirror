@@ -56,14 +56,17 @@ namespace R_Type
             std::shared_ptr<engine::R_Graphic::Texture> chargeTexture;
             std::shared_ptr<engine::R_Graphic::Texture> chargeProjectileTexture;
             std::shared_ptr<engine::R_Graphic::Texture> missileProjectileTexture;
+            std::shared_ptr<engine::R_Graphic::Texture> explosionTexture;
             engine::R_Graphic::textureRect chargeRect;
             engine::R_Graphic::textureRect chargeProjectileRect;
             engine::R_Graphic::textureRect missileProjectileRect;
+            engine::R_Graphic::textureRect explosionRect;
             component::animation playerAnimation;
             component::animation projectileAnimation;
             component::animation chargeAnimation;
             component::animation chargeProjectileAnimation;
             component::animation missileProjectileAnimation;
+            component::animation explosionAnimation;
             std::optional<size_t> chargeOverlayLocalId;
         public:
             void playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
