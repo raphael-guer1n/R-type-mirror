@@ -37,6 +37,7 @@ private:
 
     std::shared_ptr<engine::R_Graphic::Texture> _backButton;
     std::shared_ptr<engine::R_Graphic::Texture> _soundButton;
+    std::shared_ptr<engine::R_Graphic::Texture> _windowButton;
 
     std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
 

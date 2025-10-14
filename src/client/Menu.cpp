@@ -62,6 +62,13 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::intVec2(optionSize, optionSize)
     );
 
+    _windowButton = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/window_btn.png",
+        engine::R_Graphic::doubleVec2(centerXOpt, winH / 2 + 20),
+        engine::R_Graphic::intVec2(optionSize, optionSize)
+    );
+
     _backButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/back_btn.png",
@@ -148,5 +155,6 @@ void R_Type::Menu::drawSettingsMenu()
 {
     _settingsBackground->draw(_app.getWindow(), nullptr);
     _soundButton->draw(_app.getWindow(), nullptr);
+    _windowButton->draw(_app.getWindow(), nullptr);
     _backButton->draw(_app.getWindow(), nullptr);
 }
