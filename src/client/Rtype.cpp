@@ -23,7 +23,6 @@ R_Type::Rtype::Rtype()
     _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
     _serverEndpoint = std::make_unique<engine::net::Endpoint>(engine::net::make_endpoint("127.0.0.1", 4242));
 
-        // --- STEP 1: Connect ---
         _registry.register_component<component::drawable>();
         _registry.register_component<component::position>();
         _registry.register_component<component::velocity>();
@@ -82,6 +81,21 @@ void R_Type::Rtype::update(float deltaTime,
     if (keyCount > 0)
         std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keyCount * sizeof(int32_t));
     _client->send(ihdr, ibuf, *_serverEndpoint);
+
+    static uint32_t spaceHoldTicks = 0;
+    bool spaceHeld = _pressedKeys.count(engine::R_Events::Key::Space) > 0;
+    int numKeys = 0;
+    const Uint8 *state = SDL_GetKeyboardState(&numKeys);
+    if (state && SDL_SCANCODE_SPACE < numKeys) {
+        spaceHeld = spaceHeld || (state[SDL_SCANCODE_SPACE] != 0);
+    }
+    if (spaceHeld)
+        spaceHoldTicks++;
+    else spaceHoldTicks = 0;
+        spaceHoldTicks = 0;
+    float chargeLevel = std::min(1.0f, spaceHoldTicks / 60.0f);
+    if (_hud)
+        _hud->setChargeLevel(*this, chargeLevel);
     receiveSnapshot();
     _playerData->playerUpdateAnimation(_entityMap, _player, _registry, _pressedKeys);
     auto &positions = _registry.get_components<component::position>();
@@ -249,6 +263,8 @@ void R_Type::Rtype::draw()
     auto& drawables = _registry.get_components<component::drawable>();
 
     draw_system(_registry, positions, drawables, _app.getWindow());
+    if (_hud)
+        _hud->drawOverlay(*this);
 }
 
 R_Graphic::App &R_Type::Rtype::getApp()
@@ -281,8 +297,6 @@ void R_Type::Rtype::waiting_connection()
         }
     }
 }
-
-// Removed keyToBit: input is now a set of SDL_Keycode values
 
 void R_Type::setAnimation(component::animation &anim, const std::string &clip, bool reverse)
 {
