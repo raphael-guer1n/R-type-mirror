@@ -10,7 +10,7 @@
     */  
 struct PacketHeader
 {
-    uint16_t type;
+    uint8_t type;
     uint16_t size; // payload size
     uint32_t seq;
 };
@@ -38,7 +38,7 @@ struct ConnectAck
 {
     uint32_t serverId;
     uint32_t tickRate;
-    uint32_t playerEntityId;
+    uint16_t playerEntityId;
 };
 /**    * @brief Input packet structure.
     */  
@@ -57,7 +57,7 @@ struct EntityState
     float vx, vy;
     uint8_t type;
     uint8_t hp;
-    uint8_t collided;
+    bool collided;
 };
 /**    * @brief Snapshot packet structure.
     */  
@@ -72,8 +72,8 @@ struct Snapshot
 struct EventPacket
 {
     uint32_t tick;
-    uint16_t eventType;
-    uint32_t entityId;
+    uint8_t eventType;
+    uint16_t entityId;
 };
 /**    * @brief Ping packet structure.
     */  

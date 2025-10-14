@@ -543,7 +543,7 @@ engine::net::Endpoint sender;
                   << "\n";
 
         _players.push_back(pi);
-        ConnectAck ack{1234, 60, static_cast<uint32_t>(eid)};
+        ConnectAck ack{1234, 60, static_cast<uint16_t>(eid)};
         PacketHeader h{CONNECT_ACK, static_cast<uint16_t>(sizeof(ConnectAck)),
                        0};
         std::vector<uint8_t> buf(sizeof(ConnectAck));
