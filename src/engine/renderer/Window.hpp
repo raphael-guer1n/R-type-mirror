@@ -7,11 +7,33 @@
 
 /**
  * @file Window.hpp
- * @brief Déclaration de la classe Window pour la gestion de la fenêtre SDL et du rendu.
+ * @brief Definition of the Window class for managing SDL windows and rendering contexts.
  *
- * Cette classe encapsule la création, la gestion et la destruction d'une fenêtre SDL,
- * ainsi que la gestion des événements et l'accès au renderer associé.
+ * The Window class encapsulates the creation, management, and destruction of an SDL window
+ * and its associated renderer. It also provides event polling and access to rendering
+ * information such as window size and status.
+ *
+ * @details
+ * - Handles initialization and cleanup of SDL window and renderer.
+ * - Provides access to the SDL_Renderer for drawing operations.
+ * - Offers event polling through the pollEvents() function, converting SDL events
+ *   into the engine’s unified event system.
+ * - Allows checking whether the window is open and retrieving its size or handle.
+ *
+ * @namespace engine::R_Graphic
+ * Namespace grouping all rendering-related classes of the engine.
+ *
+ * @class engine::R_Graphic::Window
+ * @brief Encapsulates an SDL window and renderer, handling display and event input.
+ *
+ * @param title Title of the window displayed on the OS window bar.
+ * @param width Width of the window in pixels.
+ * @param height Height of the window in pixels.
+ *
+ * @see engine::R_Graphic::Renderer
+ * @see engine::R_Events::Event
  */
+
 namespace engine
 {
     namespace R_Graphic

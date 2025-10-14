@@ -566,7 +566,7 @@ void server::wait_for_players()
 {
   std::cout << "Waiting for 4 players..." << std::endl;
 
-  while (_players.size() < 2)
+  while (_players.size() < 1)
   {
 engine::net::Endpoint sender;
     auto pkt_opt = _socket.receive(sender);

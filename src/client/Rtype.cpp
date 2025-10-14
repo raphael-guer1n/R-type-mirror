@@ -38,9 +38,9 @@ R_Type::Rtype::Rtype()
     _menu = std::make_unique<R_Type::Menu>(_app);
     _gameOverScreen = std::make_unique<Gameover>(_app);
   }
-  catch (const R_Graphic::Error &e)
+  catch (const engine::Error &e)
   {
-    throw R_Graphic::Error(e);
+    throw engine::Error(e);
   }
 }
 
