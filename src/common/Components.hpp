@@ -24,9 +24,10 @@ namespace component
         unknown = 0,
         player = 1,
         enemy = 2,
-        projectile = 3,
-        pickup = 4,
-        decor = 5
+        playerProjectile = 3,
+        enemyProjectile = 4,
+        pickup = 5,
+        decor = 6
     };
 /**
     * @brief Basic 2D position component.

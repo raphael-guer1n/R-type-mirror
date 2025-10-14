@@ -31,6 +31,7 @@ R_Type::Rtype::Rtype()
     _registry.register_component<component::animation>();
     _background = std::make_unique<Background>(*this);
     _playerData = std::make_unique<Player>(*this);
+    _enemyData = std::make_unique<Enemy>(*this);
     _hud = std::make_unique<Hud>(*this);
     _menu = std::make_unique<R_Type::Menu>(_app);
   }
@@ -61,8 +62,10 @@ void R_Type::Rtype::update(float deltaTime,
   }
   for (auto &ev : events)
   {
-    if (ev.type == R_Events::Type::KeyDown)
+    if (ev.type == R_Events::Type::KeyDown) {
       _pressedKeys.insert(ev.key.code);
+      // std::cout << "SIZE:" << _playerData->projectileRect.si
+    }
     else if (ev.type == R_Events::Type::KeyUp)
       _pressedKeys.erase(ev.key.code);
   }
@@ -169,7 +172,7 @@ void R_Type::Rtype::receiveSnapshot()
           component::animation anim;
           switch (kinds[idLocal].value())
           {
-          case component::entity_kind::projectile:
+          case component::entity_kind::playerProjectile:
             anim = _playerData->projectileAnimation;
             tex = _playerData->texture;
             rect = _playerData->projectileRect;
@@ -180,6 +183,17 @@ void R_Type::Rtype::receiveSnapshot()
             tex = _playerData->texture;
             rect = _playerData->playerRect;
             ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Players});
+            break;
+          case component::entity_kind::enemyProjectile:
+            anim = _enemyData->projectileAnimation;
+            tex = _enemyData->projectileTexture;
+            rect = _enemyData->projectileRect;
+            ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
+            break;
+          case component::entity_kind::enemy:
+            tex = _enemyData->enemyTexture;
+            rect = _enemyData->enemyRect;
+            ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Enemies});
             break;
           default:
             tex = _playerData->texture;

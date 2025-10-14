@@ -73,8 +73,8 @@ namespace systems
       float dirX,
       float dirY)
   {
-    const float projectileW = 10.f;
-    const float projectileH = 10.f;
+    const float projectileW = 60.f;
+    const float projectileH = 60.f;
     const float speed = 8.f;
     const uint32_t lifetime = 300;
 
@@ -83,7 +83,7 @@ namespace systems
         component::position{originX, originY},
         component::hitbox{projectileW, projectileH},
         component::collision_state{false},
-        component::entity_kind::projectile,
+        component::entity_kind::enemyProjectile,
         component::projectile_tag{
             static_cast<std::uint32_t>(owner),
             lifetime,
@@ -161,7 +161,7 @@ namespace systems
               r.add_component(bullet, component::position{pos.x, pos.y});
               r.add_component(bullet, component::velocity{s.speedX, s.speedY + dy * 2});
               r.add_component(bullet, component::hitbox{s.width, s.height});
-              r.add_component(bullet, component::entity_kind::projectile);
+              r.add_component(bullet, component::entity_kind::enemyProjectile);
               r.add_component(bullet, component::damage{s.damage});
               systems::spawned_projectiles.push_back(bullet);
             }

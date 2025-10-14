@@ -190,7 +190,7 @@ void server::setup_systems()
                           resolve_block(j, i, positions, hitboxes, collisions, velocities);
                         }
 
-                        if (kindI == component::entity_kind::projectile &&
+                        if (kindI == component::entity_kind::playerProjectile &&
                             kindJ == component::entity_kind::enemy)
                         {
                           if (i < projectiles.size() && projectiles[i])
@@ -212,7 +212,7 @@ void server::setup_systems()
                             }
                           }
                         }
-                        if (kindJ == component::entity_kind::projectile &&
+                        if (kindJ == component::entity_kind::playerProjectile &&
                             kindI == component::entity_kind::enemy)
                         {
                           if (j < projectiles.size() && projectiles[j])
@@ -235,7 +235,7 @@ void server::setup_systems()
                           }
                         }
 
-                        if (kindI == component::entity_kind::projectile &&
+                        if (kindI == component::entity_kind::enemyProjectile &&
                             kindJ == component::entity_kind::player)
                         {
                           if (i < projectiles.size() && projectiles[i])
@@ -257,7 +257,7 @@ void server::setup_systems()
                             }
                           }
                         }
-                        if (kindJ == component::entity_kind::projectile &&
+                        if (kindJ == component::entity_kind::enemyProjectile &&
                             kindI == component::entity_kind::player)
                         {
                           if (j < projectiles.size() && projectiles[j])
@@ -286,8 +286,6 @@ void server::setup_systems()
             collisions[idx]->collided = newCollided[idx];
         }
       });
-  constexpr float SCREEN_WIDTH = 1920.f;
-  constexpr float SCREEN_HEIGHT = 1080.f;
   _registry.add_system<component::position, component::velocity,
                        component::entity_kind>(
       [this](engine::registry &reg,
@@ -304,7 +302,7 @@ void server::setup_systems()
           float x = pos.x;
           float y = pos.y;
 
-          if (kind == component::entity_kind::projectile)
+          if (kind == component::entity_kind::playerProjectile || kind == component::entity_kind::enemyProjectile)
           {
             if (x < -50.f || x > SCREEN_WIDTH + 50.f || y < -50.f ||
                 y > SCREEN_HEIGHT + 50.f)
@@ -316,7 +314,11 @@ void server::setup_systems()
 
           bool corrected = false;
 
-          if (x < 0.f)
+          if (x < -90.f && kind == component::entity_kind::enemy) {
+            x = SCREEN_WIDTH + 100;
+            corrected = true;
+          }
+          else if (x < 0.f && kind != component::entity_kind::enemy)
           {
             x = 0.f;
             corrected = true;
@@ -383,7 +385,7 @@ void server::game_handler()
       auto e = _registry.spawn_entity();
       _live_entities.insert((uint32_t)e);
 
-      _registry.add_component(e, component::position{1820, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
+      _registry.add_component(e, component::position{SCREEN_WIDTH + 100, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
       _registry.add_component(e, component::velocity{0, 0});
       _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
       _registry.add_component(e, component::entity_kind::enemy);
@@ -420,7 +422,7 @@ void server::game_handler()
       auto e = _registry.spawn_entity();
       _live_entities.insert((uint32_t)e);
 
-      _registry.add_component(e, component::position{1820, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
+      _registry.add_component(e, component::position{SCREEN_WIDTH + 100, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
       _registry.add_component(e, component::velocity{0, 0});
       _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
       _registry.add_component(e, component::entity_kind::enemy);
@@ -610,8 +612,8 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
         playerW = hitboxes[idx]->width;
         playerH = hitboxes[idx]->height;
     }
-    constexpr float projectileW = 24.f;
-    constexpr float projectileH = 20.f;
+    constexpr float projectileW = 75.f;
+    constexpr float projectileH = 24.f;
     float startX = pos.x + playerW + 4.f;
     float startY = pos.y + (playerH * 0.5f) - (projectileH * 0.5f);
     auto proj = engine::make_entity(
@@ -619,7 +621,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
         component::position{startX, startY},
         component::hitbox{projectileW, projectileH},
         component::collision_state{false},
-        component::entity_kind::projectile,
+        component::entity_kind::playerProjectile,
         component::projectile_tag{static_cast<uint32_t>(owner), 300, 1.f, 0.f, 8.f, 2},
         component::health{1});
     return proj;

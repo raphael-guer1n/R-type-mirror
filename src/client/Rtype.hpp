@@ -7,6 +7,7 @@
 #include "Hud.hpp"
 #include "Menu.hpp"
 #include "Player.hpp"
+#include "Enemy.hpp"
 #include "engine/renderer/App.hpp"
 #include "engine/events/Events.hpp"
 #include "engine/ecs/Registry.hpp"
@@ -93,6 +94,7 @@ namespace R_Type
             engine::net::IoContext _ioContext;
             std::unique_ptr<engine::net::UdpSocket> _client;
             std::unique_ptr<Player> _playerData;
+            std::unique_ptr<Enemy> _enemyData;
             std::unordered_map<uint32_t, size_t> _entityMap;
             std::unique_ptr<Hud> _hud;
             std::unique_ptr<R_Type::Menu> _menu;

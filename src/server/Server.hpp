@@ -12,6 +12,8 @@
 #include "engine/network/Endpoint.hpp"
 
 #define PLAYER_SPEED 400.0f
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 /**
  * @class server
  * @brief Main server class for managing game state, networking, and player entities.
