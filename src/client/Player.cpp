@@ -99,9 +99,9 @@ void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>&
         if (localId < animations.size() && animations[localId].has_value()) {
             auto &anim = *animations[localId];
             using engine::R_Events::Key;
-            if (pressedKeys.count(Key::Up)) {
+            if (pressedKeys.count(Key::Up) or pressedKeys.count(Key::Z)) {
                 setAnimation(anim, "move_up", false);
-            } else if (pressedKeys.count(Key::Down)) {
+            } else if (pressedKeys.count(Key::Down) or pressedKeys.count(Key::S)) {
                 setAnimation(anim, "move_down", true);
             }
             else {
