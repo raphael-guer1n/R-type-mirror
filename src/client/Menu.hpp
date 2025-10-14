@@ -8,7 +8,7 @@
  * It also manages background music playback and transitions between
  * menu and in-game audio.
  *
- * @details 
+ * @details
  * The class:
  * - Initializes and displays all visual elements of the main menu.
  * - Processes user events such as mouse clicks to navigate options.
@@ -60,46 +60,40 @@ public:
     void draw();
 
     private:
-        engine::R_Graphic::App &_app;
-        std::shared_ptr<engine::R_Graphic::Texture> _background;
-        std::shared_ptr<engine::R_Graphic::Texture> _startButton;
-        std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
-        std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;
-        std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
+        enum class Page {
+            Main,
+            Settings
+        };
         engine::audio::Music _menuMusic;
         engine::audio::Music _gameMusic;
 
+        void drawMainMenu();
+        void drawSettingsMenu();
+
+        engine::R_Graphic::App &_app;
+        Page _currentPage = Page::Main;
+
+        std::shared_ptr<engine::R_Graphic::Texture> _background;
+        std::shared_ptr<engine::R_Graphic::Texture> _settingsBackground;
+
+        std::shared_ptr<engine::R_Graphic::Texture> _startButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
+
+        std::shared_ptr<engine::R_Graphic::Texture> _backButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _soundButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _windowButton;
+
+        std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
+
         bool _startPressed = false;
         bool _quitPressed = false;
-    };
 
-    void drawMainMenu();
-    void drawSettingsMenu();
-
-    engine::R_Graphic::App &_app;
-    Page _currentPage = Page::Main;
-
-    std::shared_ptr<engine::R_Graphic::Texture> _background;
-    std::shared_ptr<engine::R_Graphic::Texture> _settingsBackground;
-
-    std::shared_ptr<engine::R_Graphic::Texture> _startButton;
-    std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;
-    std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
-
-    std::shared_ptr<engine::R_Graphic::Texture> _backButton;
-    std::shared_ptr<engine::R_Graphic::Texture> _soundButton;
-    std::shared_ptr<engine::R_Graphic::Texture> _windowButton;
-
-    std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
-
-    bool _startPressed = false;
-    bool _quitPressed = false;
-
-    bool _soundEnabled = true;
-    bool _fullscreen = false;
-    int _buttonWidth = 0;
-    int _buttonHeight = 0;
-    int _centerX = 0;
-    int _winH = 0;
+        bool _soundEnabled = true;
+        bool _fullscreen = false;
+        int _buttonWidth = 0;
+        int _buttonHeight = 0;
+        int _centerX = 0;
+        int _winH = 0;
 };
 }

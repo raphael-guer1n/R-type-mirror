@@ -15,6 +15,12 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         {'E', "CK_StarGlowing_E.png"}
     };
 
+    int winW, winH;
+    SDL_GetRendererOutputSize(_app.getWindow().getRenderer(), &winW, &winH);
+    _winH = winH;
+    _soundEnabled = true;
+    _fullscreen = false;
+
     _background = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/menu_bg.png",
