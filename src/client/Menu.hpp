@@ -24,5 +24,10 @@ namespace R_Type {
 
         bool _startPressed = false;
         bool _quitPressed = false;
+
+        int _buttonWidth = 0;
+        int _buttonHeight = 0;
+        int _centerX = 0;
+        int _winH = 0;
     };
 }

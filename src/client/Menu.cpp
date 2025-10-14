@@ -1,54 +1,63 @@
 #include "Menu.hpp"
 #include <iostream>
 #include <cstdlib> 
+#include <SDL.h>
 
 R_Type::Menu::Menu(engine::R_Graphic::App &app)
     : _app(app)
 {
     static std::unordered_map<char, std::string> fontMap = {
-    {'R', "CK_StarGlowing_R.png"},
-    {'-', "CK_StarGlowing_-.png"},
-    {'T', "CK_StarGlowing_T.png"},
-    {'Y', "CK_StarGlowing_Y.png"},
-    {'P', "CK_StarGlowing_P.png"},
-    {'E', "CK_StarGlowing_E.png"}
+        {'R', "CK_StarGlowing_R.png"},
+        {'-', "CK_StarGlowing_-.png"},
+        {'T', "CK_StarGlowing_T.png"},
+        {'Y', "CK_StarGlowing_Y.png"},
+        {'P', "CK_StarGlowing_P.png"},
+        {'E', "CK_StarGlowing_E.png"}
     };
+
+    int winW = 0, winH = 0;
+    SDL_GetRendererOutputSize(_app.getWindow().getRenderer(), &winW, &winH);
 
     _background = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/menu_bg.png",
         engine::R_Graphic::doubleVec2(0, 0),
-        engine::R_Graphic::intVec2(1920, 1080)
+        engine::R_Graphic::intVec2(winW, winH)
     );
+
+    int buttonWidth = 400;
+    int buttonHeight = 120;
+    int centerX = (winW - buttonWidth) / 2;
 
     _startButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/start_btn.png",
-        engine::R_Graphic::doubleVec2(550, 300),
-        engine::R_Graphic::intVec2(400, 120)
+        engine::R_Graphic::doubleVec2(centerX, winH / 2 - 150),
+        engine::R_Graphic::intVec2(buttonWidth, buttonHeight)
     );
 
     _settingsButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/settings_btn.png",
-        engine::R_Graphic::doubleVec2(550, 450),
-        engine::R_Graphic::intVec2(400, 120)
+        engine::R_Graphic::doubleVec2(centerX, winH / 2),
+        engine::R_Graphic::intVec2(buttonWidth, buttonHeight)
     );
 
     _quitButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/quit_btn.png",
-        engine::R_Graphic::doubleVec2(550, 600),
-        engine::R_Graphic::intVec2(400, 120)
+        engine::R_Graphic::doubleVec2(centerX, winH / 2 + 150),
+        engine::R_Graphic::intVec2(buttonWidth, buttonHeight)
     );
 
-    float startX = 430.0f; 
-    float startY = 60.0f;
+    std::string title = "R-TYPE";
     float spacing = 100.0f;
     float scale = 1.5f;
+    float titleWidth = title.size() * spacing;
+    float startX = (winW - titleWidth) / 2;
+    float startY = 60.0f;
 
-    for (size_t i = 0; i < 6; ++i) {
-        std::string title = "R-TYPE";
+    for (size_t i = 0; i < title.size(); ++i) {
         char ch = std::toupper(title[i]);
         if (!fontMap.count(ch))
             continue;
@@ -62,6 +71,11 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         );
         _titleLetters.push_back(tex);
     }
+
+    _buttonWidth = buttonWidth;
+    _buttonHeight = buttonHeight;
+    _centerX = centerX;
+    _winH = winH;
 }
 
 bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
@@ -71,11 +85,14 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
             int x = ev.mouse.x;
             int y = ev.mouse.y;
 
-            if (x >= 550 && x <= 950 && y >= 300 && y <= 420) {
+            if (x >= _centerX && x <= _centerX + _buttonWidth &&
+                y >= _winH / 2 - 150 && y <= _winH / 2 - 150 + _buttonHeight) {
                 _startPressed = true;
                 return true;
             }
-            if (x >= 550 && x <= 950 && y >= 600 && y <= 720) {
+
+            if (x >= _centerX && x <= _centerX + _buttonWidth &&
+                y >= _winH / 2 + 150 && y <= _winH / 2 + 150 + _buttonHeight) {
                 _quitPressed = true;
                 std::exit(0);
             }
