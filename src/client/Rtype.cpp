@@ -194,6 +194,18 @@ void R_Type::Rtype::receiveSnapshot()
                         rect = _playerData->chargeProjectileRect;
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
                         break;
+                    case component::entity_kind::projectile_bomb:
+                      anim = _playerData->missileProjectileAnimation;
+                      tex = _playerData->missileProjectileTexture;
+                      rect = _playerData->missileProjectileRect;
+                      ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
+                      break;
+                    case component::entity_kind::explosion:
+                      anim = _playerData->explosionAnimation;
+                      tex = _playerData->explosionTexture;
+                      rect = _playerData->explosionRect;
+                      ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Effects});
+                      break;
                     case component::entity_kind::player:
                         anim = _playerData->playerAnimation;
                         tex = _playerData->playerTexture;
@@ -221,6 +233,16 @@ void R_Type::Rtype::receiveSnapshot()
 
           positions[idLocal]->x = es.x;
           positions[idLocal]->y = es.y;
+          if (idLocal < kinds.size() && kinds[idLocal] &&
+              kinds[idLocal].value() == component::entity_kind::projectile_bomb)
+          {
+            ensure_slot(animations, idLocal, component::animation{});
+            auto &an = *animations[idLocal];
+            if (es.vy < 0.f)
+              setAnimation(an, "rotation", false);
+            else
+              setAnimation(an, "idle", false);
+          }
           collisions[idLocal]->collided = (es.collided != 0);
         }
       }
