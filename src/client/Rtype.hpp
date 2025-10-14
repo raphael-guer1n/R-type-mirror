@@ -7,10 +7,12 @@
 #include "Hud.hpp"
 #include "Menu.hpp"
 #include "Player.hpp"
+#include "Enemy.hpp"
 #include "engine/renderer/App.hpp"
 #include "engine/events/Events.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "Background.hpp"
+#include "Gameover.hpp"
 
 /**
  * @namespace R_Type
@@ -81,7 +83,10 @@ namespace R_Type
 
     public:
         void setServerEndpoint(const std::string &ip, unsigned short port);
+
+    private:
         void waiting_connection();
+        void handle_collision(engine::registry &reg, size_t i, size_t j);
 
     private:
         std::unique_ptr<engine::net::Endpoint> _serverEndpoint;
@@ -96,14 +101,19 @@ namespace R_Type
         engine::net::IoContext _ioContext;
         std::unique_ptr<engine::net::UdpSocket> _client;
         std::unique_ptr<Player> _playerData;
+        std::unique_ptr<Enemy> _enemyData;
         std::unordered_map<uint32_t, size_t> _entityMap;
         std::unique_ptr<Hud> _hud;
-            std::vector<float> _hbW, _hbH, _hbOX, _hbOY;
+        std::vector<float> _hbW, _hbH, _hbOX, _hbOY;
         std::unique_ptr<R_Type::Menu> _menu;
+        std::unique_ptr<R_Type::Gameover> _gameOverScreen;
         bool _inMenu = true;
-            std::unordered_map<size_t, int> _playerIndexByLocalId;
-            bool _showHitboxes = false;
-            int _hitboxOverlayThickness = 3;
+        bool _connected = false;
+        bool _gameOver = false;
+        bool _won = true;
+        std::unordered_map<size_t, int> _playerIndexByLocalId;
+        bool _showHitboxes = false;
+        int _hitboxOverlayThickness = 3;
     };
     void setAnimation(component::animation &anim, const std::string &clip, bool reverse);
 }

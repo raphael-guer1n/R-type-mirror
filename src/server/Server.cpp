@@ -46,6 +46,7 @@
 #include "server/EnemyConfig.hpp"
 #include "server/Server.hpp"
 #include "server/System_ai.hpp"
+#include "Server.hpp"
 
 using json = nlohmann::json;
 
@@ -114,6 +115,7 @@ void server::run()
             position_system(_registry, positions, velocities, 1.0f / 60.0f);
             _registry.run_systems();
             broadcast_snapshot();
+            check_game_over();
             _tick++;
 
       last_tick += tick_duration;
@@ -216,7 +218,7 @@ void server::register_collision_system()
             resolve_block(j, i, positions, hitboxes, collisions, velocities);
           }
 
-          if ((kindI == component::entity_kind::projectile || kindI == component::entity_kind::projectile_bomb || kindI == component::entity_kind::projectile_charged) &&
+          if ((kindI == component::entity_kind::playerProjectile || kindI == component::entity_kind::projectile_bomb || kindI == component::entity_kind::projectile_charged) &&
               kindJ == component::entity_kind::enemy)
           {
             if (i < projectiles.size() && projectiles[i])
@@ -243,7 +245,7 @@ void server::register_collision_system()
             }
           }
 
-          if ((kindJ == component::entity_kind::projectile || kindJ == component::entity_kind::projectile_charged || kindJ == component::entity_kind::projectile_bomb) &&
+          if ((kindJ == component::entity_kind::playerProjectile || kindJ == component::entity_kind::projectile_charged || kindJ == component::entity_kind::projectile_bomb) &&
               kindI == component::entity_kind::enemy)
           {
             if (j < projectiles.size() && projectiles[j])
@@ -270,7 +272,7 @@ void server::register_collision_system()
             }
           }
 
-          if ((kindI == component::entity_kind::projectile || kindI == component::entity_kind::projectile_bomb) && kindJ == component::entity_kind::player)
+          if ((kindI == component::entity_kind::enemyProjectile || kindI == component::entity_kind::projectile_bomb) && kindJ == component::entity_kind::player)
           {
             if (i < projectiles.size() && projectiles[i])
             {
@@ -286,7 +288,7 @@ void server::register_collision_system()
             }
           }
 
-          if ((kindJ == component::entity_kind::projectile || kindJ == component::entity_kind::projectile_bomb) && kindI == component::entity_kind::player)
+          if ((kindJ == component::entity_kind::enemyProjectile || kindJ == component::entity_kind::projectile_bomb) && kindI == component::entity_kind::player)
           {
             if (j < projectiles.size() && projectiles[j])
             {
@@ -312,8 +314,6 @@ void server::register_collision_system()
 
 void server::register_bounds_system()
 {
-  constexpr float SCREEN_WIDTH = 1920.f;
-  constexpr float SCREEN_HEIGHT = 1080.f;
   _registry.add_system<component::position, component::velocity, component::entity_kind>(
       [this](engine::registry &reg,
              engine::sparse_array<component::position> &positions,
@@ -325,7 +325,7 @@ void server::register_bounds_system()
           float x = pos.x;
           float y = pos.y;
 
-          if (kind == component::entity_kind::projectile)
+          if (kind == component::entity_kind::playerProjectile || kind == component::entity_kind::enemyProjectile)
           {
             if (x < -50.f || x > SCREEN_WIDTH + 50.f || y < -50.f || y > SCREEN_HEIGHT + 50.f)
             {
@@ -335,7 +335,11 @@ void server::register_bounds_system()
           }
 
           bool corrected = false;
-          if (x < 0.f) { x = 0.f; corrected = true; }
+          if (x < -90.f && kind == component::entity_kind::enemy) {
+            x = SCREEN_WIDTH + 100;
+            corrected = true;
+          }
+          else if (x < 0.f && kind != component::entity_kind::enemy) { x = 0.f; corrected = true; }
           else if (x > SCREEN_WIDTH) { x = SCREEN_WIDTH; corrected = true; }
           if (y < 0.f) { y = 0.f; corrected = true; }
           else if (y > SCREEN_HEIGHT) { y = SCREEN_HEIGHT; corrected = true; }
@@ -410,7 +414,7 @@ void server::game_handler()
             auto e = _registry.spawn_entity();
             _live_entities.insert((uint32_t)e);
 
-      _registry.add_component(e, component::position{1820, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
+      _registry.add_component(e, component::position{SCREEN_WIDTH + 100, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
       _registry.add_component(e, component::velocity{0, 0});
       _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
       _registry.add_component(e, component::entity_kind::enemy);
@@ -442,7 +446,7 @@ void server::game_handler()
             auto e = _registry.spawn_entity();
             _live_entities.insert((uint32_t)e);
 
-      _registry.add_component(e, component::position{1820, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
+      _registry.add_component(e, component::position{SCREEN_WIDTH + 100, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
       _registry.add_component(e, component::velocity{0, 0});
       _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
       _registry.add_component(e, component::entity_kind::enemy);
@@ -545,11 +549,50 @@ void server::broadcast_snapshot()
     _socket.send(hdr, buf, p.endpoint);
 }
 
+void server::broadcast_game_over(uint32_t winnerEntityId)
+{
+  GameOverPayload payload{winnerEntityId};
+  PacketHeader hdr{
+      GAME_OVER,
+      static_cast<uint16_t>(sizeof(payload)),
+      _tick
+  };
+  std::vector<uint8_t> data(sizeof(payload));
+  std::memcpy(data.data(), &payload, sizeof(payload));
+  for (auto &p : _players)
+    _socket.send(hdr, data, p.endpoint);
+  std::cout << "Game Over! Winner entity id: " <<  winnerEntityId << std::endl;
+}
+
+void server::check_game_over()
+{
+  auto &healths = _registry.get_components<component::health>();
+  auto &kinds = _registry.get_components<component::entity_kind>();
+
+  std::vector<uint32_t> alivePlayers;
+
+  for (auto &&[i, kind] : indexed_zipper(kinds))
+  {
+    if (kind != component::entity_kind::player)
+      continue;
+    if (i < healths.size() && healths[i] && healths[i]->hp > 0)
+    {
+      alivePlayers.push_back(static_cast<uint32_t>(i));
+    }
+  }
+  if (alivePlayers.size() <= 1)
+  {
+    uint32_t winnerId = alivePlayers.empty() ? UINT32_MAX : alivePlayers[0];
+    broadcast_game_over(winnerId);
+    _running = false;
+  }
+}
+
 void server::wait_for_players()
 {
   std::cout << "Waiting for 4 players..." << std::endl;
 
-    while (_players.size() < 1) {
+    while (_players.size() < 2) {
     engine::net::Endpoint sender;
         auto pkt_opt = _socket.receive(sender);
         if (pkt_opt)
@@ -776,7 +819,7 @@ engine::entity_t server::spawn_player(engine::net::Endpoint endpoint, std::size_
   float spawnY = 100.f + 120.f * static_cast<float>(index);
   auto eid = engine::make_entity(
       _registry, component::position{spawnX, spawnY}, component::velocity{0, 0},
-      component::hitbox{34, 20}, component::controllable{},
+      component::hitbox{124, 70}, component::controllable{},
       component::collision_state{false}, component::health{20},
       component::damage{0}, component::entity_kind::player,
       component::controlled_by{static_cast<uint32_t>(index)},
@@ -798,8 +841,8 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
         playerW = hitboxes[idx]->width;
         playerH = hitboxes[idx]->height;
     }
-    constexpr float projectileW = 24.f;
-    constexpr float projectileH = 20.f;
+    constexpr float projectileW = 72.f;
+    constexpr float projectileH = 24.f;
     float startX = pos.x + playerW + 4.f;
     float startY = pos.y + (playerH * 0.5f) - (projectileH * 0.5f);
     auto proj = engine::make_entity(
@@ -807,7 +850,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
     component::position{startX, startY}, component::velocity{2.f, 0.f},
         component::hitbox{projectileW, projectileH},
         component::collision_state{false},
-        component::entity_kind::projectile,
+        component::entity_kind::playerProjectile,
         component::projectile_tag{static_cast<uint32_t>(owner), 120, 1.f, 0.f, 2.f, 2},
         component::health{1});
     return proj;

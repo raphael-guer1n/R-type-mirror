@@ -48,7 +48,7 @@ namespace R_Type
              * @param registry Reference to the entity-component registry.
              * @param pressedKeys Set of currently pressed keys.
              */
-            
+
             std::shared_ptr<engine::R_Graphic::Texture> playerTexture;
             std::shared_ptr<engine::R_Graphic::Texture> projectileTexture;
             engine::R_Graphic::textureRect playerRect;
@@ -61,6 +61,7 @@ namespace R_Type
             engine::R_Graphic::textureRect chargeProjectileRect;
             engine::R_Graphic::textureRect missileProjectileRect;
             engine::R_Graphic::textureRect missileexplosionRect;
+            engine::R_Graphic::textureRect explosionRect;
             component::animation playerAnimation;
             component::animation projectileAnimation;
             component::animation chargeAnimation;
@@ -68,6 +69,7 @@ namespace R_Type
             component::animation missileProjectileAnimation;
             component::animation missileexplosionAnimation;
             std::optional<size_t> chargeOverlayLocalId;
+            component::animation explosionAnimation;
         public:
             void playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
                 uint32_t player, engine::registry& registry, const std::unordered_set<engine::R_Events::Key>& pressedKeys);

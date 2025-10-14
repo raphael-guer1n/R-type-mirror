@@ -9,7 +9,8 @@ add_library(engine
     renderer/Texture.cpp
     renderer/Window.cpp
     network/IoContext.cpp
-    network/UdpSocket.cpp)
+    network/UdpSocket.cpp
+)
 
 target_include_directories(engine
     PUBLIC

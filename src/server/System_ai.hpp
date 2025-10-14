@@ -49,7 +49,7 @@ namespace systems
         component::position{originX, originY},
         component::hitbox{width, height},
         component::collision_state{false},
-        component::entity_kind::projectile,
+        component::entity_kind::enemyProjectile,
         component::projectile_tag{
             static_cast<std::uint32_t>(owner),
             lifetime,

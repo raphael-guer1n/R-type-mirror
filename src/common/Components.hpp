@@ -24,11 +24,12 @@ namespace component
         unknown = 0,
         player = 1,
         enemy = 2,
-        projectile = 3,
+        playerProjectile = 3,
         projectile_bomb = 7,
         projectile_charged = 8,
-        pickup = 4,
-        decor = 5,
+        enemyProjectile = 4,
+        pickup = 5,
+        decor = 6,
         missile_explosion = 9
     };
     /**

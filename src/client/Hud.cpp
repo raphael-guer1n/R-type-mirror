@@ -36,7 +36,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     // === BEAM BAR ===
     auto e = registry.spawn_entity();
     float barWidth = 500.0f;
-    float barHeight = 120.0f;
+    float barHeight = 100.0f;
     float barX = (winW - barWidth) / 2.0f;
     float barY = winH - barHeight - 60.0f;
     engine::R_Graphic::doubleVec2 hudPos(barX, barY);
@@ -140,7 +140,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     // === HEARTS ===
     int maxHearts = 3;
     std::uint8_t currentHP = 3;
-    float heartY = winH - 80.0f;
+    float heartY = winH - 120.0f;
     float heartSpacing = 45.0f;
     float heartSize = 32.0f;
     float totalHeartsWidth = (currentHP - 1) * heartSpacing + heartSize;

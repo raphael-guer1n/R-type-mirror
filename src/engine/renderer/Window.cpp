@@ -1,5 +1,6 @@
-#include "Window.hpp"
 #include <iostream>
+#include <SDL_ttf.h>
+#include "Window.hpp"
 
 
 engine::R_Graphic::Window::Window(const std::string &title, int width, int height)
@@ -7,6 +8,11 @@ engine::R_Graphic::Window::Window(const std::string &title, int width, int heigh
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "Error SDL_Init: " << SDL_GetError() << std::endl;
+        _isOpen = false;
+        return;
+    }
+    if (TTF_Init() == -1) {
+        std::cerr << "Error TTF_Init: " << SDL_GetError() << std::endl;
         _isOpen = false;
         return;
     }

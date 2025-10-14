@@ -6,7 +6,7 @@
 
 R_Type::Player::Player(R_Type::Rtype &rtype)
 : playerRect(0, 0, 33, 17),
-    projectileRect(232, 103, 16, 12),
+    projectileRect(232, 103, 16, 12), explosionRect(247, 296, 33, 33),
     chargeRect(0, 5, 32, 32),
     chargeProjectileRect(203, 276, 220, 287),
     missileProjectileRect(0, 238, 152, 254),
@@ -162,6 +162,19 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
             .loop = true
         }
     });
+    explosionAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 6,
+            .frameTime = 0.15f,
+            .startX = 247,
+            .startY = 296,
+            .frameWidth = 33,
+            .frameHeight = 33,
+            .loop = false
+        }
+    });
+    explosionAnimation.reverse = true;
 }
 
 void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
