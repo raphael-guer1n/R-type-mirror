@@ -5,6 +5,8 @@
 #include <memory>
 #include <unordered_map>
 #include <cctype>
+#include <algorithm>
+#include <SDL.h>
 
 static std::unordered_map<char, std::string> fontMap = {
     {'0', "CK_StarGlowing_0.png"}, {'1', "CK_StarGlowing_1.png"},
@@ -45,6 +47,20 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
 
     engine::R_Graphic::textureRect rect(0, 530, 1200, 140);
     registry.emplace_component<component::drawable>(e, bar, rect, layers::HudBase);
+
+    auto fillEntity = registry.spawn_entity();
+    registry.add_component(fillEntity, component::position{ static_cast<float>(hudPos.x + 40), static_cast<float>(hudPos.y + 65)});
+    registry.add_component(fillEntity, component::hud_tag{});
+    auto fillTex = std::make_shared<engine::R_Graphic::Texture>(window, "./Assets/Hud/heart.png",
+        engine::R_Graphic::doubleVec2(hudPos.x + 40, hudPos.y + 65), engine::R_Graphic::intVec2(1, 20));
+    engine::R_Graphic::textureRect fillRect(0, 0, 32, 32);
+    registry.emplace_component<component::drawable>(fillEntity, fillTex, fillRect, layers::HudText);
+    _chargeFillLocalId = static_cast<size_t>(fillEntity);
+
+    _barOriginX = static_cast<int>(hudPos.x + 40);
+    _barOriginY = static_cast<int>(hudPos.y + 65);
+    _barMaxWidth = 420;
+    _barHeight = 20;
 
     // === SCORE  ===
     float hudScale = 0.5f;
@@ -136,4 +152,24 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
         engine::R_Graphic::textureRect heartRect(0, 0, 32, 32);
     registry.emplace_component<component::drawable>(heartEntity, heartTex, heartRect, layers::HudIcons);
     }
+}
+
+void R_Type::Hud::setChargeLevel(R_Type::Rtype &rtype, float level)
+{
+    (void)rtype;
+    _chargeLevel = std::max(0.f, std::min(1.f, level));
+}
+
+void R_Type::Hud::drawOverlay(R_Type::Rtype &rtype)
+{
+    auto &win = rtype.getApp().getWindow();
+    SDL_Renderer *ren = win.getRenderer();
+    if (!ren)
+        return;
+
+    int w = std::max(0, static_cast<int>(_barMaxWidth * _chargeLevel));
+    SDL_Rect rect{_barOriginX, _barOriginY, w, _barHeight};
+    SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(ren, 60, 220, 120, 230);
+    SDL_RenderFillRect(ren, &rect);
 }
