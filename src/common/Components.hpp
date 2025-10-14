@@ -10,15 +10,15 @@ namespace engine
     class entity_t;
 }
 /**
-    * @file Components.hpp
-    * @brief Common ECS components used by both client and server.
-    */
+ * @file Components.hpp
+ * @brief Common ECS components used by both client and server.
+ */
 
 namespace component
 {
-/**
-    * @brief Different kinds of entities in the game.
-    */
+    /**
+     * @brief Different kinds of entities in the game.
+     */
     enum class entity_kind : std::uint8_t
     {
         unknown = 0,
@@ -28,11 +28,12 @@ namespace component
         projectile_bomb = 7,
         projectile_charged = 8,
         pickup = 4,
-        decor = 5
+        decor = 5,
+        explosion = 9
     };
-/**
-    * @brief Basic 2D position component.
-    */
+    /**
+     * @brief Basic 2D position component.
+     */
 
     struct position
     {
@@ -41,9 +42,9 @@ namespace component
         position(float x_, float y_) : x(x_), y(y_) {}
     };
 
-/**
-    * @brief Basic 2D velocity component.
-    */
+    /**
+     * @brief Basic 2D velocity component.
+     */
     struct velocity
     {
         float vx{}, vy{};
@@ -51,18 +52,18 @@ namespace component
         velocity(float vx_, float vy_) : vx(vx_), vy(vy_) {}
     };
 
-/**
-    * @brief Drawable component for rendering entities.
-    */
+    /**
+     * @brief Drawable component for rendering entities.
+     */
     struct controllable
     {
         int inputX = 0;
         int inputY = 0;
         bool shoot = false;
     };
-/**
-    * @brief Simple AABB hitbox component.
-    */
+    /**
+     * @brief Simple AABB hitbox component.
+     */
     struct hitbox
     {
         float width{}, height{};
@@ -71,63 +72,63 @@ namespace component
         hitbox() = default;
         hitbox(float w, float h, float ox = 0.f, float oy = 0.f) : width(w), height(h), offset_x(ox), offset_y(oy) {}
     };
-/**
-    * @brief Health component for entities.
-    */  
+    /**
+     * @brief Health component for entities.
+     */
     struct health
     {
         std::uint8_t hp{1};
         health() = default;
         explicit health(std::uint8_t h) : hp(h) {}
     };
-/**
-    * @brief Simple drawable component for rendering entities.  
-    */
+    /**
+     * @brief Simple drawable component for rendering entities.
+     */
     struct net_id
     {
         std::uint32_t id{0};
         std::uint8_t type{0};
     };
-/**
-    * @brief Simple drawable component for rendering entities.
-    */
+    /**
+     * @brief Simple drawable component for rendering entities.
+     */
     struct collision_state
     {
         bool collided{false};
     };
-/**
-    * @brief Component to mark which player controls an entity.
-    */
+    /**
+     * @brief Component to mark which player controls an entity.
+     */
 
     struct controlled_by
     {
         std::uint32_t owner{0};
     };
-/**
-    * @brief Simple drawable component for rendering entities.
-    */
+    /**
+     * @brief Simple drawable component for rendering entities.
+     */
     struct damage
     {
         int amount{0};
     };
-/**
-    * @brief Tag component to mark an entity for despawning.
-    */
+    /**
+     * @brief Tag component to mark an entity for despawning.
+     */
     struct despawn_tag
     {
         bool now{true};
     };
-/**
-    * @brief Component to request spawning of an entity with a factory function.
-    */
+    /**
+     * @brief Component to request spawning of an entity with a factory function.
+     */
 
     struct spawn_request
     {
         std::function<void(engine::registry &, engine::entity_t)> factory;
     };
-/**
-    * @brief Damage cooldown to prevent rapid repeated damage.
-    */
+    /**
+     * @brief Damage cooldown to prevent rapid repeated damage.
+     */
     struct damage_cooldown
     {
         uint32_t last_hit_tick{0};
@@ -143,7 +144,22 @@ namespace component
         int damage{1};
     };
 
-    struct AnimationClip {
+    // Simple gravity acceleration for ballistic movement (adds to projectile_tag.dirY each tick)
+    struct gravity
+    {
+        float ay{0.03f};
+    };
+
+    // Area-of-effect applied once on spawn (or first tick) for explosion entities
+    struct area_effect
+    {
+        float radius{100.f};
+        int damage{1};
+        bool applied{false};
+    };
+
+    struct AnimationClip
+    {
         int frameCount = 1;
         float frameTime = 0.1f;
         int startX = 0;
@@ -153,7 +169,8 @@ namespace component
         bool loop = false;
     };
 
-    struct animation {
+    struct animation
+    {
         std::unordered_map<std::string, AnimationClip> clips;
         std::string currentClip = "idle";
         int currentFrame = 0;
