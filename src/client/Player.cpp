@@ -224,8 +224,12 @@ void R_Type::Player::ensureChargeOverlay(engine::registry& registry, size_t play
                 idx = static_cast<size_t>(e);
             }
             registry.add_component(e, component::position{0.f, 0.f});
+            registry.add_component(e, component::entity_kind::decor);
             registry.emplace_component<component::drawable>(e, chargeTexture, chargeRect, layers::Effects);
             registry.add_component(e, component::animation{});
+            auto &hitboxes = registry.get_components<component::hitbox>();
+            if (idx < hitboxes.size() && hitboxes[idx])
+                hitboxes[idx].reset();
             auto &anims = registry.get_components<component::animation>();
             if (idx < anims.size() && anims[idx]) {
                 *anims[idx] = chargeAnimation;

@@ -227,7 +227,7 @@ void R_Type::Rtype::receiveSnapshot()
                         anim = _playerData->projectileAnimation;
                         tex = _playerData->projectileTexture;
                         rect = _playerData->projectileRect;
-            ensure_slot(hitboxes, idLocal, component::hitbox{100, 24});
+                        ensure_slot(hitboxes, idLocal, component::hitbox{100, 24});
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
                         break;
                     case component::entity_kind::projectile_charged:
