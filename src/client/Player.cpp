@@ -5,7 +5,7 @@
 #include "common/Layers.hpp"
 
 R_Type::Player::Player(R_Type::Rtype &rtype)
-: playerRect(0, 0, 33, 17), projectileRect(232, 103, 16, 12), chargeRect(0, 5, 32, 32), chargeProjectileRect(203, 276, 220, 287)
+: playerRect(0, 0, 33, 17), projectileRect(232, 103, 16, 12), chargeRect(0, 5, 32, 32), chargeProjectileRect(203, 276, 220, 287), missileProjectileRect(0, 238, 152, 254)
 {
     playerTexture = std::make_shared<engine::R_Graphic::Texture>(
         rtype.getApp().getWindow(),
@@ -26,6 +26,12 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
         engine::R_Graphic::intVec2(132, 72)
     );
     chargeProjectileTexture = std::make_shared<engine::R_Graphic::Texture>(
+        rtype.getApp().getWindow(),
+        "./Assets/sprites/r-typesheet1.gif",
+        engine::R_Graphic::doubleVec2(0, 0),
+        engine::R_Graphic::intVec2(123, 72)
+    );
+    missileProjectileTexture = std::make_shared<engine::R_Graphic::Texture>(
         rtype.getApp().getWindow(),
         "./Assets/sprites/r-typesheet1.gif",
         engine::R_Graphic::doubleVec2(0, 0),
@@ -54,6 +60,19 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
             .startY = 276,
             .frameWidth = 18,
             .frameHeight = 12,
+            .loop = true
+        }
+    });
+
+    missileProjectileAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 9,
+            .frameTime = 0.06f,
+            .startX = 0,
+            .startY = 238,
+            .frameWidth = 16,
+            .frameHeight = 16,
             .loop = true
         }
     });
