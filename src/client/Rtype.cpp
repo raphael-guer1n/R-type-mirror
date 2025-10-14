@@ -36,6 +36,7 @@ R_Type::Rtype::Rtype()
     _enemyData = std::make_unique<Enemy>(*this);
     _hud = std::make_unique<Hud>(*this);
     _menu = std::make_unique<R_Type::Menu>(_app);
+    _gameOverScreen = std::make_unique<Gameover>(_app);
   }
   catch (const R_Graphic::Error &e)
   {
@@ -46,6 +47,8 @@ R_Type::Rtype::Rtype()
 void R_Type::Rtype::update(float deltaTime,
                            const std::vector<R_Events::Event> &events)
 {
+  if (_gameOver)
+    return;
   if (_inMenu)
   {
     bool start = _menu->update(events);
@@ -116,6 +119,17 @@ void R_Type::Rtype::receiveSnapshot()
   {
     auto [shdr, spayload] = *pkt_opt;
 
+    if (shdr.type == GAME_OVER && spayload.size() >= sizeof(GameOverPayload)) {
+      GameOverPayload go{};
+      std::memcpy(&go, spayload.data(), sizeof(go));
+      _gameOver = true;
+      uint32_t winnerEntityId = go.winnerEntityId;
+      if (_player == winnerEntityId)
+        _won = true;
+      else
+        _won = false;
+      continue;
+    }
     if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))
     {
       Snapshot snap{};
@@ -265,6 +279,10 @@ void R_Type::Rtype::draw()
   }
   if (!_connected)
     return;
+  if (_gameOver) {
+    _gameOverScreen->draw(_won);
+    return;
+  }
   auto &positions = _registry.get_components<component::position>();
   auto &drawables = _registry.get_components<component::drawable>();
 

@@ -46,6 +46,7 @@
 #include "server/EnemyConfig.hpp"
 #include "server/Server.hpp"
 #include "server/System_ai.hpp"
+#include "Server.hpp"
 
 using json = nlohmann::json;
 
@@ -111,6 +112,7 @@ void server::run()
             position_system(_registry, positions, velocities, 1.0f / 60.0f);
             _registry.run_systems();
             broadcast_snapshot();
+            check_game_over();
             _tick++;
 
       last_tick += tick_duration;
@@ -521,11 +523,50 @@ void server::broadcast_snapshot()
     _socket.send(hdr, buf, p.endpoint);
 }
 
+void server::broadcast_game_over(uint32_t winnerEntityId)
+{
+  GameOverPayload payload{winnerEntityId};
+  PacketHeader hdr{
+      GAME_OVER,
+      static_cast<uint16_t>(sizeof(payload)),
+      _tick
+  };
+  std::vector<uint8_t> data(sizeof(payload));
+  std::memcpy(data.data(), &payload, sizeof(payload));
+  for (auto &p : _players)
+    _socket.send(hdr, data, p.endpoint);
+  std::cout << "Game Over! Winner entity id: " <<  winnerEntityId << std::endl;
+}
+
+void server::check_game_over()
+{
+  auto &healths = _registry.get_components<component::health>();
+  auto &kinds = _registry.get_components<component::entity_kind>();
+
+  std::vector<uint32_t> alivePlayers;
+
+  for (auto &&[i, kind] : indexed_zipper(kinds))
+  {
+    if (kind != component::entity_kind::player)
+      continue;
+    if (i < healths.size() && healths[i] && healths[i]->hp > 0)
+    {
+      alivePlayers.push_back(static_cast<uint32_t>(i));
+    }
+  }
+  if (alivePlayers.size() <= 1)
+  {
+    uint32_t winnerId = alivePlayers.empty() ? UINT32_MAX : alivePlayers[0];
+    broadcast_game_over(winnerId);
+    _running = false;
+  }
+}
+
 void server::wait_for_players()
 {
   std::cout << "Waiting for 4 players..." << std::endl;
 
-  while (_players.size() < 1)
+  while (_players.size() < 2)
   {
 engine::net::Endpoint sender;
     auto pkt_opt = _socket.receive(sender);
@@ -621,7 +662,7 @@ engine::entity_t server::spawn_player(engine::net::Endpoint endpoint, std::size_
   float spawnY = 100.f + 120.f * static_cast<float>(index);
   auto eid = engine::make_entity(
       _registry, component::position{spawnX, spawnY}, component::velocity{0, 0},
-      component::hitbox{34, 20}, component::controllable{},
+      component::hitbox{124, 70}, component::controllable{},
       component::collision_state{false}, component::health{20},
       component::damage{0}, component::entity_kind::player,
       component::controlled_by{static_cast<uint32_t>(index)},
@@ -643,7 +684,7 @@ engine::entity_t server::spawn_projectile(engine::entity_t owner)
         playerW = hitboxes[idx]->width;
         playerH = hitboxes[idx]->height;
     }
-    constexpr float projectileW = 75.f;
+    constexpr float projectileW = 72.f;
     constexpr float projectileH = 24.f;
     float startX = pos.x + playerW + 4.f;
     float startY = pos.y + (playerH * 0.5f) - (projectileH * 0.5f);

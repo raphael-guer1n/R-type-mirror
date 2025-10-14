@@ -12,6 +12,7 @@
 #include "engine/events/Events.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "Background.hpp"
+#include "Gameover.hpp"
 
 /**
  * @namespace R_Type
@@ -98,12 +99,15 @@ namespace R_Type
         engine::net::IoContext _ioContext;
         std::unique_ptr<engine::net::UdpSocket> _client;
         std::unique_ptr<Player> _playerData;
-            std::unique_ptr<Enemy> _enemyData;
+        std::unique_ptr<Enemy> _enemyData;
         std::unordered_map<uint32_t, size_t> _entityMap;
         std::unique_ptr<Hud> _hud;
         std::unique_ptr<R_Type::Menu> _menu;
+        std::unique_ptr<R_Type::Gameover> _gameOverScreen;
         bool _inMenu = true;
         bool _connected = false;
+        bool _gameOver = false;
+        bool _won = true;
     };
     void setAnimation(component::animation &anim, const std::string &clip, bool reverse);
 }

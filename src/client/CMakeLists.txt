@@ -6,6 +6,7 @@ add_executable(r-type_client
     Hud.cpp
     Menu.cpp
     Enemy.cpp
+    Gameover.cpp
 )
 
 find_package(SDL2 CONFIG REQUIRED)

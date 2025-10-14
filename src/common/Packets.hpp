@@ -24,7 +24,8 @@ enum PacketType : uint16_t
     SNAPSHOT = 4,
     EVENT_PKT = 5,
     PING = 6,
-    PONG = 7
+    PONG = 7,
+    GAME_OVER = 8
 };
 /**    * @brief Connect request packet structure.
     */  
@@ -80,6 +81,10 @@ struct EventPacket
 struct PingPacket
 {
     uint64_t timestamp;
+};
+
+struct GameOverPayload {
+    uint32_t winnerEntityId;
 };
 
 #pragma pack(pop)
