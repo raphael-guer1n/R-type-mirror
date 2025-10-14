@@ -44,10 +44,11 @@ private:
     bool _startPressed = false;
     bool _quitPressed = false;
 
+    bool _soundEnabled = true;
+    bool _fullscreen = false;
     int _buttonWidth = 0;
     int _buttonHeight = 0;
     int _centerX = 0;
     int _winH = 0;
 };
-
 }
