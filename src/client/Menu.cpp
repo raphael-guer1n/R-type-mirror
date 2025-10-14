@@ -55,6 +55,13 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
     int optionSize = 150;
     int centerXOpt = (winW - optionSize) / 2;
 
+    _soundButton = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/sound_btn.png",
+        engine::R_Graphic::doubleVec2(centerXOpt, winH / 2 - 160),
+        engine::R_Graphic::intVec2(optionSize, optionSize)
+    );
+
     _backButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/back_btn.png",
@@ -102,6 +109,18 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
                 y >= _winH - optionSize - 100 && y <= _winH - 100) {
                 _currentPage = Page::Main;
             }
+
+            // Sound
+            if (x >= centerXOpt && x <= centerXOpt + optionSize &&
+                y >= _winH / 2 - 160 && y <= _winH / 2 - 160 + optionSize) {
+                std::cout << "🔊 Bouton Son cliqué !" << std::endl;
+            }
+
+            // Window
+            if (x >= centerXOpt && x <= centerXOpt + optionSize &&
+                y >= _winH / 2 + 20 && y <= _winH / 2 + 20 + optionSize) {
+                std::cout << "🪟 Bouton Fenêtre réduite cliqué !" << std::endl;
+            }
         }
     }
     return false;
@@ -128,5 +147,6 @@ void R_Type::Menu::drawMainMenu()
 void R_Type::Menu::drawSettingsMenu()
 {
     _settingsBackground->draw(_app.getWindow(), nullptr);
+    _soundButton->draw(_app.getWindow(), nullptr);
     _backButton->draw(_app.getWindow(), nullptr);
 }
