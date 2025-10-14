@@ -233,7 +233,7 @@ void server::register_collision_system()
                   if (i < posArr.size() && posArr[i])
                   {
                     auto pPos = posArr[i].value();
-                    auto exp = spawn_explosion(pPos.x, pPos.y, proj.damage, 140.f);
+                    auto exp = spawn_explosion(pPos.x, pPos.y, proj.damage, 180.f);
                     _live_entities.insert(static_cast<uint32_t>(exp));
                   }
                 }
@@ -260,7 +260,7 @@ void server::register_collision_system()
                   if (j < posArr.size() && posArr[j])
                   {
                     auto pPos = posArr[j].value();
-                    auto exp = spawn_explosion(pPos.x, pPos.y, proj.damage, 140.f);
+                    auto exp = spawn_explosion(pPos.x, pPos.y, proj.damage, 180.f);
                     _live_entities.insert(static_cast<uint32_t>(exp));
                   }
                 }
@@ -485,7 +485,8 @@ void server::broadcast_snapshot()
   states.reserve(50);
   std::unordered_set<uint32_t> inserted;
 
-  SnapshotBuilderContext ctx{positions, velocities, kinds, collisions, healths};
+  auto &hitboxes = _registry.get_components<component::hitbox>();
+  SnapshotBuilderContext ctx{positions, velocities, kinds, collisions, healths, hitboxes};
   for (auto &pInfo : _players)
   {
     try_add_entity(static_cast<uint32_t>(pInfo.entityId), states, ctx, inserted,
