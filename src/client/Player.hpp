@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Texture.hpp"
 #include "common/Components.hpp"
@@ -54,8 +55,15 @@ namespace R_Type
             engine::R_Graphic::textureRect projectileRect;
             component::animation playerAnimation;
             component::animation projectileAnimation;
+            std::shared_ptr<engine::R_Graphic::Texture> chargeTexture;
+            engine::R_Graphic::textureRect chargeRect;
+            component::animation chargeAnimation;
+            std::optional<size_t> chargeOverlayLocalId;
         public:
             void playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
                 uint32_t player, engine::registry& registry, const std::unordered_set<engine::R_Events::Key>& pressedKeys);
+        private:
+            void ensureChargeOverlay(engine::registry& registry, size_t playerLocalId, bool show);
+            void updateChargeOverlayPosition(engine::registry& registry, size_t playerLocalId);
     };
 }
