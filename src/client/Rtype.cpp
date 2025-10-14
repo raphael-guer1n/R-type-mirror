@@ -29,6 +29,7 @@ R_Type::Rtype::Rtype()
         _registry.register_component<component::entity_kind>();
         _registry.register_component<component::collision_state>();
         _registry.register_component<component::animation>();
+  _registry.register_component<component::hitbox>();
         _background = std::make_unique<Background>(*this);
         _playerData = std::make_unique<Player>(*this);
         _hud = std::make_unique<Hud>(*this);
@@ -64,6 +65,16 @@ void R_Type::Rtype::update(float deltaTime,
         else if (ev.type == R_Events::Type::KeyUp)
             _pressedKeys.erase(ev.key.code);
     }
+  // Toggle debug hitboxes on CTRL+B (either Ctrl key is fine)
+  bool ctrlDown = (_pressedKeys.count(engine::R_Events::Key::LCtrl) ||
+           _pressedKeys.count(engine::R_Events::Key::RCtrl));
+  bool bDown = (_pressedKeys.count(engine::R_Events::Key::B) > 0);
+  static bool prevCombo = false;
+  bool combo = ctrlDown && bDown;
+  if (combo && !prevCombo) {
+    _showHitboxes = !_showHitboxes;
+  }
+  prevCombo = combo;
     InputPacket inp{};
     inp.clientId = _player;
     inp.tick = _tick++;
@@ -125,9 +136,10 @@ void R_Type::Rtype::receiveSnapshot()
       auto &positions = _registry.get_components<component::position>();
       auto &velocities = _registry.get_components<component::velocity>();
       auto &drawables = _registry.get_components<component::drawable>();
-      auto &kinds = _registry.get_components<component::entity_kind>();
+  auto &kinds = _registry.get_components<component::entity_kind>();
       auto &collisions = _registry.get_components<component::collision_state>();
       auto &animations = _registry.get_components<component::animation>();
+  auto &hitboxes = _registry.get_components<component::hitbox>();
 
       std::unordered_set<uint32_t> newActive;
 
@@ -149,21 +161,24 @@ void R_Type::Rtype::receiveSnapshot()
           }
         };
 
+        // Ensure caches are large enough for any new local id
+        auto ensure_cache = [&](size_t idx){
+          if (idx >= _hbW.size()) { _hbW.resize(idx + 1, 0.f); _hbH.resize(idx + 1, 0.f); _hbOX.resize(idx + 1, 0.f); _hbOY.resize(idx + 1, 0.f); }
+        };
+
         for (size_t i = 0; i < n; ++i)
         {
           const EntityState &es = entities[i];
 
           size_t idLocal;
           auto it = _entityMap.find(es.entityId);
-          if (it == _entityMap.end())
-          {
+          if (it == _entityMap.end()) {
             idLocal = drawables.size();
             _entityMap[es.entityId] = idLocal;
-          }
-          else
-          {
+          } else {
             idLocal = it->second;
           }
+          ensure_cache(idLocal);
           if (idLocal < kinds.size() && kinds[idLocal] &&
               kinds[idLocal].value() == component::entity_kind::decor)
           {
@@ -177,6 +192,7 @@ void R_Type::Rtype::receiveSnapshot()
                     ensure_slot(kinds, idLocal, component::entity_kind{});
                     ensure_slot(collisions, idLocal, component::collision_state{});
                     kinds[idLocal] = static_cast<component::entity_kind>(es.type);
+                    ensure_slot(hitboxes, idLocal, component::hitbox{});
                     std::shared_ptr<R_Graphic::Texture> tex;
                     R_Graphic::textureRect rect;
                     component::animation anim;
@@ -233,6 +249,14 @@ void R_Type::Rtype::receiveSnapshot()
 
           positions[idLocal]->x = es.x;
           positions[idLocal]->y = es.y;
+          hitboxes[idLocal]->width = es.hb_w;
+          hitboxes[idLocal]->height = es.hb_h;
+          hitboxes[idLocal]->offset_x = es.hb_ox;
+          hitboxes[idLocal]->offset_y = es.hb_oy;
+          _hbW[idLocal] = es.hb_w;
+          _hbH[idLocal] = es.hb_h;
+          _hbOX[idLocal] = es.hb_ox;
+          _hbOY[idLocal] = es.hb_oy;
           if (idLocal < kinds.size() && kinds[idLocal] &&
               kinds[idLocal].value() == component::entity_kind::projectile_bomb)
           {
@@ -272,6 +296,12 @@ void R_Type::Rtype::receiveSnapshot()
               kinds[id].reset();
             if (id < collisions.size() && collisions[id])
               collisions[id].reset();
+            if (id < _hbW.size()) {
+              _hbW[id] = 0.f;
+              _hbH[id] = 0.f;
+              _hbOX[id] = 0.f;
+              _hbOY[id] = 0.f;
+            }
           }
         }
       }
@@ -289,8 +319,17 @@ void R_Type::Rtype::draw()
   }
   auto &positions = _registry.get_components<component::position>();
   auto &drawables = _registry.get_components<component::drawable>();
+  auto &kinds = _registry.get_components<component::entity_kind>();
+  auto &velocities = _registry.get_components<component::velocity>();
 
     draw_system(_registry, positions, drawables, _app.getWindow());
+  if (_showHitboxes) {
+    if (auto *ren = _app.getWindow().getRenderer()) {
+      SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+    }
+    auto &hitboxes = _registry.get_components<component::hitbox>();
+    hitbox_overlay_system(_registry, positions, hitboxes, kinds, _app.getWindow(), _hitboxOverlayThickness);
+  }
     if (_hud)
         _hud->drawOverlay(*this);
 }
