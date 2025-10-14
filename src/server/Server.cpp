@@ -211,7 +211,7 @@ void server::setup_systems()
                             }
                           }
                         }
-                        if ((kindJ == component::entity_kind::projectile || kindJ == component::entity_kind::projectile_bomb) &&
+                        if ((kindJ == component::entity_kind::projectile || kindJ == component::entity_kind::projectile_charged) &&
                             kindI == component::entity_kind::enemy)
                         {
                           if (j < projectiles.size() && projectiles[j])
@@ -658,7 +658,7 @@ engine::entity_t server::spawn_projectile_charged(engine::entity_t owner, uint32
         component::position{startX, startY},
         component::hitbox{w, h},
         component::collision_state{false},
-        component::entity_kind::projectile_bomb,
+        component::entity_kind::projectile_charged,
         component::projectile_tag{static_cast<uint32_t>(owner), 180, 1.f, 0.f, speed, dmg},
         component::health{1});
 }
