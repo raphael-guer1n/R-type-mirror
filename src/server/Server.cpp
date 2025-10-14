@@ -354,6 +354,15 @@ void server::setup_systems()
 
 void server::game_handler()
 {
+  for (auto &p : _players)
+  {
+    _live_entities.insert(static_cast<uint32_t>(p.entityId));
+  }
+  for (auto e : systems::spawned_projectiles)
+  {
+    _live_entities.insert(static_cast<uint32_t>(e));
+  }
+  systems::spawned_projectiles.clear();
     if (_tick % 200 == 0)
     {
         try
