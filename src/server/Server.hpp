@@ -50,6 +50,14 @@ private:
     void register_components();
     void setup_systems();
 
+    // Sub-registrations (split from setup_systems)
+    void register_health_and_spawn_systems();
+    void register_projectile_movement_system();
+    void register_gravity_system();
+    void register_collision_system();
+    void register_bounds_system();
+    void register_area_effect_system();
+
     // Game loop phases
     void wait_for_players();
     void process_network_inputs();
@@ -62,6 +70,8 @@ private:
     engine::entity_t spawn_projectile_basic(engine::entity_t owner);
     engine::entity_t spawn_projectile_alt(engine::entity_t owner);
     engine::entity_t spawn_projectile_charged(engine::entity_t owner, uint32_t heldTicks);
+    engine::entity_t spawn_projectile_bomb(engine::entity_t owner);
+    engine::entity_t spawn_explosion(float x, float y, int damage, float radius);
 
     // Internal utility: ensure an entity is scheduled for removal by setting/adding despawn_tag.
     // Centralises logic so systems never call kill_entity directly (uniform ECS pipeline).
