@@ -17,6 +17,8 @@
     "sdl2-ttf",
     "asio",
     "nlohmann-json",
-    "wavpack"
+    "wavpack",
+    "libogg",
+    "libvorbis"
   ]
 }
