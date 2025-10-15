@@ -406,7 +406,7 @@ void server::game_handler()
     _live_entities.insert(static_cast<uint32_t>(e));
   }
   systems::spawned_projectiles.clear();
-    if (_tick % 200 == 0)
+    if (_tick % 600 == 0)
     {
         try
         {
@@ -438,7 +438,7 @@ void server::game_handler()
     }
   }
 
-    if (_tick % 400 == 0)
+    if (_tick % 600 == 0)
     {
         try
         {
@@ -471,7 +471,7 @@ void server::game_handler()
       std::cerr << "Failed to load shooter enemy: " << ex.what() << "\n";
     }
   }
-  if (_tick == 600)
+  if (_tick % 600 == 0)
   {
     try
     {
