@@ -592,17 +592,6 @@ void server::wait_for_players()
 {
   std::cout << "Waiting for 4 players..." << std::endl;
 
-    while (_players.size() < 2) {
-    engine::net::Endpoint sender;
-        auto pkt_opt = _socket.receive(sender);
-        if (pkt_opt)
-        {
-            auto [hdr, payload] = *pkt_opt;
-            if (hdr.type == CONNECT_REQ)
-            {
-                std::size_t playerIndex = _players.size();
-                float spawnX = 100.f;
-                float spawnY = 100.f + 120.f * static_cast<float>(playerIndex);
   while (_players.size() < 2)
   {
 engine::net::Endpoint sender;
