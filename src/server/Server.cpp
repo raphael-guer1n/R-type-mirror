@@ -665,14 +665,12 @@ void server::process_network_inputs()
                         {
                             auto &vel = *velocities[p.entityId];
                             using engine::R_Events::Key;
-                            bool left = keys.count(Key::Left) > 0 || keys.count(Key::Q) > 0;
-                            bool right = keys.count(Key::Right) > 0 || keys.count(Key::D) > 0;
-                            bool up = keys.count(Key::Up) > 0 || keys.count(Key::Z) > 0;
-                            bool down = keys.count(Key::Down) > 0 || keys.count(Key::S) > 0;
-                            vel.vx = left ? -PLAYER_SPEED : right ? PLAYER_SPEED
-                                                                  : 0.f;
-                            vel.vy = up ? -PLAYER_SPEED : down ? PLAYER_SPEED
-                                                               : 0.f;
+                            bool left = keys.count(Key::Left) > 0 || keys.count(Key::Q) > 0 || keys.count(Key::ControllerLeftJoystickLeft) > 0;
+                            bool right = keys.count(Key::Right) > 0 || keys.count(Key::D) > 0 || keys.count(Key::ControllerLeftJoystickRight) > 0;
+                            bool up = keys.count(Key::Up) > 0 || keys.count(Key::Z) > 0 || keys.count(Key::ControllerLeftJoystickUp) > 0;
+                            bool down = keys.count(Key::Down) > 0 || keys.count(Key::S) > 0 || keys.count(Key::ControllerLeftJoystickDown) > 0;
+                            vel.vx = left ? -PLAYER_SPEED : right ? PLAYER_SPEED : 0.f;
+                            vel.vy = up ? -PLAYER_SPEED : down ? PLAYER_SPEED : 0.f;
                         }
 
                         using engine::R_Events::Key;

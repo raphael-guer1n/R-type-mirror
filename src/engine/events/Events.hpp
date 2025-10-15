@@ -176,7 +176,54 @@ namespace engine
             NumLockClear = SDLK_NUMLOCKCLEAR,
             ScrollLock = SDLK_SCROLLLOCK,
             PrintScreen = SDLK_PRINTSCREEN,
-            Pause = SDLK_PAUSE
+            Pause = SDLK_PAUSE,
+
+            // Game controller buttons (SDL_GameControllerButton)
+            Controller_A = SDL_CONTROLLER_BUTTON_A,
+            Controller_B = SDL_CONTROLLER_BUTTON_B,
+            Controller_X = SDL_CONTROLLER_BUTTON_X,
+            Controller_Y = SDL_CONTROLLER_BUTTON_Y,
+            Controller_Back = SDL_CONTROLLER_BUTTON_BACK,
+            Controller_Guide = SDL_CONTROLLER_BUTTON_GUIDE,
+            Controller_Start = SDL_CONTROLLER_BUTTON_START,
+            Controller_LeftStick = SDL_CONTROLLER_BUTTON_LEFTSTICK,
+            Controller_RightStick = SDL_CONTROLLER_BUTTON_RIGHTSTICK,
+            Controller_LeftShoulder = SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
+            Controller_RightShoulder = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
+            Controller_Dpad_Up = SDL_CONTROLLER_BUTTON_DPAD_UP,
+            Controller_Dpad_Down = SDL_CONTROLLER_BUTTON_DPAD_DOWN,
+            Controller_Dpad_Left = SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+            Controller_Dpad_Right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
+            Controller_Misc1 = SDL_CONTROLLER_BUTTON_MISC1,
+            Controller_Paddle1 = SDL_CONTROLLER_BUTTON_PADDLE1,
+            Controller_Paddle2 = SDL_CONTROLLER_BUTTON_PADDLE2,
+            Controller_Paddle3 = SDL_CONTROLLER_BUTTON_PADDLE3,
+            Controller_Paddle4 = SDL_CONTROLLER_BUTTON_PADDLE4,
+            Controller_Touchpad = SDL_CONTROLLER_BUTTON_TOUCHPAD,
+
+            // Game controller axes (SDL_GameControllerAxis)
+            //Controller_LeftX = SDL_CONTROLLER_AXIS_LEFTX,
+            //Controller_LeftY = SDL_CONTROLLER_AXIS_LEFTY,
+            //Controller_RightX = SDL_CONTROLLER_AXIS_RIGHTX,
+            //Controller_RightY = SDL_CONTROLLER_AXIS_RIGHTY,
+            //Controller_TriggerLeft = SDL_CONTROLLER_AXIS_TRIGGERLEFT,
+            //Controller_TriggerRight = SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
+
+            // Virtual keys for joystick directions (for analog to digital mapping)
+            ControllerLeftJoystickLeft = 0x2000,
+            ControllerLeftJoystickRight = 0x2001,
+            ControllerLeftJoystickUp = 0x2002,
+            ControllerLeftJoystickDown = 0x2003,
+
+            // Virtual keys for right joystick directions
+            ControllerRightJoystickLeft = 0x2010,
+            ControllerRightJoystickRight = 0x2011,
+            ControllerRightJoystickUp = 0x2012,
+            ControllerRightJoystickDown = 0x2013,
+
+            // Virtual keys for analog triggers (treated as buttons if threshold passed)
+            ControllerTriggerLeftPressed = 0x2020,
+            ControllerTriggerRightPressed = 0x2021
         };
 
         struct Event {
