@@ -59,6 +59,11 @@ struct EntityState
     uint8_t type;
     uint8_t hp;
     bool collided;
+
+    float hb_w;
+    float hb_h;
+    float hb_ox;
+    float hb_oy;
 };
 /**    * @brief Snapshot packet structure.
     */  

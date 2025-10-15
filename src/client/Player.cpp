@@ -1,22 +1,126 @@
 #include <memory>
 #include "Rtype.hpp"
+#include "engine/renderer/Error.hpp"
 #include "Player.hpp"
+#include "common/Layers.hpp"
 
 R_Type::Player::Player(R_Type::Rtype &rtype)
-: playerRect(167, 0, 32, 17), projectileRect(232, 103, 16, 12), explosionRect(247, 296, 33, 33)
+: playerRect(0, 0, 33, 17),
+    projectileRect(232, 103, 16, 12),
+    explosionRect(247, 296, 33, 33),
+    chargeRect(0, 5, 32, 32),
+    chargeProjectileRect(203, 276, 220, 287),
+    missileProjectileRect(0, 238, 152, 254),
+    missileexplosionRect(240, 0, 1039, 47)
 {
-    texture = std::make_shared<engine::R_Graphic::Texture>(
+    playerTexture = std::make_shared<engine::R_Graphic::Texture>(
+        rtype.getApp().getWindow(),
+        "./Assets/sprites/r-typesheet42.gif",
+        engine::R_Graphic::doubleVec2(0, 0),
+        engine::R_Graphic::intVec2(132, 72)
+    );
+    projectileTexture = std::make_shared<engine::R_Graphic::Texture>(
         rtype.getApp().getWindow(),
         "./Assets/sprites/r-typesheet1.gif",
         engine::R_Graphic::doubleVec2(0, 0),
         engine::R_Graphic::intVec2(132, 72)
     );
+    chargeTexture = std::make_shared<engine::R_Graphic::Texture>(
+        rtype.getApp().getWindow(),
+        "./Assets/sprites/r-typesheet1.gif",
+        engine::R_Graphic::doubleVec2(0, 0),
+        engine::R_Graphic::intVec2(132, 72)
+    );
+    chargeProjectileTexture = std::make_shared<engine::R_Graphic::Texture>(
+        rtype.getApp().getWindow(),
+        "./Assets/sprites/r-typesheet1.gif",
+        engine::R_Graphic::doubleVec2(0, 0),
+        engine::R_Graphic::intVec2(123, 72)
+    );
+    missileProjectileTexture = std::make_shared<engine::R_Graphic::Texture>(
+        rtype.getApp().getWindow(),
+        "./Assets/sprites/r-typesheet1.gif",
+        engine::R_Graphic::doubleVec2(0, 0),
+        engine::R_Graphic::intVec2(120, 120)
+    );
+    missileExplosionTexture = std::make_shared<engine::R_Graphic::Texture>(
+        rtype.getApp().getWindow(),
+        "./Assets/sprites/explosion-b.png",
+        engine::R_Graphic::doubleVec2(0, 0),
+        engine::R_Graphic::intVec2(800, 480)
+    );
+
+    chargeAnimation.clips.insert({
+        "charge",
+        component::AnimationClip{
+            .frameCount = 8,
+            .frameTime = 0.06f,
+            .startX = 0,
+            .startY = 51,
+            .frameWidth = 32,
+            .frameHeight = 32,
+            .loop = true
+        }
+    });
+
+    chargeProjectileAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 4,
+            .frameTime = 0.06f,
+            .startX = 203,
+            .startY = 276,
+            .frameWidth = 18,
+            .frameHeight = 12,
+            .loop = true
+        }
+    });
+
+    missileProjectileAnimation.clips.insert({
+        "rotation",
+        component::AnimationClip{
+            .frameCount = 9,
+            .frameTime = 0.06f,
+            .startX = 0,
+            .startY = 238,
+            .frameWidth = 17,
+            .frameHeight = 17,
+            .loop = false
+        }
+    });
+
+    missileProjectileAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 1,
+            .frameTime = 0.0f,
+            .startX = 136,
+            .startY = 238,
+            .frameWidth = 17,
+            .frameHeight = 17,
+            .loop = false
+        }
+    });
+
+    missileexplosionAnimation.clips.insert({
+        "idle",
+        component::AnimationClip{
+            .frameCount = 10,
+            .frameTime = 0.1f,
+            .startX = 240,
+            .startY = 0,
+            .frameWidth = 80,
+            .frameHeight = 48,
+            .loop = false
+        }
+    });
+
     playerAnimation.clips.insert({
         "idle",
         component::AnimationClip{
             .frameCount = 1,
             .frameTime = 0.0f,
-            .startX = 167,
+            .startX = 66,
             .startY = 0,
             .frameWidth = 33,
             .frameHeight = 17,
@@ -28,7 +132,7 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
         component::AnimationClip{
             .frameCount = 3,
             .frameTime = 0.12f,
-            .startX = 167,
+            .startX = 66,
             .startY = 0,
             .frameWidth = 33,
             .frameHeight = 17,
@@ -40,7 +144,7 @@ R_Type::Player::Player(R_Type::Rtype &rtype)
         component::AnimationClip{
             .frameCount = 3,
             .frameTime = 0.12f,
-            .startX = 167,
+            .startX = 66,
             .startY = 0,
             .frameWidth = 33,
             .frameHeight = 17,
@@ -84,14 +188,78 @@ void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>&
         if (localId < animations.size() && animations[localId].has_value()) {
             auto &anim = *animations[localId];
             using engine::R_Events::Key;
-            if (pressedKeys.count(Key::Up)) {
+            if (pressedKeys.count(Key::Up) or pressedKeys.count(Key::Z)) {
                 setAnimation(anim, "move_up", false);
-            } else if (pressedKeys.count(Key::Down)) {
+            } else if (pressedKeys.count(Key::Down) or pressedKeys.count(Key::S)) {
                 setAnimation(anim, "move_down", true);
             }
             else {
                 setAnimation(anim, "idle", false);
             }
+
+            bool charging = pressedKeys.count(Key::Space) > 0;
+            ensureChargeOverlay(registry, localId, charging);
+            if (charging) {
+                updateChargeOverlayPosition(registry, localId);
+                auto &anims = registry.get_components<component::animation>();
+                if (chargeOverlayLocalId.has_value()) {
+                    size_t idx = chargeOverlayLocalId.value();
+                    if (idx != localId && idx < anims.size() && anims[idx]) {
+                        setAnimation(*anims[idx], "charge", false);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void R_Type::Player::ensureChargeOverlay(engine::registry& registry, size_t playerLocalId, bool show)
+{
+    if (show && chargeTexture) {
+        if (!chargeOverlayLocalId.has_value()) {
+            auto e = registry.spawn_entity();
+            size_t idx = static_cast<size_t>(e);
+            if (idx == playerLocalId) {
+                e = registry.spawn_entity();
+                idx = static_cast<size_t>(e);
+            }
+            registry.add_component(e, component::position{0.f, 0.f});
+            registry.add_component(e, component::entity_kind::decor);
+            registry.emplace_component<component::drawable>(e, chargeTexture, chargeRect, layers::Effects);
+            registry.add_component(e, component::animation{});
+            auto &hitboxes = registry.get_components<component::hitbox>();
+            if (idx < hitboxes.size() && hitboxes[idx])
+                hitboxes[idx].reset();
+            auto &anims = registry.get_components<component::animation>();
+            if (idx < anims.size() && anims[idx]) {
+                *anims[idx] = chargeAnimation;
+            }
+            chargeOverlayLocalId = idx;
+        }
+    } else {
+        if (chargeOverlayLocalId.has_value()) {
+            size_t idx = chargeOverlayLocalId.value();
+            if (idx != playerLocalId) {
+                engine::entity_t e = static_cast<engine::entity_t>(idx);
+                registry.kill_entity(e);
+            }
+            chargeOverlayLocalId.reset();
+        }
+    }
+}
+
+void R_Type::Player::updateChargeOverlayPosition(engine::registry& registry, size_t playerLocalId)
+{
+    if (!chargeOverlayLocalId.has_value()) return;
+    size_t idx = chargeOverlayLocalId.value();
+    auto &positions = registry.get_components<component::position>();
+    if (playerLocalId < positions.size() && positions[playerLocalId]) {
+        auto p = positions[playerLocalId].value();
+        float offsetX = 100.f;
+        float offsetY = 10.f;
+        if (idx != playerLocalId && idx < positions.size() && positions[idx]) {
+            positions[idx]->x = p.x + offsetX;
+            positions[idx]->y = p.y + offsetY;
         }
     }
 }

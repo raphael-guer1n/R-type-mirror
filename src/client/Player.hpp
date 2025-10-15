@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Texture.hpp"
 #include "common/Components.hpp"
@@ -48,15 +49,32 @@ namespace R_Type
              * @param pressedKeys Set of currently pressed keys.
              */
 
-            std::shared_ptr<engine::R_Graphic::Texture> texture;
+            std::shared_ptr<engine::R_Graphic::Texture> playerTexture;
+            std::shared_ptr<engine::R_Graphic::Texture> projectileTexture;
             engine::R_Graphic::textureRect playerRect;
             engine::R_Graphic::textureRect projectileRect;
+            std::shared_ptr<engine::R_Graphic::Texture> chargeTexture;
+            std::shared_ptr<engine::R_Graphic::Texture> chargeProjectileTexture;
+            std::shared_ptr<engine::R_Graphic::Texture> missileProjectileTexture;
+            std::shared_ptr<engine::R_Graphic::Texture> missileExplosionTexture;
+            engine::R_Graphic::textureRect chargeRect;
+            engine::R_Graphic::textureRect chargeProjectileRect;
+            engine::R_Graphic::textureRect missileProjectileRect;
+            engine::R_Graphic::textureRect missileexplosionRect;
             engine::R_Graphic::textureRect explosionRect;
             component::animation playerAnimation;
             component::animation projectileAnimation;
+            component::animation chargeAnimation;
+            component::animation chargeProjectileAnimation;
+            component::animation missileProjectileAnimation;
+            component::animation missileexplosionAnimation;
+            std::optional<size_t> chargeOverlayLocalId;
             component::animation explosionAnimation;
         public:
             void playerUpdateAnimation(std::unordered_map<uint32_t, size_t>& entityMap,
                 uint32_t player, engine::registry& registry, const std::unordered_set<engine::R_Events::Key>& pressedKeys);
+        private:
+            void ensureChargeOverlay(engine::registry& registry, size_t playerLocalId, bool show);
+            void updateChargeOverlayPosition(engine::registry& registry, size_t playerLocalId);
     };
 }

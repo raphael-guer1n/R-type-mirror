@@ -1,6 +1,7 @@
 
 #pragma once
 #include <iostream>
+#include <SDL.h>
 #include "engine/ecs/Registry.hpp"
 #include "common/Components.hpp"
 #include "common/Components_client_sdl.hpp"
@@ -69,11 +70,74 @@ inline void draw_system(registry &r,
     std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
         return drawables[a]->layer < drawables[b]->layer;
     });
+    auto &hitboxes = r.get_components<component::hitbox>();
     for (size_t idx: indices) {
         auto &d = *drawables[idx];
         auto &p = *positions[idx];
-        d.texture->position = {p.x, p.y};
+        auto texSize = d.texture->getSize();
+        double drawX = p.x;
+        double drawY = p.y;
+        if (idx < hitboxes.size() && hitboxes[idx]) {
+            const auto &hb = hitboxes[idx].value();
+            const double cx = static_cast<double>(p.x + hb.offset_x + hb.width * 0.5f);
+            const double cy = static_cast<double>(p.y + hb.offset_y + hb.height * 0.5f);
+            drawX = cx - static_cast<double>(texSize.x) * 0.5;
+            drawY = cy - static_cast<double>(texSize.y) * 0.5;
+        }
+        d.texture->position = {drawX, drawY};
         d.texture->draw(window, &d.rect);
+    }
+}
+
+inline void hitbox_overlay_system(registry &r, sparse_array<component::position> &positions,
+    sparse_array<component::hitbox> &hitboxes,
+    sparse_array<component::entity_kind> &kinds,
+    R_Graphic::Window &window,
+    int thickness = 2)
+{
+    SDL_Renderer *ren = window.getRenderer();
+    if (!ren) return;
+    if (thickness < 1) thickness = 1;
+
+    for (size_t i = 0; i < positions.size(); ++i) {
+        if (!(i < positions.size() && positions[i]) ||
+            !(i < hitboxes.size() && hitboxes[i]) ||
+            !(i < kinds.size() && kinds[i]))
+            continue;
+
+        const auto &pos = positions[i].value();
+        const auto &hb = hitboxes[i].value();
+        const auto kind = kinds[i].value();
+
+        if (kind == component::entity_kind::player) {
+            SDL_SetRenderDrawColor(ren, 0, 200, 255, 220);
+        } else if (kind == component::entity_kind::enemy) {
+            SDL_SetRenderDrawColor(ren, 255, 60, 60, 220);
+        } else if (kind == component::entity_kind::playerProjectile) {
+            SDL_SetRenderDrawColor(ren, 255, 255, 0, 220);
+        } else if (kind == component::entity_kind::projectile_bomb) {
+            SDL_SetRenderDrawColor(ren, 255, 180, 0, 220);
+        } else if (kind == component::entity_kind::projectile_charged) {
+            SDL_SetRenderDrawColor(ren, 255, 120, 0, 220);
+        } else if (kind == component::entity_kind::missile_explosion) {
+            SDL_SetRenderDrawColor(ren, 0, 255, 120, 200);
+        } else {
+            SDL_SetRenderDrawColor(ren, 255, 0, 255, 200);
+        }
+
+        const float baseX = pos.x + hb.offset_x;
+        const float baseY = pos.y + hb.offset_y;
+        const float w = hb.width;
+        const float h = hb.height;
+        if (w <= 0.f || h <= 0.f) continue;
+
+        for (int k = 0; k < thickness; ++k) {
+            SDL_Rect rect{ static_cast<int>(baseX) - k,
+                           static_cast<int>(baseY) - k,
+                           static_cast<int>(w) + 2*k,
+                           static_cast<int>(h) + 2*k };
+            SDL_RenderDrawRect(ren, &rect);
+        }
     }
 }
 

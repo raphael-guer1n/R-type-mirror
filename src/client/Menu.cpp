@@ -144,6 +144,12 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
                 return true;
             }
 
+            if (x >= _centerX && x <= _centerX + _buttonWidth &&
+                y >= _winH / 2 && y <= _winH / 2 + _buttonHeight)
+            {
+                _currentPage = Page::Settings;
+            }
+
             if (x >= 550 && x <= 950 && y >= 600 && y <= 720) {
                 _quitPressed = true;
                 _menuMusic.stop();

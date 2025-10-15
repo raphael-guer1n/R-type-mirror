@@ -4,6 +4,8 @@ find_package(SDL2_mixer CONFIG REQUIRED)
 find_package(SDL2_ttf CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
 find_package(WavPack CONFIG REQUIRED)
+find_package(Ogg CONFIG REQUIRED)
+find_package(Vorbis CONFIG REQUIRED)
 
 add_library(engine
     renderer/App.cpp
@@ -39,7 +41,7 @@ target_link_libraries(engine
         $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>
         $<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>
         WavPack::WavPack
-        ogg
-        vorbis
-        vorbisfile
+        Ogg::ogg
+        Vorbis::vorbis
+        Vorbis::vorbisfile
 )

@@ -5,6 +5,7 @@
 #include <memory>
 #include <unordered_map>
 #include <cctype>
+#include <algorithm>
 #include <SDL.h>
 
 static std::unordered_map<char, std::string> fontMap = {
@@ -37,7 +38,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     float barWidth = 500.0f;
     float barHeight = 100.0f;
     float barX = (winW - barWidth) / 2.0f;
-    float barY = winH - barHeight - 60.0f;
+    float barY = winH - barHeight - 100.0f;
     engine::R_Graphic::doubleVec2 hudPos(barX, barY);
 
     registry.add_component(e, component::position{barX, barY});
@@ -52,9 +53,23 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
         engine::R_Graphic::intVec2(500, 120));
 
     engine::R_Graphic::textureRect rect(0, 530, 1200, 140);
-    registry.emplace_component<component::drawable>(e, bar, rect, layers::HudBase);
+    // registry.emplace_component<component::drawable>(e, bar, rect, layers::HudBase);
 
-    // === SCORE ===
+    auto fillEntity = registry.spawn_entity();
+    registry.add_component(fillEntity, component::position{ static_cast<float>(hudPos.x + 40), static_cast<float>(hudPos.y + 65)});
+    registry.add_component(fillEntity, component::hud_tag{});
+    auto fillTex = std::make_shared<engine::R_Graphic::Texture>(window, "./Assets/Hud/heart.png",
+        engine::R_Graphic::doubleVec2(hudPos.x + 40, hudPos.y + 65), engine::R_Graphic::intVec2(1, 20));
+    engine::R_Graphic::textureRect fillRect(0, 0, 32, 32);
+    registry.emplace_component<component::drawable>(fillEntity, fillTex, fillRect, layers::HudText);
+    _chargeFillLocalId = static_cast<size_t>(fillEntity);
+
+    _barOriginX = static_cast<int>(hudPos.x + 40);
+    _barOriginY = static_cast<int>(hudPos.y + 65);
+    _barMaxWidth = 420;
+    _barHeight = 20;
+
+    // === SCORE  ===
     float hudScale = 0.5f;
     int scoreValue = 200;
     std::string scoreText = "1P " + std::to_string(scoreValue);
@@ -125,7 +140,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     // === HEARTS ===
     int maxHearts = 3;
     std::uint8_t currentHP = 3;
-    float heartY = winH - 120.0f;
+    float heartY = winH - 100.0f;
     float heartSpacing = 45.0f;
     float heartSize = 32.0f;
     float totalHeartsWidth = (currentHP - 1) * heartSpacing + heartSize;
@@ -149,4 +164,24 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
         engine::R_Graphic::textureRect heartRect(0, 0, 32, 32);
         registry.emplace_component<component::drawable>(heartEntity, heartTex, heartRect, layers::HudIcons);
     }
+}
+
+void R_Type::Hud::setChargeLevel(R_Type::Rtype &rtype, float level)
+{
+    (void)rtype;
+    _chargeLevel = std::max(0.f, std::min(1.f, level));
+}
+
+void R_Type::Hud::drawOverlay(R_Type::Rtype &rtype)
+{
+    auto &win = rtype.getApp().getWindow();
+    SDL_Renderer *ren = win.getRenderer();
+    if (!ren)
+        return;
+
+    int w = std::max(0, static_cast<int>(_barMaxWidth * _chargeLevel));
+    SDL_Rect rect{_barOriginX, _barOriginY, w, _barHeight};
+    SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(ren, 60, 220, 120, 230);
+    SDL_RenderFillRect(ren, &rect);
 }
