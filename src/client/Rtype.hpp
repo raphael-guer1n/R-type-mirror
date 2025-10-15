@@ -110,7 +110,7 @@ namespace R_Type
         bool _inMenu = true;
         bool _connected = false;
         bool _gameOver = false;
-        bool _won = true;
+        bool _won = false;
         std::unordered_map<size_t, int> _playerIndexByLocalId;
         bool _showHitboxes = false;
         int _hitboxOverlayThickness = 3;

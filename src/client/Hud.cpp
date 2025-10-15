@@ -38,7 +38,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     float barWidth = 500.0f;
     float barHeight = 100.0f;
     float barX = (winW - barWidth) / 2.0f;
-    float barY = winH - barHeight - 60.0f;
+    float barY = winH - barHeight - 100.0f;
     engine::R_Graphic::doubleVec2 hudPos(barX, barY);
 
     registry.add_component(e, component::position{barX, barY});
@@ -53,7 +53,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
         engine::R_Graphic::intVec2(500, 120));
 
     engine::R_Graphic::textureRect rect(0, 530, 1200, 140);
-    registry.emplace_component<component::drawable>(e, bar, rect, layers::HudBase);
+    // registry.emplace_component<component::drawable>(e, bar, rect, layers::HudBase);
 
     auto fillEntity = registry.spawn_entity();
     registry.add_component(fillEntity, component::position{ static_cast<float>(hudPos.x + 40), static_cast<float>(hudPos.y + 65)});
@@ -140,7 +140,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     // === HEARTS ===
     int maxHearts = 3;
     std::uint8_t currentHP = 3;
-    float heartY = winH - 120.0f;
+    float heartY = winH - 100.0f;
     float heartSpacing = 45.0f;
     float heartSize = 32.0f;
     float totalHeartsWidth = (currentHP - 1) * heartSpacing + heartSize;
