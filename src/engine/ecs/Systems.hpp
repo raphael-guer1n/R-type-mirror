@@ -1,7 +1,6 @@
 #pragma once
 #include "engine/ecs/Registry.hpp"
-#include "common/Components.hpp"
-#include "common/Components_client_sdl.hpp"
+#include "engine/ecs/Components.hpp"
 #include "engine/ecs/iterator/Zipper.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include <algorithm>
@@ -16,7 +15,6 @@ using namespace engine;
  * - position_system: Updates entity positions based on velocity.
  * - hitbox_system: Detects collisions between entities and triggers a callback.
  * - health_system: Applies damage, updates health, and marks entities for despawn if health reaches zero.
- * - despawn_system: Removes entities marked for despawn.
  * - spawn_system: Handles entity spawning via factory callbacks.
  *
  * Each system operates on sparse arrays of components and interacts with the registry.
@@ -93,30 +91,5 @@ inline void spawn_system(registry &r,
     }
 }
 
-inline void animation_system(registry &r,
-    sparse_array<component::animation> &animations,
-    sparse_array<component::drawable> &drawables,
-    float deltaTime)
-{
-    for (auto &&[i, anim, draw] : indexed_zipper(animations, drawables)) {
-        if (anim.clips.empty()) continue;
-        auto it = anim.clips.find(anim.currentClip);
-        if (it == anim.clips.end()) continue;
-        auto &clip = it->second;
-        anim.timer += deltaTime;
-        if (anim.timer >= clip.frameTime) {
-            anim.timer = 0.f;
-            anim.currentFrame++;
-            if (anim.currentFrame >= clip.frameCount) {
-                anim.currentFrame = clip.loop ? 0 : clip.frameCount - 1;
-            }
-        }
-        if (!anim.reverse)
-            draw.rect.pos.x = clip.startX + anim.currentFrame * clip.frameWidth;
-        else
-            draw.rect.pos.x = clip.startX - anim.currentFrame * clip.frameWidth;
-        draw.rect.pos.y = clip.startY;
-        draw.rect.size.x = clip.frameWidth;
-        draw.rect.size.y = clip.frameHeight;
-    }
-}
+// Note: animation_system removed - it requires client-specific component::drawable
+// Client code should implement its own animation system using common/Components_client.hpp

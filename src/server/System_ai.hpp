@@ -9,7 +9,7 @@
 #include <cmath>
 #include <iostream>
 #include <unordered_map>
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include "server/Components_ai.hpp"

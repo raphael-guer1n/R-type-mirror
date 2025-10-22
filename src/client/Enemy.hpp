@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Texture.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "engine/events/Events.hpp"
 
 namespace R_Type

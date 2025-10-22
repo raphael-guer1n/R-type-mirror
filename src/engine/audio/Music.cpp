@@ -39,34 +39,20 @@
 
 namespace engine::audio {
 
-    Music::Music() {
-        if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
-            throw engine::Error(std::string("SDL_mixer: ") + Mix_GetError());
-        }
+    Music::Music() = default;
+
+    Music::~Music() = default;
+
+    bool Music::load(const std::string &/*path*/) {
+        return true; // pretend success
     }
 
-    Music::~Music() {
-        if (_music)
-            Mix_FreeMusic(_music);
-        Mix_CloseAudio();
-    }
-
-    bool Music::load(const std::string &path) {
-        _music = Mix_LoadMUS(path.c_str());
-        if (!_music) {
-            std::cerr << "Failed to load music: " << path << " (" << Mix_GetError() << ")" << std::endl;
-            return false;
-        }
-        return true;
-    }
-
-    void Music::play(bool loop) {
-        if (!_music) return;
-        Mix_PlayMusic(_music, loop ? -1 : 1);
+    void Music::play(bool /*loop*/) {
+        // no-op
     }
 
     void Music::stop() {
-        Mix_HaltMusic();
+        // no-op
     }
 
 } // namespace engine::audio

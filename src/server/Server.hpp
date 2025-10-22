@@ -5,7 +5,7 @@
 #include <vector>
 #include <random>
 #include "engine/ecs/Registry.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "common/Packets.hpp"
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"

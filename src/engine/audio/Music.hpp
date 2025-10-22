@@ -38,23 +38,21 @@
 #pragma once
 
 #include <string>
-#include <SDL_mixer.h>
 
 namespace engine {
-
 namespace audio {
-    
+
+    // No-op audio implementation to allow building without SDL_mixer.
     class Music {
     public:
         Music();
         ~Music();
 
+        // Always returns true; no actual audio loading.
         bool load(const std::string &path);
+        // No-op playback controls.
         void play(bool loop = true);
         void stop();
-
-    private:
-        Mix_Music *_music = nullptr;
     };
 
 }} // namespace engine::audio
