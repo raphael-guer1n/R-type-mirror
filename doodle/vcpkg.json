@@ -1,0 +1,20 @@
+{
+  "name": "rtype",
+  "version": "0.1.0",
+  "dependencies": [
+    {
+      "name": "sdl2",
+      "platform": "windows"
+    },
+    {
+      "name": "sdl2",
+      "default-features": false,
+      "features": ["x11"],
+      "platform": "linux | osx"
+    },
+    "sdl2-image",
+    "sdl2-ttf",
+    "asio",
+    "nlohmann-json"
+  ]
+}
