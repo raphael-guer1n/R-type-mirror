@@ -112,10 +112,10 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         _titleLetters.push_back(tex);
     }
 
-    if (_menuMusic.load("./Assets/Music/Menu.ogg")) {
+    if (_menuMusic.load("./Assets/Music/Menu.wav")) {
         _menuMusic.play(true);
     } else {
-        std::cerr << "[AUDIO] Failed to load Menu.ogg\n";
+        std::cerr << "[AUDIO] Failed to load Menu.wav\n";
     }
 }
 
@@ -135,10 +135,10 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
 
                 _menuMusic.stop();
 
-                if (_gameMusic.load("./Assets/Music/Game.ogg")) {
+                if (_gameMusic.load("./Assets/Music/Game.wav")) {
                     _gameMusic.play(true);
                 } else {
-                    std::cerr << "[AUDIO] Failed to load Game.ogg\n";
+                    std::cerr << "[AUDIO] Failed to load Game.wav\n";
                 }
 
                 return true;
