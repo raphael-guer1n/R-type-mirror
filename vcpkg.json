@@ -9,16 +9,12 @@
     {
       "name": "sdl2",
       "default-features": false,
-      "features": ["x11", "alsa"],
+      "features": ["x11"],
       "platform": "linux | osx"
     },
     "sdl2-image",
-    "sdl2-mixer",
     "sdl2-ttf",
     "asio",
-    "nlohmann-json",
-    "wavpack",
-    "libogg",
-    "libvorbis"
+    "nlohmann-json"
   ]
 }
