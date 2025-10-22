@@ -31,42 +31,59 @@
  * @see Mix_OpenAudio
  * @see Mix_PlayMusic
  */
-
-#include <stdexcept>
-#include <iostream>
+#define MINIAUDIO_IMPLEMENTATION
 #include "Music.hpp"
-#include "engine/renderer/Error.hpp"
+#include <iostream>
+#include <stdexcept>
 
 namespace engine::audio {
 
-    Music::Music() {
-        if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
-            throw engine::Error(std::string("SDL_mixer: ") + Mix_GetError());
-        }
+Music::Music() {
+    ma_result result = ma_engine_init(nullptr, &_engine);
+    if (result != MA_SUCCESS) {
+        std::cerr << "[AUDIO] Failed to initialize Miniaudio engine (error " << result << ")." << std::endl;
+        throw std::runtime_error("Failed to initialize Miniaudio engine");
     }
+    _isLoaded = false;
+}
 
-    Music::~Music() {
-        if (_music)
-            Mix_FreeMusic(_music);
-        Mix_CloseAudio();
+Music::~Music() {
+    if (_isLoaded) {
+        ma_sound_uninit(&_sound);
     }
+    ma_engine_uninit(&_engine);
+}
 
-    bool Music::load(const std::string &path) {
-        _music = Mix_LoadMUS(path.c_str());
-        if (!_music) {
-            std::cerr << "Failed to load music: " << path << " (" << Mix_GetError() << ")" << std::endl;
-            return false;
-        }
-        return true;
+bool Music::load(const std::string& path) {
+    ma_result result = ma_sound_init_from_file(&_engine, path.c_str(), 0, nullptr, nullptr, &_sound);
+    if (result != MA_SUCCESS) {
+        std::cerr << "[AUDIO] Failed to load sound: " << path << " (error " << result << ")" << std::endl;
+        _isLoaded = false;
+        return false;
     }
+    _isLoaded = true;
+    std::cout << "[AUDIO] Successfully loaded: " << path << std::endl;
+    return true;
+}
 
-    void Music::play(bool loop) {
-        if (!_music) return;
-        Mix_PlayMusic(_music, loop ? -1 : 1);
+void Music::play(bool loop) {
+    if (!_isLoaded) {
+        std::cerr << "[AUDIO] Cannot play — no music loaded." << std::endl;
+        return;
     }
+    ma_sound_set_looping(&_sound, loop ? MA_TRUE : MA_FALSE);
+    ma_result result = ma_sound_start(&_sound);
+    if (result != MA_SUCCESS) {
+        std::cerr << "[AUDIO] Failed to start playback (error " << result << ")" << std::endl;
+    }
+}
 
-    void Music::stop() {
-        Mix_HaltMusic();
+void Music::stop() {
+    if (!_isLoaded) return;
+    ma_result result = ma_sound_stop(&_sound);
+    if (result != MA_SUCCESS) {
+        std::cerr << "[AUDIO] Failed to stop playback (error " << result << ")" << std::endl;
     }
+}
 
 } // namespace engine::audio
