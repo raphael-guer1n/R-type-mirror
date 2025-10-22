@@ -38,23 +38,25 @@
 #pragma once
 
 #include <string>
-#include <SDL_mixer.h>
+#include "miniaudio.h"
 
 namespace engine {
-
 namespace audio {
-    
-    class Music {
-    public:
-        Music();
-        ~Music();
 
-        bool load(const std::string &path);
-        void play(bool loop = true);
-        void stop();
+class Music {
+public:
+    Music();
+    ~Music();
 
-    private:
-        Mix_Music *_music = nullptr;
-    };
+    bool load(const std::string& path);
+    void play(bool loop = true);
+    void stop();
 
-}} // namespace engine::audio
+private:
+    ma_engine _engine;   // moteur audio global
+    ma_sound _sound;     // instance du son à jouer
+    bool _isLoaded = false;
+};
+
+} // namespace audio
+} // namespace engine
