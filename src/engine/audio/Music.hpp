@@ -51,11 +51,17 @@ public:
     bool load(const std::string& path);
     void play(bool loop = true);
     void stop();
+    void pause();
+    void resume();
+    bool isMuted() const { return _muted; }
+    void setMuted(bool muted) { _muted = muted; }
+
 
 private:
     ma_engine _engine;
     ma_sound _sound;
     bool _isLoaded = false;
+    bool _muted = false;
 };
 
 } // namespace audio

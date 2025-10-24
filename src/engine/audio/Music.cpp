@@ -66,15 +66,9 @@ bool Music::load(const std::string& path) {
 }
 
 void Music::play(bool loop) {
-    if (!_isLoaded) {
-        std::cerr << "[AUDIO] Cannot play — no music loaded." << std::endl;
-        return;
-    }
+    if (!_isLoaded || _muted) return;
     ma_sound_set_looping(&_sound, loop ? MA_TRUE : MA_FALSE);
-    ma_result result = ma_sound_start(&_sound);
-    if (result != MA_SUCCESS) {
-        std::cerr << "[AUDIO] Failed to start playback (error " << result << ")" << std::endl;
-    }
+    ma_sound_start(&_sound);
 }
 
 void Music::stop() {
@@ -83,6 +77,16 @@ void Music::stop() {
     if (result != MA_SUCCESS) {
         std::cerr << "[AUDIO] Failed to stop playback (error " << result << ")" << std::endl;
     }
+}
+
+void Music::pause() {
+    if (!_isLoaded) return;
+    ma_sound_stop(&_sound);
+}
+
+void Music::resume() {
+    if (!_isLoaded || _muted) return;
+    ma_sound_start(&_sound);
 }
 
 } // namespace engine::audio
