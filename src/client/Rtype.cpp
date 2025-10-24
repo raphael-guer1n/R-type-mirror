@@ -84,7 +84,7 @@ void R_Type::Rtype::update(float deltaTime,
     bool cPressed = _pressedKeys.count(engine::R_Events::Key::C) > 0;
     if (cPressed && !wasCPressed) {
         engine::audio::AudioManager::instance().playSound("projectile");
-        std::cout << "[AUDIO] Projectile sound (C key) triggered\n";
+        std::cout << "Projectile sound (C key) triggered\n";
     }
     wasCPressed = cPressed;
     
