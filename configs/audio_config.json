@@ -1,0 +1,18 @@
+{
+  "music": {
+    "menu": "./Assets/Music/Menu.wav",
+    "game": "./Assets/Music/Game.wav",
+    "boss": "./Assets/Music/Boss.wav",
+    "loose": "./Assets/Music/loose.wav",
+    "win": "./Assets/Music/win.wav"
+  },
+  "sounds": {
+    "shoot": "./Assets/Music/shoot.wav",
+    "projectile": "./Assets/Music/projectile.wav",
+    "explosion": "./Assets/Music/explosion.wav"
+  },
+  "volumes": {
+    "music": 0.8,
+    "sfx": 1.0
+  }
+}

@@ -9,6 +9,7 @@ add_library(engine
     renderer/Texture.cpp
     renderer/Window.cpp
     audio/Music.cpp
+    audio/AudioManager.cpp
     network/IoContext.cpp
     network/UdpSocket.cpp
 )
