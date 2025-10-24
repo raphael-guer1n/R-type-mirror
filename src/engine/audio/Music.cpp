@@ -41,7 +41,7 @@ namespace engine::audio {
 Music::Music() {
     ma_result result = ma_engine_init(nullptr, &_engine);
     if (result != MA_SUCCESS) {
-        std::cerr << "[AUDIO] Failed to initialize Miniaudio engine (error " << result << ")." << std::endl;
+        std::cerr << " Failed to initialize Miniaudio engine (error " << result << ")." << std::endl;
         throw std::runtime_error("Failed to initialize Miniaudio engine");
     }
     _isLoaded = false;
@@ -57,7 +57,7 @@ Music::~Music() {
 bool Music::load(const std::string& path) {
     ma_result result = ma_sound_init_from_file(&_engine, path.c_str(), 0, nullptr, nullptr, &_sound);
     if (result != MA_SUCCESS) {
-        std::cerr << "[AUDIO] Failed to load sound: " << path << " (error " << result << ")" << std::endl;
+        std::cerr << "Failed to load sound: " << path << " (error " << result << ")" << std::endl;
         _isLoaded = false;
         return false;
     }
@@ -73,10 +73,7 @@ void Music::play(bool loop) {
 
 void Music::stop() {
     if (!_isLoaded) return;
-    ma_result result = ma_sound_stop(&_sound);
-    if (result != MA_SUCCESS) {
-        std::cerr << "[AUDIO] Failed to stop playback (error " << result << ")" << std::endl;
-    }
+    ma_sound_stop(&_sound);
 }
 
 void Music::pause() {

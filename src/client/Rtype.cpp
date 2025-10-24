@@ -84,7 +84,6 @@ void R_Type::Rtype::update(float deltaTime,
     bool cPressed = _pressedKeys.count(engine::R_Events::Key::C) > 0;
     if (cPressed && !wasCPressed) {
         engine::audio::AudioManager::instance().playSound("projectile");
-        std::cout << "Projectile sound (C key) triggered\n";
     }
     wasCPressed = cPressed;
     
@@ -163,10 +162,10 @@ void R_Type::Rtype::receiveSnapshot()
             std::memcpy(&go, spayload.data(), sizeof(go));
             _gameOver = true;
             uint32_t winnerEntityId = go.winnerEntityId;
-            if (_player == winnerEntityId)
-                _won = true;
-            else
-                _won = false;
+            _won = (_player == winnerEntityId);
+            auto &audio = engine::audio::AudioManager::instance();
+            audio.stopMusic();
+
             continue;
         }
         if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))

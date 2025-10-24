@@ -64,17 +64,13 @@ void R_Type::Gameover::draw(bool win)
 
     auto &audio = engine::audio::AudioManager::instance();
 
-    audio.stopMusic();
-
     static bool musicPlayed = false;
 
     if (!musicPlayed) {
         if (win) {
             audio.playMusic("win", false);
-            std::cout << "[AUDIO] Playing WIN music\n";
         } else {
             audio.playMusic("loose", false);
-            std::cout << "[AUDIO] Playing LOOSE music\n";
         }
         musicPlayed = true;
     }

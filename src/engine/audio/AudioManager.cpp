@@ -14,7 +14,7 @@ AudioManager& AudioManager::instance() {
 bool AudioManager::loadConfig(const std::string& configPath) {
     std::ifstream file(configPath);
     if (!file.is_open()) {
-        std::cerr << "[AUDIO] Failed to open config: " << configPath << std::endl;
+        std::cerr << " Failed to open config: " << configPath << std::endl;
         return false;
     }
 
@@ -22,7 +22,7 @@ bool AudioManager::loadConfig(const std::string& configPath) {
     try {
         file >> j;
     } catch (const std::exception& e) {
-        std::cerr << "[AUDIO] JSON parse error: " << e.what() << std::endl;
+        std::cerr << " JSON parse error: " << e.what() << std::endl;
         return false;
     }
 
