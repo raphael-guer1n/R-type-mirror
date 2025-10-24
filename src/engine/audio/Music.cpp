@@ -62,7 +62,6 @@ bool Music::load(const std::string& path) {
         return false;
     }
     _isLoaded = true;
-    std::cout << "[AUDIO] Successfully loaded: " << path << std::endl;
     return true;
 }
 

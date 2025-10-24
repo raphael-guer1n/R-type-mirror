@@ -53,8 +53,8 @@ public:
     void stop();
 
 private:
-    ma_engine _engine;   // moteur audio global
-    ma_sound _sound;     // instance du son à jouer
+    ma_engine _engine;
+    ma_sound _sound;
     bool _isLoaded = false;
 };
 
