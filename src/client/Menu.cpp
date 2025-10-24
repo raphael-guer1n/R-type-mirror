@@ -81,6 +81,13 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::intVec2(optionSize, optionSize)
     );
 
+    _muteButton = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/mute_btn.png",
+        engine::R_Graphic::doubleVec2(startX + optionSize + spacingSmall, y),
+        engine::R_Graphic::intVec2(optionSize, optionSize)
+    );
+
     _windowButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/window_btn.png",
@@ -113,7 +120,9 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
     }
 
     if (_menuMusic.load("./Assets/Music/Menu.wav")) {
-        _menuMusic.play(true);
+        _menuMusic.setMuted(!_soundEnabled);
+        if (_soundEnabled)
+            _menuMusic.play(true);
     } else {
         std::cerr << "[AUDIO] Failed to load Menu.wav\n";
     }
@@ -136,7 +145,9 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
                 _menuMusic.stop();
 
                 if (_gameMusic.load("./Assets/Music/Game.wav")) {
-                    _gameMusic.play(true);
+                    _gameMusic.setMuted(!_soundEnabled);
+                    if (_soundEnabled)
+                        _gameMusic.play(true);
                 } else {
                     std::cerr << "[AUDIO] Failed to load Game.wav\n";
                 }
@@ -177,10 +188,16 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
                 y >= yBtn && y <= yBtn + optionSize)
             {
                 _soundEnabled = !_soundEnabled;
-                if (_soundEnabled)
-                    SDL_PauseAudio(0);
-                else
-                    SDL_PauseAudio(1);
+                _menuMusic.setMuted(!_soundEnabled);
+                _gameMusic.setMuted(!_soundEnabled);
+
+                if (_soundEnabled) {
+                    std::cout << " Music resumed" << std::endl;
+                    _menuMusic.resume();
+                } else {
+                    std::cout << " Music paused" << std::endl;
+                    _menuMusic.pause();
+                }
             }
 
             // === WINDOW ===
@@ -225,6 +242,9 @@ void R_Type::Menu::drawSettingsMenu()
 {
     _settingsBackground->draw(_app.getWindow(), nullptr);
     _backButton->draw(_app.getWindow(), nullptr);
-    _soundButton->draw(_app.getWindow(), nullptr);
+    if (_soundEnabled)
+        _soundButton->draw(_app.getWindow(), nullptr);
+    else
+        _muteButton->draw(_app.getWindow(), nullptr);
     _windowButton->draw(_app.getWindow(), nullptr);
 }
