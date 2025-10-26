@@ -76,5 +76,6 @@ namespace R_Type
         private:
             void ensureChargeOverlay(engine::registry& registry, size_t playerLocalId, bool show);
             void updateChargeOverlayPosition(engine::registry& registry, size_t playerLocalId);
+            bool _wasShooting = false;
     };
 }

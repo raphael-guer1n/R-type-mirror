@@ -38,23 +38,31 @@
 #pragma once
 
 #include <string>
-#include <SDL_mixer.h>
+#include "miniaudio.h"
 
 namespace engine {
-
 namespace audio {
-    
-    class Music {
-    public:
-        Music();
-        ~Music();
 
-        bool load(const std::string &path);
-        void play(bool loop = true);
-        void stop();
+class Music {
+public:
+    Music();
+    ~Music();
 
-    private:
-        Mix_Music *_music = nullptr;
-    };
+    bool load(const std::string& path);
+    void play(bool loop = true);
+    void stop();
+    void pause();
+    void resume();
+    bool isMuted() const { return _muted; }
+    void setMuted(bool muted) { _muted = muted; }
 
-}} // namespace engine::audio
+
+private:
+    ma_engine _engine;
+    ma_sound _sound;
+    bool _isLoaded = false;
+    bool _muted = false;
+};
+
+} // namespace audio
+} // namespace engine
