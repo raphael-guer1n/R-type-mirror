@@ -1,5 +1,50 @@
 cmake_minimum_required(VERSION 3.16)
 
+# Automatically download and bootstrap vcpkg if not already installed
+set(VCPKG_ROOT "${CMAKE_SOURCE_DIR}/vcpkg")
+
+if(NOT EXISTS "${VCPKG_ROOT}/vcpkg" AND NOT EXISTS "${VCPKG_ROOT}/vcpkg.exe")
+    message(STATUS "vcpkg not found. Downloading vcpkg...")
+    
+    if(NOT EXISTS "${VCPKG_ROOT}/.git")
+        find_package(Git REQUIRED)
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} clone https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT}
+            RESULT_VARIABLE GIT_RESULT
+        )
+        if(NOT GIT_RESULT EQUAL "0")
+            message(FATAL_ERROR "Failed to clone vcpkg repository")
+        endif()
+    endif()
+    
+    message(STATUS "Bootstrapping vcpkg...")
+    if(WIN32)
+        execute_process(
+            COMMAND ${VCPKG_ROOT}/bootstrap-vcpkg.bat
+            WORKING_DIRECTORY ${VCPKG_ROOT}
+            RESULT_VARIABLE BOOTSTRAP_RESULT
+        )
+    else()
+        execute_process(
+            COMMAND ${VCPKG_ROOT}/bootstrap-vcpkg.sh
+            WORKING_DIRECTORY ${VCPKG_ROOT}
+            RESULT_VARIABLE BOOTSTRAP_RESULT
+        )
+    endif()
+    
+    if(NOT BOOTSTRAP_RESULT EQUAL "0")
+        message(FATAL_ERROR "Failed to bootstrap vcpkg")
+    endif()
+    
+    message(STATUS "vcpkg successfully installed and bootstrapped")
+endif()
+
+if(WIN32)
+    set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+else()
+    set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+endif()
+
 project(R-type LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -11,6 +56,7 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+# Engine module configuration
 set(ENGINE_MODULES "renderer;audio;network;ecs;events" CACHE STRING "Engine modules to build (renderer audio network ecs events)")
 
 string(FIND "${ENGINE_MODULES}" "renderer" HAS_RENDERER)
