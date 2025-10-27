@@ -11,12 +11,14 @@
 #include "Background.hpp"
 #include "Hud.hpp"
 #include "common/Systems_client_sdl.hpp"
+#include "engine/audio/AudioManager.hpp"
 #include "common/Layers.hpp"
 #include "engine/renderer/Error.hpp"
 
 R_Type::Rtype::Rtype()
     : _app("R-Type", 1920, 1080)
 {
+    engine::audio::AudioManager::instance().loadConfig("./configs/audio_config.json");
     try
     {
         _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
@@ -78,6 +80,13 @@ void R_Type::Rtype::update(float deltaTime,
         else if (ev.type == R_Events::Type::KeyUp)
             _pressedKeys.erase(ev.key.code);
     }
+    static bool wasCPressed = false;
+    bool cPressed = _pressedKeys.count(engine::R_Events::Key::C) > 0;
+    if (cPressed && !wasCPressed) {
+        engine::audio::AudioManager::instance().playSound("projectile");
+    }
+    wasCPressed = cPressed;
+    
     // Toggle debug hitboxes on CTRL+B (either Ctrl key is fine)
     bool ctrlDown = (_pressedKeys.count(engine::R_Events::Key::LCtrl) ||
                      _pressedKeys.count(engine::R_Events::Key::RCtrl));
@@ -153,10 +162,10 @@ void R_Type::Rtype::receiveSnapshot()
             std::memcpy(&go, spayload.data(), sizeof(go));
             _gameOver = true;
             uint32_t winnerEntityId = go.winnerEntityId;
-            if (_player == winnerEntityId)
-                _won = true;
-            else
-                _won = false;
+            _won = (_player == winnerEntityId);
+            auto &audio = engine::audio::AudioManager::instance();
+            audio.stopMusic();
+
             continue;
         }
         if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))
@@ -452,6 +461,8 @@ void R_Type::Rtype::handle_collision(engine::registry &reg, size_t i, size_t j)
     if ((kindI == component::entity_kind::playerProjectile && kindJ == component::entity_kind::enemy) ||
         (kindJ == component::entity_kind::playerProjectile && kindI == component::entity_kind::enemy))
     {
+        engine::audio::AudioManager::instance().playSound("explosion");
+        std::cout << "[AUDIO] Explosion sound triggered\n";
         size_t enemyIdx = (kindI == component::entity_kind::enemy) ? i : j;
         float x = positions[enemyIdx]->x;
         float y = positions[enemyIdx]->y;

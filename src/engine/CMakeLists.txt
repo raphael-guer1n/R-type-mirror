@@ -28,9 +28,10 @@ if(ENGINE_RENDERER)
 endif()
 
 if(ENGINE_AUDIO)
-    # Audio might need additional packages in the future
+    # Audio uses miniaudio (header-only, works on Fedora 42)
     list(APPEND ENGINE_SOURCES
         audio/Music.cpp
+        audio/AudioManager.cpp
     )
     
     message(STATUS "Engine: Audio subsystem enabled")
@@ -72,6 +73,7 @@ if(ENGINE_RENDERER)
         PUBLIC
             ${SDL2_INCLUDE_DIRS}
             ${SDL2_IMAGE_INCLUDE_DIRS}
+            ${SDL2_TTF_INCLUDE_DIRS}
     )
     
     target_link_directories(engine
@@ -91,6 +93,16 @@ if(ENGINE_RENDERER)
     target_compile_definitions(engine PUBLIC ENGINE_HAS_RENDERER)
 endif()
 
+if(ENGINE_AUDIO)
+    # Include miniaudio from the thirdparty directory
+    target_include_directories(engine
+        PUBLIC
+            ${CMAKE_CURRENT_SOURCE_DIR}/audio/thirdparty
+    )
+    
+    target_compile_definitions(engine PUBLIC ENGINE_HAS_AUDIO)
+endif()
+
 if(ENGINE_NETWORK)
     target_link_libraries(engine
         PUBLIC
@@ -98,10 +110,6 @@ if(ENGINE_NETWORK)
     )
     
     target_compile_definitions(engine PUBLIC ENGINE_HAS_NETWORK)
-endif()
-
-if(ENGINE_AUDIO)
-    target_compile_definitions(engine PUBLIC ENGINE_HAS_AUDIO)
 endif()
 
 if(ENGINE_ECS)

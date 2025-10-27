@@ -3,6 +3,8 @@
 #include "engine/renderer/Error.hpp"
 #include "Player.hpp"
 #include "common/Layers.hpp"
+#include <iostream>
+#include "engine/audio/AudioManager.hpp"
 
 R_Type::Player::Player(R_Type::Rtype &rtype)
 : playerRect(0, 0, 33, 17),
@@ -199,7 +201,7 @@ void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>&
 
             bool charging = pressedKeys.count(Key::Space) > 0;
             ensureChargeOverlay(registry, localId, charging);
-            if (charging) {
+            if (charging && !_wasShooting) {
                 updateChargeOverlayPosition(registry, localId);
                 auto &anims = registry.get_components<component::animation>();
                 if (chargeOverlayLocalId.has_value()) {
@@ -208,7 +210,9 @@ void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>&
                         setAnimation(*anims[idx], "charge", false);
                     }
                 }
+                engine::audio::AudioManager::instance().playSound("shoot");
             }
+            _wasShooting = charging;
         }
     }
 }

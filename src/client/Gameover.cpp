@@ -1,5 +1,8 @@
 #include <memory>
 #include "Gameover.hpp"
+#include <iostream>
+#include "engine/audio/AudioManager.hpp"
+
 
 static std::unordered_map<char, std::string> fontMap = {
     {'Y', "CK_StarGlowing_Y.png"}, {'W', "CK_StarGlowing_W.png"},
@@ -58,6 +61,19 @@ R_Type::Gameover::Gameover(engine::R_Graphic::App &app)
 void R_Type::Gameover::draw(bool win)
 {
     _background->draw(_app.getWindow(), nullptr);
+
+    auto &audio = engine::audio::AudioManager::instance();
+
+    static bool musicPlayed = false;
+
+    if (!musicPlayed) {
+        if (win) {
+            audio.playMusic("win", false);
+        } else {
+            audio.playMusic("loose", false);
+        }
+        musicPlayed = true;
+    }
     if (win) {
         for (auto &tex : _titleWin)
             tex->draw(_app.getWindow(), nullptr);
