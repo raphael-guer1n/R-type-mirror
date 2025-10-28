@@ -111,7 +111,7 @@ namespace R_Type
         int _hitboxOverlayThickness = 3;
         
         std::unique_ptr<Engine::Profiling::ProfilerOverlay> _profilerOverlay;
-        bool _showProfiler = true;
+        bool _showProfiler = false;
     };
     
     /**
