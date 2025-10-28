@@ -4,6 +4,7 @@ if(DEFINED ENGINE_MODULES)
     string(FIND "${ENGINE_MODULES}" "network" HAS_NETWORK)
     string(FIND "${ENGINE_MODULES}" "ecs" HAS_ECS)
     string(FIND "${ENGINE_MODULES}" "events" HAS_EVENTS)
+    string(FIND "${ENGINE_MODULES}" "profiling" HAS_PROFILING)
 
     if(HAS_RENDERER GREATER_EQUAL 0)
         set(ENGINE_RENDERER ON)
@@ -34,6 +35,12 @@ if(DEFINED ENGINE_MODULES)
     else()
         set(ENGINE_EVENTS OFF)
     endif()
+
+    if(HAS_PROFILING GREATER_EQUAL 0)
+        set(ENGINE_PROFILING ON)
+    else()
+        set(ENGINE_PROFILING OFF)
+    endif()
 endif()
 
 option(ENGINE_RENDERER "Enable renderer subsystem (SDL-based graphics)" ON)
@@ -41,6 +48,7 @@ option(ENGINE_AUDIO "Enable audio subsystem" ON)
 option(ENGINE_NETWORK "Enable network subsystem (ASIO-based)" ON)
 option(ENGINE_ECS "Enable ECS subsystem" ON)
 option(ENGINE_EVENTS "Enable events subsystem" ON)
+option(ENGINE_PROFILING "Enable profiling subsystem (metrics and benchmarking)" ON)
 
 set(ENGINE_CORE_SOURCES)
 
@@ -87,6 +95,20 @@ endif()
 
 if(ENGINE_EVENTS)
     message(STATUS "Engine: Events subsystem enabled (header-only)")
+endif()
+
+if(ENGINE_PROFILING)
+    list(APPEND ENGINE_SOURCES
+        profiling/Profiler.cpp
+    )
+    
+    if(ENGINE_RENDERER)
+        list(APPEND ENGINE_SOURCES
+            profiling/ProfilerOverlay.cpp
+        )
+    endif()
+    
+    message(STATUS "Engine: Profiling subsystem enabled")
 endif()
 
 add_library(engine ${ENGINE_CORE_SOURCES} ${ENGINE_SOURCES})
@@ -145,4 +167,8 @@ endif()
 
 if(ENGINE_EVENTS)
     target_compile_definitions(engine PUBLIC ENGINE_HAS_EVENTS)
+endif()
+
+if(ENGINE_PROFILING)
+    target_compile_definitions(engine PUBLIC ENGINE_HAS_PROFILING)
 endif()

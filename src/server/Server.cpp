@@ -33,6 +33,7 @@
 #include "engine/ecs/EntityFactory.hpp"
 #include "engine/events/Events.hpp"
 #include "server/ServerUtils.hpp"
+#include "engine/profiling/Profiler.hpp"
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -97,26 +98,48 @@ void server::run()
   wait_for_players();
   std::cout << "All players connected!\n";
 
+  auto& profiler = Engine::Profiling::Profiler::getInstance();
+  uint32_t frameCounter = 0;
+
   using clock = std::chrono::steady_clock;
   const auto tick_duration = std::chrono::milliseconds(16);
   auto last_tick = clock::now();
 
   while (_running)
   {
-    process_network_inputs();
+    profiler.beginFrame();
 
-        auto now = clock::now();
-        if (now - last_tick >= tick_duration)
-        {
-            auto &positions = _registry.get_components<component::position>();
-            auto &velocities = _registry.get_components<component::velocity>();
-            auto &controls = _registry.get_components<component::controllable>();
-            game_handler();
-            position_system(_registry, positions, velocities, 1.0f / 60.0f);
-            _registry.run_systems();
-            broadcast_snapshot();
-            check_game_over();
-            _tick++;
+    {
+      PROFILE_SCOPE("Network Input");
+      process_network_inputs();
+    }
+
+    auto now = clock::now();
+    if (now - last_tick >= tick_duration)
+    {
+      PROFILE_SCOPE("Game Tick");
+      auto &positions = _registry.get_components<component::position>();
+      auto &velocities = _registry.get_components<component::velocity>();
+      auto &controls = _registry.get_components<component::controllable>();
+      
+      {
+        PROFILE_SCOPE("Game Handler");
+        game_handler();
+      }
+      
+      {
+        PROFILE_SCOPE("Physics Systems");
+        position_system(_registry, positions, velocities, 1.0f / 60.0f);
+        _registry.run_systems();
+      }
+      
+      {
+        PROFILE_SCOPE("Broadcast Snapshot");
+        broadcast_snapshot();
+      }
+      
+      check_game_over();
+      _tick++;
 
       last_tick += tick_duration;
 
@@ -124,6 +147,24 @@ void server::run()
       {
         last_tick = now;
       }
+    }
+
+    profiler.endFrame();
+    
+    // Update metrics and log stats every 5 seconds (300 frames at 60fps)
+    if (++frameCounter % 300 == 0) {
+      profiler.updateMemoryMetrics();
+      profiler.updateCPUMetrics();
+      profiler.setEntityCount(_live_entities.size());
+      
+      const auto& frameMetrics = profiler.getFrameMetrics();
+      const auto& memMetrics = profiler.getMemoryMetrics();
+      
+      // Use displayFps for stable, readable output
+      std::cout << "[Profiling] FPS: " << std::fixed << std::setprecision(1) << frameMetrics.displayFps
+                << " | Frame: " << frameMetrics.displayFrameTime << "ms"
+                << " | Entities: " << _live_entities.size()
+                << " | Memory: " << (memMetrics.physicalMemoryUsed / 1024.0 / 1024.0) << "MB\n";
     }
   }
 }
