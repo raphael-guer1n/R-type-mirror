@@ -14,11 +14,30 @@
 #include "engine/audio/AudioManager.hpp"
 #include "common/Layers.hpp"
 #include "engine/renderer/Error.hpp"
+#include "engine/profiling/Profiler.hpp"
+#include "engine/profiling/ProfilerOverlay.hpp"
 
 R_Type::Rtype::Rtype()
     : _app("R-Type", 1920, 1080)
 {
     engine::audio::AudioManager::instance().loadConfig("./configs/audio_config.json");
+    
+    // Initialize profiler overlay
+    _profilerOverlay = std::make_unique<Engine::Profiling::ProfilerOverlay>();
+    if (_profilerOverlay->initialize(_app.getWindow().getRenderer(), "Assets/fonts/arial.ttf")) {
+        Engine::Profiling::ProfilerDisplayConfig config;
+        config.showFPS = true;
+        config.showFrameTime = true;
+        config.showMemory = true;
+        config.showCPU = false;  // CPU metrics can be heavy, update sparingly
+        config.showNetwork = true;
+        config.showWorld = true;
+        config.posX = 10;
+        config.posY = 10;
+        _profilerOverlay->setConfig(config);
+        std::cout << "[Profiling] Overlay initialized\n";
+    }
+    
     try
     {
         _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
@@ -46,6 +65,8 @@ R_Type::Rtype::Rtype()
     }
 }
 
+R_Type::Rtype::~Rtype() = default;
+
 void R_Type::Rtype::update(float deltaTime,
                            const std::vector<R_Events::Event> &events)
 {
@@ -71,11 +92,22 @@ void R_Type::Rtype::update(float deltaTime,
         waiting_connection();
         return;
     }
+    
+    auto& profiler = Engine::Profiling::Profiler::getInstance();
+    
     for (auto &ev : events)
     {
         if (ev.type == R_Events::Type::KeyDown)
         {
             _pressedKeys.insert(ev.key.code);
+            // Toggle profiler overlay with F3
+            if (ev.key.code == engine::R_Events::Key::F3) {
+                _showProfiler = !_showProfiler;
+                if (_profilerOverlay) {
+                    _profilerOverlay->setVisible(_showProfiler);
+                }
+                std::cout << "[Profiling] Overlay " << (_showProfiler ? "shown" : "hidden") << "\n";
+            }
         }
         else if (ev.type == R_Events::Type::KeyUp)
             _pressedKeys.erase(ev.key.code);
@@ -98,22 +130,26 @@ void R_Type::Rtype::update(float deltaTime,
         _showHitboxes = !_showHitboxes;
     }
     prevCombo = combo;
-    InputPacket inp{};
-    inp.clientId = _player;
-    inp.tick = _tick++;
-    inp.keyCount = static_cast<uint16_t>(_pressedKeys.size());
-    const uint16_t keyCount = inp.keyCount;
-    std::vector<int32_t> keys;
-    keys.reserve(keyCount);
-    for (auto k : _pressedKeys)
-        keys.push_back(static_cast<int32_t>(k));
-    const uint16_t payloadSize = sizeof(InputPacket) + keyCount * sizeof(int32_t);
-    PacketHeader ihdr{INPUT_PKT, payloadSize, _tick};
-    std::vector<uint8_t> ibuf(payloadSize);
-    std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
-    if (keyCount > 0)
-        std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keyCount * sizeof(int32_t));
-    _client->send(ihdr, ibuf, *_serverEndpoint);
+    
+    {
+        PROFILE_SCOPE("Network Send");
+        InputPacket inp{};
+        inp.clientId = _player;
+        inp.tick = _tick++;
+        inp.keyCount = static_cast<uint16_t>(_pressedKeys.size());
+        const uint16_t keyCount = inp.keyCount;
+        std::vector<int32_t> keys;
+        keys.reserve(keyCount);
+        for (auto k : _pressedKeys)
+            keys.push_back(static_cast<int32_t>(k));
+        const uint16_t payloadSize = sizeof(InputPacket) + keyCount * sizeof(int32_t);
+        PacketHeader ihdr{INPUT_PKT, payloadSize, _tick};
+        std::vector<uint8_t> ibuf(payloadSize);
+        std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
+        if (keyCount > 0)
+            std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keyCount * sizeof(int32_t));
+        _client->send(ihdr, ibuf, *_serverEndpoint);
+    }
 
     static uint32_t spaceHoldTicks = 0;
     bool spaceHeld = _pressedKeys.count(engine::R_Events::Key::Space) > 0;
@@ -130,7 +166,12 @@ void R_Type::Rtype::update(float deltaTime,
     float chargeLevel = std::min(1.0f, spaceHoldTicks / 60.0f);
     if (_hud)
         _hud->setChargeLevel(*this, chargeLevel);
-    receiveSnapshot();
+    
+    {
+        PROFILE_SCOPE("Network Receive");
+        receiveSnapshot();
+    }
+    
     _playerData->playerUpdateAnimation(_entityMap, _player, _registry, _pressedKeys);
     auto &positions = _registry.get_components<component::position>();
     auto &animations = _registry.get_components<component::animation>();
@@ -140,14 +181,25 @@ void R_Type::Rtype::update(float deltaTime,
     auto &drawables = _registry.get_components<component::drawable>();
     auto &collisions = _registry.get_components<component::collision_state>();
     auto &hitboxes = _registry.get_components<component::hitbox>();
-    position_system(_registry, positions, velocities, deltaTime);
-    control_system(_registry, velocities, controls);
-    scroll_reset_system(_registry, positions, kinds, _app);
-    animation_system(_registry, animations, drawables, deltaTime);
-    hitbox_system(_registry, positions, hitboxes, [this](size_t i, size_t j)
-                  { this->handle_collision(_registry, i, j); });
-    lifetime_system(_registry, deltaTime);
-    _registry.run_systems();
+    
+    {
+        PROFILE_SCOPE("Game Systems");
+        position_system(_registry, positions, velocities, deltaTime);
+        control_system(_registry, velocities, controls);
+        scroll_reset_system(_registry, positions, kinds, _app);
+        animation_system(_registry, animations, drawables, deltaTime);
+        hitbox_system(_registry, positions, hitboxes, [this](size_t i, size_t j)
+                      { this->handle_collision(_registry, i, j); });
+        lifetime_system(_registry, deltaTime);
+        _registry.run_systems();
+    }
+    
+    // Update world metrics
+    auto playerPos = (_player < positions.size() && positions[_player]) 
+                     ? positions[_player].value() 
+                     : component::position{0, 0};
+    profiler.setWorldPosition(playerPos.x, playerPos.y);
+    profiler.setEntityCount(_activeEntities.size());
 }
 
 void R_Type::Rtype::receiveSnapshot()
@@ -409,6 +461,11 @@ void R_Type::Rtype::draw()
     }
     if (_hud)
         _hud->drawOverlay(*this);
+        
+    // Render profiler overlay last (on top of everything)
+    if (_profilerOverlay && _showProfiler) {
+        _profilerOverlay->render();
+    }
 }
 
 R_Graphic::App &R_Type::Rtype::getApp()
