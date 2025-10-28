@@ -22,14 +22,13 @@ R_Type::Rtype::Rtype()
 {
     engine::audio::AudioManager::instance().loadConfig("./configs/audio_config.json");
     
-    // Initialize profiler overlay
     _profilerOverlay = std::make_unique<Engine::Profiling::ProfilerOverlay>();
     if (_profilerOverlay->initialize(_app.getWindow().getRenderer(), "Assets/fonts/arial.ttf")) {
         Engine::Profiling::ProfilerDisplayConfig config;
         config.showFPS = true;
         config.showFrameTime = true;
         config.showMemory = true;
-        config.showCPU = false;  // CPU metrics can be heavy, update sparingly
+        config.showCPU = false;
         config.showNetwork = true;
         config.showWorld = true;
         config.posX = 10;
@@ -253,7 +252,6 @@ void R_Type::Rtype::receiveSnapshot()
                     }
                 };
 
-                // Ensure caches are large enough for any new local id
                 auto ensure_cache = [&](size_t idx)
                 {
                     if (idx >= _hbW.size())
@@ -462,7 +460,6 @@ void R_Type::Rtype::draw()
     if (_hud)
         _hud->drawOverlay(*this);
         
-    // Render profiler overlay last (on top of everything)
     if (_profilerOverlay && _showProfiler) {
         _profilerOverlay->render();
     }

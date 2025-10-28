@@ -156,4 +156,4 @@ void try_add_entity(uint32_t entityId, std::vector<EntityState> &out,
   inserted.insert(entityId);
 }
 
-} // namespace serverutils
+}
