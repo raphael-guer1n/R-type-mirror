@@ -55,7 +55,7 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-set(ENGINE_MODULES "renderer;audio;network;ecs;events" CACHE STRING "")
+set(ENGINE_MODULES "renderer;audio;network;ecs;events;profiling" CACHE STRING "")
 
 option(BUILD_CLIENT "Build the R-Type client" ON)
 option(BUILD_SERVER "Build the R-Type server" ON)
