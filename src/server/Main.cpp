@@ -18,11 +18,6 @@
 #include <string>
 #include <cstring>
 #include <stdexcept>
-#include <unistd.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
 
 int main(int argc, char* argv[])
 {
@@ -40,23 +35,8 @@ int main(int argc, char* argv[])
     {
         engine::net::IoContext io;
         server s(io, port);
-        char hostname[256];
-        std::string ip = "127.0.0.1";
-        if (gethostname(hostname, sizeof(hostname)) == 0)
-        {
-            addrinfo hints{};
-            addrinfo* info = nullptr;
-            hints.ai_family = AF_INET;
 
-            if (getaddrinfo(hostname, nullptr, &hints, &info) == 0 && info)
-            {
-                sockaddr_in* addr = reinterpret_cast<sockaddr_in*>(info->ai_addr);
-                ip = inet_ntoa(addr->sin_addr);
-                freeaddrinfo(info);
-            }
-        }
-
-        std::cout << "IP Address: " << ip << "\n";
+        std::cout << "Server Address: localhost (127.0.0.1)\n";
         std::cout << "Port: " << port << "\n";
         std::cout << "[Profiling] Server profiling enabled. Stats will be logged periodically.\n";
         

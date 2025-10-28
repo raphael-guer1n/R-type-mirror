@@ -3,8 +3,6 @@
 #include <iomanip>
 #include <algorithm>
 #include <numeric>
-#include <unistd.h>
-#include <sys/resource.h>
 #include <fstream>
 #include <thread>
 
@@ -110,7 +108,8 @@ void Profiler::updateMemoryMetrics() {
     std::ifstream statm("/proc/self/statm");
     long vmsize, rss;
     if (statm >> vmsize >> rss) {
-        long pageSize = sysconf(_SC_PAGESIZE);
+        // Assume 4KB page size (standard on most Linux systems)
+        constexpr long pageSize = 4096;
         _memoryMetrics.virtualMemoryUsed = vmsize * pageSize;
         _memoryMetrics.physicalMemoryUsed = rss * pageSize;
         _memoryMetrics.peakMemoryUsed = std::max(_memoryMetrics.peakMemoryUsed, _memoryMetrics.physicalMemoryUsed);
