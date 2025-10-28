@@ -3,14 +3,14 @@
  * @brief Implementation of the Music class for managing background music playback.
  *
  * This file provides the implementation of the `engine::audio::Music` class,
- * which serves as a lightweight wrapper around the **SDL_mixer** library.
+ * which serves as a lightweight wrapper around the **miniaudio** library.
  * It allows the R-Type engine to load, play, and stop background music
  * (such as menu or in-game themes) in a simple and modular way.
  *
  * @details
- * - Initializes the SDL_mixer audio subsystem upon creation.
- * - Loads music files using `Mix_LoadMUS`.
- * - Supports looping or one-time playback via `Mix_PlayMusic`.
+ * - Initializes the miniaudio engine upon creation.
+ * - Loads music files using `ma_sound_init_from_file`.
+ * - Supports looping or one-time playback via `ma_sound_start`.
  * - Stops and cleans up resources automatically when destroyed.
  * - Throws a `std::runtime_error` if audio initialization fails.
  *
@@ -27,9 +27,7 @@
  * @endcode
  *
  * @see engine::audio::Music
- * @see SDL_mixer
- * @see Mix_OpenAudio
- * @see Mix_PlayMusic
+ * @see miniaudio
  */
 #define MINIAUDIO_IMPLEMENTATION
 #include "Music.hpp"

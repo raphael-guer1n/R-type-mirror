@@ -1,4 +1,3 @@
-
 /**
  * @file Server.cpp
  * @brief Implementation of the main server logic for the R-Type game.
@@ -30,8 +29,9 @@
  *
  */
 #include "server/Server.hpp"
-#include "common/Systems.hpp"
+#include "engine/ecs/Systems.hpp"
 #include "engine/ecs/EntityFactory.hpp"
+#include "engine/events/Events.hpp"
 #include "server/ServerUtils.hpp"
 #include <chrono>
 #include <fstream>
@@ -41,7 +41,7 @@
 #include <thread>
 
 #include "common/Components_client.hpp"
-#include "common/Systems.hpp"
+#include "engine/ecs/Systems.hpp"
 #include "server/Components_ai.hpp"
 #include "server/EnemyConfig.hpp"
 #include "server/Server.hpp"

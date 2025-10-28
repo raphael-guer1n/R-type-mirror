@@ -4,7 +4,7 @@
 #include "engine/renderer/App.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "engine/ecs/Sparse_array.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "common/Components_client.hpp"
 #include "common/Components_client_sdl.hpp"
 
