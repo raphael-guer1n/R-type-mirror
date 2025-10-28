@@ -16,6 +16,7 @@ engine::R_Graphic::Renderer::Renderer(Window &window)
 }
 
 void engine::R_Graphic::Renderer::clear() {
+    SDL_SetRenderDrawColor(_window.getRenderer(), 255, 255, 255, 255);
     SDL_RenderClear(_window.getRenderer());
 }
 
