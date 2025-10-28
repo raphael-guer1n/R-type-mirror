@@ -151,7 +151,6 @@ void server::run()
 
     profiler.endFrame();
     
-    // Update metrics and log stats every 5 seconds (300 frames at 60fps)
     if (++frameCounter % 300 == 0) {
       profiler.updateMemoryMetrics();
       profiler.updateCPUMetrics();
@@ -160,7 +159,6 @@ void server::run()
       const auto& frameMetrics = profiler.getFrameMetrics();
       const auto& memMetrics = profiler.getMemoryMetrics();
       
-      // Use displayFps for stable, readable output
       std::cout << "[Profiling] FPS: " << std::fixed << std::setprecision(1) << frameMetrics.displayFps
                 << " | Frame: " << frameMetrics.displayFrameTime << "ms"
                 << " | Entities: " << _live_entities.size()
@@ -528,7 +526,7 @@ void server::game_handler()
       _registry.add_component(boss, component::health{(uint8_t)cfg.hp});
 
       component::ai_controller ai;
-      ai.behavior = cfg.behavior; // "boss"
+      ai.behavior = cfg.behavior;
       ai.speed = cfg.speed;
       _registry.add_component<component::ai_controller>(boss, std::move(ai));
 
@@ -908,7 +906,7 @@ engine::entity_t server::spawn_missile_explosion(float x, float y, int damage, f
     component::hitbox{size, size},
     component::collision_state{false},
     component::entity_kind::missile_explosion,
-    component::projectile_tag{0u, 30u, 0.f, 0.f, 0.f, damage}, // ~0.5s lifetime to match animation
+    component::projectile_tag{0u, 30u, 0.f, 0.f, 0.f, damage},
     component::area_effect{radius, damage, false},
     component::health{1});
   return e;

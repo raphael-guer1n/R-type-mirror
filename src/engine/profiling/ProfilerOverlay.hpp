@@ -4,9 +4,7 @@
 #include <string>
 #include <vector>
 
-// Forward declarations
 struct SDL_Renderer;
-// Don't forward declare TTF_Font - we'll use a void pointer and cast in the implementation
 typedef void* TTF_FontPtr;
 
 namespace Engine {
