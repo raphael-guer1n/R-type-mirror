@@ -37,14 +37,27 @@ if(ENGINE_AUDIO)
 endif()
 
 if(ENGINE_NETWORK)
-    find_package(asio CONFIG REQUIRED)
-    
-    list(APPEND ENGINE_SOURCES
-        network/IoContext.cpp
-        network/UdpSocket.cpp
-    )
-    
-    message(STATUS "Engine: Network subsystem enabled")
+    # Try to find header-only asio first, then fall back to config-mode package
+    find_path(ASIO_INCLUDE_DIR asio.hpp)
+    if(ASIO_INCLUDE_DIR)
+        set(ASIO_HEADER_ONLY_FOUND TRUE)
+    else()
+        find_package(asio CONFIG QUIET)
+    endif()
+    if(asio_FOUND OR ASIO_HEADER_ONLY_FOUND)
+        list(APPEND ENGINE_SOURCES
+            network/IoContext.cpp
+            network/UdpSocket.cpp
+        )
+        if(ASIO_HEADER_ONLY_FOUND)
+            set(ENGINE_ASIO_INCLUDE ${ASIO_INCLUDE_DIR})
+            message(STATUS "Engine: Network subsystem enabled (header-only asio found at ${ASIO_INCLUDE_DIR})")
+        else()
+            message(STATUS "Engine: Network subsystem enabled (asio config found)")
+        endif()
+    else()
+        message(FATAL_ERROR "asio not found: install Asio or set asio_DIR / ASIO_INCLUDE_DIR")
+    endif()
 endif()
 
 if(ENGINE_ECS)
@@ -64,6 +77,13 @@ add_library(engine ${ENGINE_CORE_SOURCES} ${ENGINE_SOURCES})
 target_include_directories(engine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+# Add top-level project include directories so engine sources inside doodle can find shared headers
+target_include_directories(engine
+    PUBLIC
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 # Conditional include directories and link libraries
@@ -92,11 +112,15 @@ if(ENGINE_RENDERER)
 endif()
 
 if(ENGINE_NETWORK)
-    target_link_libraries(engine
-        PUBLIC
-            asio::asio
-    )
-    
+    if(asio_FOUND)
+        target_link_libraries(engine
+            PUBLIC
+                asio::asio
+        )
+    elseif(ASIO_HEADER_ONLY_FOUND)
+        # header-only Asio: no imported target to link, just include directory
+    endif()
+
     target_compile_definitions(engine PUBLIC ENGINE_HAS_NETWORK)
 endif()
 
