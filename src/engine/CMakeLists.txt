@@ -1,17 +1,59 @@
-# Engine subsystem options
+if(DEFINED ENGINE_MODULES)
+    string(FIND "${ENGINE_MODULES}" "renderer" HAS_RENDERER)
+    string(FIND "${ENGINE_MODULES}" "audio" HAS_AUDIO)
+    string(FIND "${ENGINE_MODULES}" "network" HAS_NETWORK)
+    string(FIND "${ENGINE_MODULES}" "ecs" HAS_ECS)
+    string(FIND "${ENGINE_MODULES}" "events" HAS_EVENTS)
+    string(FIND "${ENGINE_MODULES}" "profiling" HAS_PROFILING)
+
+    if(HAS_RENDERER GREATER_EQUAL 0)
+        set(ENGINE_RENDERER ON)
+    else()
+        set(ENGINE_RENDERER OFF)
+    endif()
+
+    if(HAS_AUDIO GREATER_EQUAL 0)
+        set(ENGINE_AUDIO ON)
+    else()
+        set(ENGINE_AUDIO OFF)
+    endif()
+
+    if(HAS_NETWORK GREATER_EQUAL 0)
+        set(ENGINE_NETWORK ON)
+    else()
+        set(ENGINE_NETWORK OFF)
+    endif()
+
+    if(HAS_ECS GREATER_EQUAL 0)
+        set(ENGINE_ECS ON)
+    else()
+        set(ENGINE_ECS OFF)
+    endif()
+
+    if(HAS_EVENTS GREATER_EQUAL 0)
+        set(ENGINE_EVENTS ON)
+    else()
+        set(ENGINE_EVENTS OFF)
+    endif()
+
+    if(HAS_PROFILING GREATER_EQUAL 0)
+        set(ENGINE_PROFILING ON)
+    else()
+        set(ENGINE_PROFILING OFF)
+    endif()
+endif()
+
 option(ENGINE_RENDERER "Enable renderer subsystem (SDL-based graphics)" ON)
 option(ENGINE_AUDIO "Enable audio subsystem" ON)
 option(ENGINE_NETWORK "Enable network subsystem (ASIO-based)" ON)
 option(ENGINE_ECS "Enable ECS subsystem" ON)
 option(ENGINE_EVENTS "Enable events subsystem" ON)
+option(ENGINE_PROFILING "Enable profiling subsystem (metrics and benchmarking)" ON)
 
-# Core engine sources (always included)
 set(ENGINE_CORE_SOURCES)
 
-# Conditional subsystem sources
 set(ENGINE_SOURCES)
 
-# Find packages based on enabled subsystems
 if(ENGINE_RENDERER)
     find_package(SDL2 CONFIG REQUIRED)
     find_package(SDL2_image CONFIG REQUIRED)
@@ -28,9 +70,9 @@ if(ENGINE_RENDERER)
 endif()
 
 if(ENGINE_AUDIO)
-    # Audio might need additional packages in the future
     list(APPEND ENGINE_SOURCES
         audio/Music.cpp
+        audio/AudioManager.cpp
     )
     
     message(STATUS "Engine: Audio subsystem enabled")
@@ -48,30 +90,40 @@ if(ENGINE_NETWORK)
 endif()
 
 if(ENGINE_ECS)
-    # ECS is header-only, but we can still track it
     message(STATUS "Engine: ECS subsystem enabled (header-only)")
 endif()
 
 if(ENGINE_EVENTS)
-    # Events is header-only, but we can still track it
     message(STATUS "Engine: Events subsystem enabled (header-only)")
 endif()
 
-# Create the engine library
+if(ENGINE_PROFILING)
+    list(APPEND ENGINE_SOURCES
+        profiling/Profiler.cpp
+    )
+    
+    if(ENGINE_RENDERER)
+        list(APPEND ENGINE_SOURCES
+            profiling/ProfilerOverlay.cpp
+        )
+    endif()
+    
+    message(STATUS "Engine: Profiling subsystem enabled")
+endif()
+
 add_library(engine ${ENGINE_CORE_SOURCES} ${ENGINE_SOURCES})
 
-# Base include directories
 target_include_directories(engine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
-# Conditional include directories and link libraries
 if(ENGINE_RENDERER)
     target_include_directories(engine
         PUBLIC
             ${SDL2_INCLUDE_DIRS}
             ${SDL2_IMAGE_INCLUDE_DIRS}
+            ${SDL2_TTF_INCLUDE_DIRS}
     )
     
     target_link_directories(engine
@@ -91,6 +143,15 @@ if(ENGINE_RENDERER)
     target_compile_definitions(engine PUBLIC ENGINE_HAS_RENDERER)
 endif()
 
+if(ENGINE_AUDIO)
+    target_include_directories(engine
+        PUBLIC
+            ${CMAKE_CURRENT_SOURCE_DIR}/audio/thirdparty
+    )
+    
+    target_compile_definitions(engine PUBLIC ENGINE_HAS_AUDIO)
+endif()
+
 if(ENGINE_NETWORK)
     target_link_libraries(engine
         PUBLIC
@@ -98,10 +159,6 @@ if(ENGINE_NETWORK)
     )
     
     target_compile_definitions(engine PUBLIC ENGINE_HAS_NETWORK)
-endif()
-
-if(ENGINE_AUDIO)
-    target_compile_definitions(engine PUBLIC ENGINE_HAS_AUDIO)
 endif()
 
 if(ENGINE_ECS)
@@ -112,10 +169,6 @@ if(ENGINE_EVENTS)
     target_compile_definitions(engine PUBLIC ENGINE_HAS_EVENTS)
 endif()
 
-# Print configuration summary
-message(STATUS "Engine configuration:")
-message(STATUS "  Renderer: ${ENGINE_RENDERER}")
-message(STATUS "  Audio: ${ENGINE_AUDIO}")
-message(STATUS "  Network: ${ENGINE_NETWORK}")
-message(STATUS "  ECS: ${ENGINE_ECS}")
-message(STATUS "  Events: ${ENGINE_EVENTS}")
+if(ENGINE_PROFILING)
+    target_compile_definitions(engine PUBLIC ENGINE_HAS_PROFILING)
+endif()

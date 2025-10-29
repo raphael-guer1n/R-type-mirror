@@ -1,5 +1,6 @@
 #include "Enemy.hpp"
 #include "Rtype.hpp"
+#include "engine/audio/AudioManager.hpp"
 
 R_Type::Enemy::Enemy(R_Type::Rtype &rtype)
 : enemyRect(5, 6, 23, 24), projectileRect(136, 0, 7, 12)

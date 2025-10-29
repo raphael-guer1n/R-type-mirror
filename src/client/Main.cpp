@@ -1,5 +1,6 @@
 #include "Rtype.hpp"
 #include "engine/renderer/Error.hpp"
+#include "engine/profiling/Profiler.hpp"
 #include <iostream>
 #include <string>
 
@@ -22,13 +23,29 @@ int main(int argc, char* argv[])
     {
         R_Type::Rtype game;
 
+        auto& profiler = Engine::Profiling::Profiler::getInstance();
+        std::cout << "[Profiling] System enabled. Press F3 to toggle overlay.\n";
+
         game.setServerEndpoint(serverIp, port);
         game.getApp().run(
             [&game](float dt, const std::vector<engine::R_Events::Event> &events)
             {
+                auto& profiler = Engine::Profiling::Profiler::getInstance();
+                profiler.beginFrame();
+                
+                // Update system metrics every 30 frames
+                if (profiler.getFrameMetrics().frameCount % 30 == 0) {
+                    profiler.updateMemoryMetrics();
+                    profiler.updateCPUMetrics();
+                }
+
                 game.update(dt, events);
+                
+                profiler.endFrame();
             },
-            [&game]() { game.draw(); }
+            [&game]() { 
+                game.draw(); 
+            }
         );
     } catch(const engine::Error& e)
     {

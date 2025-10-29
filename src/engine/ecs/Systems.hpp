@@ -90,6 +90,3 @@ inline void spawn_system(registry &r,
             copy.factory(r, e);
     }
 }
-
-// Note: animation_system removed - it requires client-specific component::drawable
-// Client code should implement its own animation system using common/Components_client.hpp
