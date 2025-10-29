@@ -11,7 +11,7 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-set(ENGINE_MODULES "renderer;audio;ecs;events" CACHE STRING "Engine modules to build")
+set(ENGINE_MODULES "renderer;audio;network;ecs;events" CACHE STRING "Engine modules to build" FORCE)
 
 string(FIND "${ENGINE_MODULES}" "renderer" HAS_RENDERER)
 string(FIND "${ENGINE_MODULES}" "audio" HAS_AUDIO)
