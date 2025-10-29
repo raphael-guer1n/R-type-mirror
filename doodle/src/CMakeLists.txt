@@ -1,11 +1,24 @@
-add_executable(doodle_jump
-    main.cpp
+add_executable(doodle_client
+    ClientMain.cpp
 )
 
-target_include_directories(doodle_jump PRIVATE
-    ${CMAKE_SOURCE_DIR}
+add_executable(doodle_server
+    ServerMain.cpp
 )
 
-target_link_libraries(doodle_jump PRIVATE
+target_include_directories(doodle_client PRIVATE
+    ${CMAKE_SOURCE_DIR}/doodle/src
+    ${CMAKE_SOURCE_DIR}/doodle/engine
+)
+target_include_directories(doodle_server PRIVATE
+    ${CMAKE_SOURCE_DIR}/doodle/src
+    ${CMAKE_SOURCE_DIR}/doodle/engine
+)
+
+target_link_libraries(doodle_client PRIVATE
+    engine
+)
+
+target_link_libraries(doodle_server PRIVATE
     engine
 )
