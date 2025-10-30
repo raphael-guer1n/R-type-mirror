@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 #include <random>
+#include "LevelManager.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "engine/ecs/Components.hpp"
 #include "common/Packets.hpp"
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
-
 #define PLAYER_SPEED 400.0f
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
@@ -40,9 +40,14 @@
  * - _tick: Current server tick for synchronization.
  * - _gen: Random number generator for entity spawning and game logic.
  */
+struct PlayerInfo
+{
+    engine::net::Endpoint endpoint;
+    engine::entity_t entityId;
+};
 class server
 {
-public:
+    public:
     server(engine::net::IoContext &ctx, unsigned short port = 4242);
     void run();
     void stop();
@@ -87,14 +92,10 @@ private:
     engine::net::IoContext &_io;
     unsigned short _port;
 
-    struct PlayerInfo
-    {
-        engine::net::Endpoint endpoint;
-        engine::entity_t entityId;
-    };
 
     std::unordered_set<uint32_t> _live_entities;
     std::vector<PlayerInfo> _players;
+    std::unique_ptr<LevelManager> _levelManager;
 
     uint32_t _tick = 0;
 

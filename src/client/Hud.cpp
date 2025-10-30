@@ -1,6 +1,7 @@
 #include "Hud.hpp"
 #include "common/Components_client_sdl.hpp"
 #include "Rtype.hpp"
+#include "engine/Engine.hpp"
 #include "common/Layers.hpp"
 #include <memory>
 #include <unordered_map>
@@ -14,11 +15,22 @@ static std::unordered_map<char, std::string> fontMap = {
     {'4', "CK_StarGlowing_4.png"}, {'5', "CK_StarGlowing_5.png"},
     {'6', "CK_StarGlowing_6.png"}, {'7', "CK_StarGlowing_7.png"},
     {'8', "CK_StarGlowing_8.png"}, {'9', "CK_StarGlowing_9.png"},
-    {'C', "CK_StarGlowing_C.png"}, {'E', "CK_StarGlowing_E.png"},
-    {'O', "CK_StarGlowing_O.png"}, {'R', "CK_StarGlowing_R.png"},
-    {'P', "CK_StarGlowing_P.png"}, {'H', "CK_StarGlowing_H.png"},
-    {'I', "CK_StarGlowing_I.png"}, {'S', "CK_StarGlowing_S.png"}
+
+    {'A', "CK_StarGlowing_A.png"}, {'B', "CK_StarGlowing_B.png"},
+    {'C', "CK_StarGlowing_C.png"}, {'D', "CK_StarGlowing_D.png"},
+    {'E', "CK_StarGlowing_E.png"}, {'F', "CK_StarGlowing_F.png"},
+    {'G', "CK_StarGlowing_G.png"}, {'H', "CK_StarGlowing_H.png"},
+    {'I', "CK_StarGlowing_I.png"}, {'J', "CK_StarGlowing_J.png"},
+    {'K', "CK_StarGlowing_K.png"}, {'L', "CK_StarGlowing_L.png"},
+    {'M', "CK_StarGlowing_M.png"}, {'N', "CK_StarGlowing_N.png"},
+    {'O', "CK_StarGlowing_O.png"}, {'P', "CK_StarGlowing_P.png"},
+    {'Q', "CK_StarGlowing_Q.png"}, {'R', "CK_StarGlowing_R.png"},
+    {'S', "CK_StarGlowing_S.png"}, {'T', "CK_StarGlowing_T.png"},
+    {'U', "CK_StarGlowing_U.png"}, {'V', "CK_StarGlowing_V.png"},
+    {'W', "CK_StarGlowing_W.png"}, {'X', "CK_StarGlowing_X.png"},
+    {'Y', "CK_StarGlowing_Y.png"}, {'Z', "CK_StarGlowing_Z.png"}
 };
+
 
 R_Type::Hud::Hud(R_Type::Rtype &rtype)
 {
@@ -33,7 +45,6 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     registry.register_component<component::health>();
     registry.register_component<component::hud_tag>();
 
-    // === BEAM BAR ===
     auto e = registry.spawn_entity();
     float barWidth = 500.0f;
     float barHeight = 100.0f;
@@ -69,7 +80,6 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     _barMaxWidth = 420;
     _barHeight = 20;
 
-    // === SCORE  ===
     float hudScale = 0.5f;
     int scoreValue = 200;
     std::string scoreText = "1P " + std::to_string(scoreValue);
@@ -106,7 +116,6 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
         registry.emplace_component<component::drawable>(digitEntity, tex, rectDigit, layers::HudText);
     }
 
-    // === HIGH SCORE ===
     int highScoreValue = 99999;
     std::string highScoreText = "HI " + std::to_string(highScoreValue);
     float highStartY = 10.0f;
@@ -137,7 +146,6 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
         registry.emplace_component<component::drawable>(highEntity, tex, rectHigh, layers::HudText);
     }
 
-    // === HEARTS ===
     int maxHearts = 3;
     std::uint8_t currentHP = 3;
     float heartY = winH - 100.0f;
@@ -184,4 +192,55 @@ void R_Type::Hud::drawOverlay(R_Type::Rtype &rtype)
     SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(ren, 60, 220, 120, 230);
     SDL_RenderFillRect(ren, &rect);
+    if (_levelDisplayTimer > 0)
+    {
+        _levelDisplayTimer--;
+
+        std::string text = "LEVEL " + std::to_string(_levelToDisplay);
+
+        drawText(text, 0.5, 100, 100, rtype);
+
+        return;
+    }
+}
+
+void R_Type::Hud::startLevelAnimation(int level)
+{
+    _levelToDisplay = level;
+    _levelDisplayTimer = 160; 
+}
+
+void R_Type::Hud::drawText(std::string &text, float hudScale, float x, float y, R_Type::Rtype &rtype)
+{
+    auto &registry = rtype.getRegistry();
+    float spacing = 33.0f;
+    float totalWidth = text.size() * spacing;
+
+    engine::R_Graphic::intVec2 scaledSize(
+        static_cast<int>(128 * hudScale),
+        static_cast<int>(128 * hudScale));
+
+    for (size_t i = 0; i < text.size(); ++i)
+    {
+        char ch = std::toupper(text[i]);
+        if (!fontMap.count(ch))
+            continue;
+
+        std::string path = "./Assets/Hud/Score/" + fontMap[ch];
+        auto digitEntity = registry.spawn_entity();
+
+        float posX = x + i * spacing;
+
+        registry.add_component(digitEntity, component::position{posX, y});
+        registry.add_component(digitEntity, component::hud_tag{});
+
+        auto tex = std::make_shared<engine::R_Graphic::Texture>(
+            rtype.getApp().getWindow(),
+            path,
+            engine::R_Graphic::doubleVec2(posX, y),
+            scaledSize);
+
+        engine::R_Graphic::textureRect rectDigit(0, 0, 128, 128);
+        registry.emplace_component<component::drawable>(digitEntity, tex, rectDigit, layers::HudText);
+    }
 }

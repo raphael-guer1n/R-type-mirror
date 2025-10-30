@@ -28,7 +28,6 @@
  * - server::spawn_projectile: Spawns a projectile entity for a given owner.
  *
  */
-#include "server/Server.hpp"
 #include "engine/ecs/Systems.hpp"
 #include "engine/ecs/EntityFactory.hpp"
 #include "engine/events/Events.hpp"
@@ -45,7 +44,6 @@
 #include "engine/ecs/Systems.hpp"
 #include "server/Components_ai.hpp"
 #include "server/EnemyConfig.hpp"
-#include "server/Server.hpp"
 #include "server/System_ai.hpp"
 #include "Server.hpp"
 
@@ -57,6 +55,7 @@ server::server(engine::net::IoContext &ctx, unsigned short port)
     : _socket(ctx, port), _io(ctx), _port(port)
 {
   register_components();
+  _levelManager = std::make_unique<LevelManager>(_registry, _socket, _players, _tick, _live_entities);
 }
 
 // Default components
@@ -444,106 +443,8 @@ void server::game_handler()
   {
     _live_entities.insert(static_cast<uint32_t>(e));
   }
+  _levelManager->update();
   systems::spawned_projectiles.clear();
-    if (_tick % 600 == 0)
-    {
-        try
-        {
-            EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/crawler.json");
-            auto e = _registry.spawn_entity();
-            _live_entities.insert((uint32_t)e);
-
-      _registry.add_component(e, component::position{SCREEN_WIDTH + 100, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
-      _registry.add_component(e, component::velocity{0, 0});
-      _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
-      _registry.add_component(e, component::entity_kind::enemy);
-      _registry.add_component(e, component::collision_state{false});
-      _registry.add_component(e, component::health{(uint8_t)cfg.hp});
-
-      component::ai_controller ai;
-      ai.behavior = cfg.behavior;
-      ai.speed = cfg.speed;
-      _registry.add_component<component::ai_controller>(e, std::move(ai));
-      if (!cfg.spells.empty())
-      {
-        component::spellbook sb;
-        sb.spells = cfg.spells;
-        _registry.add_component<component::spellbook>(e, std::move(sb));
-      }
-    }
-    catch (std::exception &ex)
-    {
-      std::cerr << "Failed to load zigzag enemy: " << ex.what() << "\n";
-    }
-  }
-
-    if (_tick % 600 == 0)
-    {
-        try
-        {
-            EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/shooter.json");
-            auto e = _registry.spawn_entity();
-            _live_entities.insert((uint32_t)e);
-
-      _registry.add_component(e, component::position{SCREEN_WIDTH + 100, static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))});
-      _registry.add_component(e, component::velocity{0, 0});
-      _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
-      _registry.add_component(e, component::entity_kind::enemy);
-      _registry.add_component(e, component::collision_state{false});
-      _registry.add_component(e, component::health{(uint8_t)cfg.hp});
-      component::ai_controller ai;
-      ai.behavior = cfg.behavior;
-      ai.speed = cfg.speed;
-      _registry.add_component<component::ai_controller>(e, std::move(ai));
-      std::cout << "Enemy spawned with behavior=" << ai.behavior
-                << " speed=" << ai.speed << "\n";
-      if (!cfg.spells.empty())
-      {
-        component::spellbook sb;
-        sb.spells = cfg.spells;
-        _registry.add_component<component::spellbook>(e, std::move(sb));
-      }
-      std::cout << "Spawned Shooter enemy\n";
-    }
-    catch (std::exception &ex)
-    {
-      std::cerr << "Failed to load shooter enemy: " << ex.what() << "\n";
-    }
-  }
-  if (_tick % 600 == 0)
-  {
-    try
-    {
-      EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/boss.json");
-      auto boss = _registry.spawn_entity();
-      _live_entities.insert(static_cast<uint32_t>(boss));
-
-      _registry.add_component(boss, component::position{1800.f, 400.f});
-      _registry.add_component(boss, component::velocity{0.f, 0.f});
-      _registry.add_component<component::hitbox>(boss, std::move(cfg.hitbox));
-      _registry.add_component(boss, component::entity_kind::enemy);
-      _registry.add_component(boss, component::collision_state{false});
-      _registry.add_component(boss, component::health{(uint8_t)cfg.hp});
-
-      component::ai_controller ai;
-      ai.behavior = cfg.behavior;
-      ai.speed = cfg.speed;
-      _registry.add_component<component::ai_controller>(boss, std::move(ai));
-
-      if (!cfg.spells.empty())
-      {
-          component::spellbook sb;
-          sb.spells = cfg.spells;
-          _registry.add_component<component::spellbook>(boss, std::move(sb));
-      }
-
-      std::cout << "Boss spawned! HP: " << cfg.hp << " Behavior: " << ai.behavior << "\n";
-    }
-    catch (std::exception &ex)
-    {
-      std::cerr << "Failed to spawn boss: " << ex.what() << "\n";
-    }
-  }
 }
 
 void server::broadcast_snapshot()

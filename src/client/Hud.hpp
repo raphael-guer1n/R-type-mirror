@@ -21,7 +21,7 @@
  */
 
 #pragma once
-
+#include "engine/Engine.hpp"
 #include "Rtype.hpp"
 #include <optional>
 
@@ -35,6 +35,8 @@ namespace R_Type
         ~Hud() = default;
         void setChargeLevel(R_Type::Rtype &rtype, float level);
         void drawOverlay(R_Type::Rtype &rtype);
+        void startLevelAnimation(int level);
+        void drawText(std::string &text, float hudScale, float x, float y, R_Type::Rtype &rtype);
 
     private:
         std::optional<size_t> _chargeFillLocalId;
@@ -43,6 +45,8 @@ namespace R_Type
         int _barOriginY = 0;
         int _barMaxWidth = 420;
         int _barHeight = 20;
+        int _levelToDisplay = 0;
+        int _levelDisplayTimer = 0;
     };
 
 }

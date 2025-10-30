@@ -1,5 +1,4 @@
 #include <iostream>
-#include <SDL.h>
 #include "Rtype.hpp"
 #include "Background.hpp"
 #include "engine/ecs/Components.hpp"
@@ -218,6 +217,22 @@ void R_Type::Rtype::receiveSnapshot()
             audio.stopMusic();
 
             continue;
+        }
+        if (shdr.type == LEVEL_START && spayload.size() >= sizeof(LevelStartPayload))
+        {
+            LevelStartPayload p{};
+            memcpy(&p, spayload.data(), sizeof(LevelStartPayload));
+
+            std::cout << "[CLIENT] LEVEL_START : " << p.level << std::endl;
+
+            _hud->startLevelAnimation(p.level);
+        }
+        if (shdr.type == LEVEL_END && spayload.size() >= sizeof(LevelEndPayload))
+        {
+            LevelEndPayload p{};
+            memcpy(&p, spayload.data(), sizeof(LevelEndPayload));
+
+            std::cout << "[CLIENT] LEVEL_END : " << p.level << std::endl;
         }
         if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))
         {

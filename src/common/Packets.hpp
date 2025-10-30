@@ -25,7 +25,9 @@ enum PacketType : uint16_t
     EVENT_PKT = 5,
     PING = 6,
     PONG = 7,
-    GAME_OVER = 8
+    GAME_OVER = 8,
+    LEVEL_START = 9,
+    LEVEL_END = 10, 
 };
 /**    * @brief Connect request packet structure.
     */  
@@ -90,6 +92,14 @@ struct PingPacket
 
 struct GameOverPayload {
     uint32_t winnerEntityId;
+};
+
+struct LevelStartPayload {
+    uint32_t level;
+};
+
+struct LevelEndPayload {
+    uint32_t level;
 };
 
 #pragma pack(pop)
