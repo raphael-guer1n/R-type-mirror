@@ -57,6 +57,7 @@ public:
     ~Menu() = default;
 
     bool update(const std::vector<engine::R_Events::Event> &events);
+    bool isAccessibilityEnabled() const { return _accessibilityMode; }
     void draw();
 
     private:
@@ -78,6 +79,7 @@ public:
 
         std::shared_ptr<engine::R_Graphic::Texture> _startButton;
         std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _accessibilityButton;
         std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
 
         std::shared_ptr<engine::R_Graphic::Texture> _backButton;
@@ -89,6 +91,7 @@ public:
 
         bool _startPressed = false;
         bool _quitPressed = false;
+        bool _accessibilityMode = false;
 
         bool _soundEnabled = true;
         bool _fullscreen = false;
