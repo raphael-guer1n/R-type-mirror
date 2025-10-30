@@ -1,7 +1,14 @@
 #include "Menu.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include "engine/audio/Music.hpp"
+#include "common/Accessibility.hpp"
+#include "engine/audio/AudioManager.hpp"
+
+
+using json = nlohmann::json;
 
 R_Type::Menu::Menu(engine::R_Graphic::App &app)
     : _app(app)
@@ -60,7 +67,13 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::intVec2(_buttonWidth, _buttonHeight)
     );
 
-    // === PAGE SETTINGS ===
+    _accessibilityButton = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/accessibility_btn.png",
+        engine::R_Graphic::doubleVec2(_centerX, _winH / 2 + 300),
+        engine::R_Graphic::intVec2(_buttonWidth, _buttonHeight)
+    );
+
     int optionSize = 150;
     int spacingSmall = 70;
     int totalWidth = (3 * optionSize) + spacingSmall + spacingSmall;
@@ -95,7 +108,6 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::intVec2(optionSize, optionSize)
     );
 
-    // === TITRE "R-TYPE" ===
     std::string title = "R-TYPE";
     float spacing = 100.0f;
     float scale = 1.5f;
@@ -131,6 +143,15 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
 bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
 {
     for (auto &ev : events) {
+        if (ev.type == engine::R_Events::Type::Quit ||
+            (ev.type == engine::R_Events::Type::KeyDown && ev.key.code == engine::R_Events::Key::Escape))
+        {
+            std::cout << "[SYSTEM] Quit requested.\n";
+            _menuMusic.stop();
+            _gameMusic.stop();
+            SDL_Quit();
+            std::exit(0);
+        }
         if (ev.type != engine::R_Events::Type::MouseButtonDown)
             continue;
 
@@ -161,7 +182,17 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
                 _currentPage = Page::Settings;
             }
 
-            if (x >= 550 && x <= 950 && y >= 600 && y <= 720) {
+            if (x >= _centerX && x <= _centerX + _buttonWidth &&
+                y >= _winH / 2 + 300 && y <= _winH / 2 + 300 + _buttonHeight)
+            {
+                AccessibilityConfig::load_from_json("configs/accessibility_config.json");
+                AccessibilityConfig::enabled = true;
+                engine::audio::AudioManager::instance().setMusicVolume(AccessibilityConfig::volume_general);
+                engine::audio::AudioManager::instance().setSFXVolume(AccessibilityConfig::volume_general);
+            }
+
+            if (x >= _centerX && x <= _centerX + _buttonWidth &&
+                y >= _winH / 2 + 150 && y <= _winH / 2 + 150 + _buttonHeight) {
                 _quitPressed = true;
                 _menuMusic.stop();
                 std::exit(0);
@@ -192,10 +223,10 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
                 _gameMusic.setMuted(!_soundEnabled);
 
                 if (_soundEnabled) {
-                    std::cout << " Music resumed" << std::endl;
+                    std::cout << " Music resumed\n";
                     _menuMusic.resume();
                 } else {
-                    std::cout << " Music paused" << std::endl;
+                    std::cout << " Music paused\n";
                     _menuMusic.pause();
                 }
             }
@@ -236,6 +267,7 @@ void R_Type::Menu::drawMainMenu()
     _startButton->draw(_app.getWindow(), nullptr);
     _settingsButton->draw(_app.getWindow(), nullptr);
     _quitButton->draw(_app.getWindow(), nullptr);
+    _accessibilityButton->draw(_app.getWindow(), nullptr);
 }
 
 void R_Type::Menu::drawSettingsMenu()
