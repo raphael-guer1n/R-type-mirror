@@ -35,7 +35,7 @@ namespace R_Type
         ~Hud() = default;
         void setChargeLevel(R_Type::Rtype &rtype, float level);
         void drawOverlay(R_Type::Rtype &rtype);
-        void startLevelAnimation(int level);
+        void startLevelAnimation(int level, engine::registry &registry);
         void drawText(std::string &text, float hudScale, float x, float y, R_Type::Rtype &rtype);
 
     private:

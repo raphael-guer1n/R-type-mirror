@@ -225,7 +225,7 @@ void R_Type::Rtype::receiveSnapshot()
 
             std::cout << "[CLIENT] LEVEL_START : " << p.level << std::endl;
 
-            _hud->startLevelAnimation(p.level);
+            _hud->startLevelAnimation(p.level, _registry);
         }
         if (shdr.type == LEVEL_END && spayload.size() >= sizeof(LevelEndPayload))
         {
@@ -293,13 +293,18 @@ void R_Type::Rtype::receiveSnapshot()
                     {
                         idLocal = it->second;
                     }
-                    ensure_cache(idLocal);
-                    if (idLocal < kinds.size() && kinds[idLocal] &&
-                        kinds[idLocal].value() == component::entity_kind::decor)
-                    {
-                        continue;
-                    }
 
+                    auto &hudTags = _registry.get_components<component::hud_tag>();
+                    auto &kindsLocal = _registry.get_components<component::entity_kind>();
+
+                    if (idLocal < hudTags.size() && hudTags[idLocal].has_value())
+                        continue;
+                    if (idLocal < kindsLocal.size()
+                        && kindsLocal[idLocal].has_value()
+                        && kindsLocal[idLocal].value() == component::entity_kind::decor)
+                        continue;
+
+                    ensure_cache(idLocal);
                     newActive.insert(idLocal);
 
                     ensure_slot(positions, idLocal, component::position{});

@@ -64,7 +64,6 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
         engine::R_Graphic::intVec2(500, 120));
 
     engine::R_Graphic::textureRect rect(0, 530, 1200, 140);
-    // registry.emplace_component<component::drawable>(e, bar, rect, layers::HudBase);
 
     auto fillEntity = registry.spawn_entity();
     registry.add_component(fillEntity, component::position{ static_cast<float>(hudPos.x + 40), static_cast<float>(hudPos.y + 65)});
@@ -80,71 +79,21 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     _barMaxWidth = 420;
     _barHeight = 20;
 
-    float hudScale = 0.5f;
     int scoreValue = 200;
     std::string scoreText = "1P " + std::to_string(scoreValue);
-    float spacing = 33.0f;
     float startY = 55.0f;
-    float totalWidth = scoreText.size() * spacing;
+    float totalWidth = scoreText.size() * 33.0f;
     float startX = winW - totalWidth - 110.0f;
 
-    engine::R_Graphic::intVec2 scaledSize(
-        static_cast<int>(128 * hudScale),
-        static_cast<int>(128 * hudScale));
-
-    for (size_t i = 0; i < scoreText.size(); ++i)
-    {
-        char ch = std::toupper(scoreText[i]);
-        if (!fontMap.count(ch))
-            continue;
-
-        std::string path = "./Assets/Hud/Score/" + fontMap[ch];
-        auto digitEntity = registry.spawn_entity();
-
-        float posX = startX + i * spacing;
-
-        registry.add_component(digitEntity, component::position{posX, startY});
-        registry.add_component(digitEntity, component::hud_tag{});
-
-        auto tex = std::make_shared<engine::R_Graphic::Texture>(
-            window,
-            path,
-            engine::R_Graphic::doubleVec2(posX, startY),
-            scaledSize);
-
-        engine::R_Graphic::textureRect rectDigit(0, 0, 128, 128);
-        registry.emplace_component<component::drawable>(digitEntity, tex, rectDigit, layers::HudText);
-    }
+    drawText(scoreText, 0.5, startX, startY, rtype);
 
     int highScoreValue = 99999;
     std::string highScoreText = "HI " + std::to_string(highScoreValue);
     float highStartY = 10.0f;
-    float highWidth = highScoreText.size() * spacing;
+    float highWidth = highScoreText.size() * 33.0f;
     float highStartX = winW - highWidth - 40.0f;
 
-    for (size_t i = 0; i < highScoreText.size(); ++i)
-    {
-        char ch = std::toupper(highScoreText[i]);
-        if (!fontMap.count(ch))
-            continue;
-
-        std::string path = "./Assets/Hud/Score/" + fontMap[ch];
-        auto highEntity = registry.spawn_entity();
-
-        float posX = highStartX + i * spacing;
-
-        registry.add_component(highEntity, component::position{posX, highStartY});
-        registry.add_component(highEntity, component::hud_tag{});
-
-        auto tex = std::make_shared<engine::R_Graphic::Texture>(
-            window,
-            path,
-            engine::R_Graphic::doubleVec2(posX, highStartY),
-            scaledSize);
-
-        engine::R_Graphic::textureRect rectHigh(0, 0, 128, 128);
-        registry.emplace_component<component::drawable>(highEntity, tex, rectHigh, layers::HudText);
-    }
+    drawText(highScoreText, 0.5, highStartX, highStartY, rtype);
 
     int maxHearts = 3;
     std::uint8_t currentHP = 3;
@@ -204,10 +153,16 @@ void R_Type::Hud::drawOverlay(R_Type::Rtype &rtype)
     }
 }
 
-void R_Type::Hud::startLevelAnimation(int level)
+void R_Type::Hud::startLevelAnimation(int level, engine::registry &registry)
 {
     _levelToDisplay = level;
     _levelDisplayTimer = 160; 
+    auto &hudTags = registry.get_components<component::hud_tag>();
+
+    for (size_t i = 0; i < hudTags.size(); ++i)
+        if (hudTags[i].has_value())
+            registry.kill_entity(engine::entity_t{i});
+
 }
 
 void R_Type::Hud::drawText(std::string &text, float hudScale, float x, float y, R_Type::Rtype &rtype)
