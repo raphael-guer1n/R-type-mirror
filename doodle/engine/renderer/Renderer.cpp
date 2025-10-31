@@ -23,3 +23,17 @@ void engine::R_Graphic::Renderer::clear() {
 void engine::R_Graphic::Renderer::display() {
     SDL_RenderPresent(_window.getRenderer());
 }
+
+void engine::R_Graphic::Renderer::setDrawColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
+    SDL_SetRenderDrawColor(_window.getRenderer(), r, g, b, a);
+}
+
+void engine::R_Graphic::Renderer::fillRect(int x, int y, int w, int h) {
+    SDL_Rect rect{ x, y, w, h };
+    SDL_RenderFillRect(_window.getRenderer(), &rect);
+}
+
+void engine::R_Graphic::Renderer::drawRect(int x, int y, int w, int h) {
+    SDL_Rect rect{ x, y, w, h };
+    SDL_RenderDrawRect(_window.getRenderer(), &rect);
+}

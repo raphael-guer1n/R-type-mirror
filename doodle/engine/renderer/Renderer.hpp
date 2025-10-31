@@ -19,6 +19,11 @@ namespace engine {
                 void clear();
                 void display();
 
+                // Drawing helpers to avoid direct SDL usage in app code
+                void setDrawColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
+                void fillRect(int x, int y, int w, int h);
+                void drawRect(int x, int y, int w, int h);
+
             private:
                 Window &_window;
         };
