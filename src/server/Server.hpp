@@ -10,10 +10,12 @@
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
+#include "engine/network/NetServer.hpp"
 
 #define PLAYER_SPEED 400.0f
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
+#define MAX_PLAYERS 2
 /**
  * @class server
  * @brief Main server class for managing game state, networking, and player entities.
@@ -43,14 +45,20 @@
 class server
 {
 public:
-    server(engine::net::IoContext &ctx, unsigned short port = 4242);
+    server(unsigned short port = 4242);
     void run();
-    void stop();
 
 private:
     // Initialization / registration
     void register_components();
     void setup_systems();
+
+    // Network
+    void on_packet_received(const engine::net::Endpoint& sender,
+        const PacketHeader& hdr, const std::vector<uint8_t>& payload);
+    void handle_connect(const engine::net::Endpoint& sender);
+    void handle_input(const engine::net::Endpoint& sender,
+        const std::vector<uint8_t>& payload);
 
     // Sub-registrations (split from setup_systems)
     void register_health_and_spawn_systems();
@@ -61,32 +69,23 @@ private:
     void register_area_effect_system();
 
     // Game loop phases
-    void wait_for_players();
-    void process_network_inputs();
-    void game_handler();
+    void update_game_logic();
+    void update_spawns_and_events();
     void broadcast_snapshot();
     void broadcast_game_over(uint32_t winnerEntityId);
     void check_game_over();
 
     // Spawning helpers
     engine::entity_t spawn_player(engine::net::Endpoint endpoint, std::size_t index);
-    engine::entity_t spawn_projectile(engine::entity_t owner);
-    engine::entity_t spawn_projectile_basic(engine::entity_t owner);
-    engine::entity_t spawn_projectile_alt(engine::entity_t owner);
-    engine::entity_t spawn_projectile_charged(engine::entity_t owner, uint32_t heldTicks);
-    engine::entity_t spawn_projectile_bomb(engine::entity_t owner);
-    engine::entity_t spawn_missile_explosion(float x, float y, int damage, float radius);
 
     // Internal utility: ensure an entity is scheduled for removal by setting/adding despawn_tag.
     // Centralises logic so systems never call kill_entity directly (uniform ECS pipeline).
 private:
-    bool _running = true;
+    bool _running = false;
+    bool _ready = false;
     engine::registry _registry;
 
-    engine::net::UdpSocket _socket;
-    engine::net::IoContext &_io;
-    unsigned short _port;
-
+    engine::net::NetServer _netServer;
     struct PlayerInfo
     {
         engine::net::Endpoint endpoint;

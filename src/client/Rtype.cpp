@@ -8,6 +8,7 @@
 #include "common/Packets.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "common/Systems.hpp"
+#include "common/Packets.hpp"
 #include "Background.hpp"
 #include "Hud.hpp"
 #include "common/Systems_client_sdl.hpp"
@@ -19,9 +20,36 @@ R_Type::Rtype::Rtype()
 {
     try
     {
-        _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
-        _serverEndpoint = std::make_unique<engine::net::Endpoint>(engine::net::make_endpoint("127.0.0.1", 4242));
+        _client = std::make_unique<engine::net::NetClient>("127.0.0.1", 4242);
+        _client->set_packet_handler([this](
+            const PacketHeader&hdr,
+            const std::vector<uint8_t> &payload) {
+            if (hdr.type == CONNECT_ACK && payload.size() >= sizeof(ConnectAck))
+            {
+                ConnectAck ack{};
+                std::memcpy(&ack, payload.data(), sizeof(ack));
+                _player = ack.playerEntityId;
+                _connected = true;
+                _registry.spawn_entity();
+                std::cout << "Connected to server as player " << _player << "\n";
+                return;
+            }
 
+            if (hdr.type == SNAPSHOT && payload.size() >= sizeof(Snapshot))
+            {
+                Snapshot snap{};
+                std::memcpy(&snap, payload.data(), sizeof(snap));
+                _pendingSnapshots.push_back({hdr, payload});
+            }
+
+            if (hdr.type == GAME_OVER && payload.size() >= sizeof(GameOverPayload))
+            {
+                GameOverPayload go{};
+                std::memcpy(&go, payload.data(), sizeof(go));
+                _gameOver = true;
+                _won = (_player == go.winnerEntityId);
+            }
+        });
         _registry.register_component<component::drawable>();
         _registry.register_component<component::position>();
         _registry.register_component<component::velocity>();
@@ -55,11 +83,7 @@ void R_Type::Rtype::update(float deltaTime,
         if (start)
         {
             _inMenu = false;
-            ConnectReq req{42};
-            PacketHeader hdr{CONNECT_REQ, sizeof(ConnectReq), 0};
-            std::vector<uint8_t> buf(sizeof(ConnectReq));
-            std::memcpy(buf.data(), &req, sizeof(ConnectReq));
-            _client->send(hdr, buf, *_serverEndpoint);
+            _client->start();
             std::cout << "Sent CONNECT_REQ\n";
         }
         return;
@@ -104,7 +128,7 @@ void R_Type::Rtype::update(float deltaTime,
     std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
     if (keyCount > 0)
         std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keyCount * sizeof(int32_t));
-    _client->send(ihdr, ibuf, *_serverEndpoint);
+    _client->send(ihdr, ibuf);
 
     static uint32_t spaceHoldTicks = 0;
     bool spaceHeld = _pressedKeys.count(engine::R_Events::Key::Space) > 0;
@@ -143,10 +167,8 @@ void R_Type::Rtype::update(float deltaTime,
 
 void R_Type::Rtype::receiveSnapshot()
 {
-    while (auto pkt_opt = _client->receive(_sender))
-    {
-        auto [shdr, spayload] = *pkt_opt;
-
+    _client->poll();
+    for (auto &[shdr, spayload]: _pendingSnapshots) {
         if (shdr.type == GAME_OVER && spayload.size() >= sizeof(GameOverPayload))
         {
             GameOverPayload go{};
@@ -367,6 +389,7 @@ void R_Type::Rtype::receiveSnapshot()
             _activeEntities = std::move(newActive);
         }
     }
+    _pendingSnapshots.clear();
 }
 
 void R_Type::Rtype::draw()
@@ -412,29 +435,11 @@ engine::registry &R_Type::Rtype::getRegistry()
     return _registry;
 }
 
-void R_Type::Rtype::setServerEndpoint(const std::string &ip, unsigned short port)
-{
-    _serverEndpoint = std::make_unique<engine::net::Endpoint>(
-        engine::net::make_endpoint(ip, port));
-}
-
 void R_Type::Rtype::waiting_connection()
 {
     if (!_connected)
     {
-        if (auto pkt_opt = _client->receive(_sender))
-        {
-            auto [recvHdr, payload] = *pkt_opt;
-            if (recvHdr.type == CONNECT_ACK &&
-                payload.size() >= sizeof(ConnectAck))
-            {
-                ConnectAck ack{};
-                std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
-                _player = ack.playerEntityId;
-                _connected = true;
-                _registry.spawn_entity();
-            }
-        }
+        _client->poll();
     }
 }
 

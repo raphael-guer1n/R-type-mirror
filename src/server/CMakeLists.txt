@@ -4,6 +4,18 @@ add_executable(r-type_server
     Server.cpp
     ServerUtils.cpp
     Main.cpp
+    SpawnProjectile.cpp
+    HandleInput.cpp
+    HandleConnect.cpp
+    enemies/Boss.cpp
+    enemies/Crawler.cpp
+    enemies/Shooter.cpp
+    register/AreaEffect.cpp
+    register/Bounds.cpp
+    register/Collision.cpp
+    register/Gravity.cpp
+    register/HealthAndSpawn.cpp
+    register/ProjectileMovement.cpp
 )
 
 find_package(asio CONFIG REQUIRED)

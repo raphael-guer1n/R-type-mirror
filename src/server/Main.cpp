@@ -44,27 +44,8 @@
      }
      try
      {
-         engine::net::IoContext io;
-         server s(io, port);
-         char hostname[256];
-         std::string ip = "127.0.0.1";
-         if (gethostname(hostname, sizeof(hostname)) == 0)
-         {
-             addrinfo hints{};
-             addrinfo* info = nullptr;
-             hints.ai_family = AF_INET;
- 
-             if (getaddrinfo(hostname, nullptr, &hints, &info) == 0 && info)
-             {
-                 sockaddr_in* addr = reinterpret_cast<sockaddr_in*>(info->ai_addr);
-                 ip = inet_ntoa(addr->sin_addr);
-                 freeaddrinfo(info);
-             }
-         }
- 
-         std::cout << "IP Address: " << ip << "\n";
-         std::cout << "Port: " << port << "\n";
-         s.run();
+        server s(port);
+        s.run();
      }
      catch (const std::exception &e)
      {

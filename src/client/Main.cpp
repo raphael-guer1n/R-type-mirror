@@ -22,7 +22,6 @@ int main(int argc, char* argv[])
     {
         R_Type::Rtype game;
 
-        game.setServerEndpoint(serverIp, port);
         game.getApp().run(
             [&game](float dt, const std::vector<engine::R_Events::Event> &events)
             {

@@ -4,6 +4,7 @@
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
+#include "engine/network/NetClient.hpp"
 #include "Hud.hpp"
 #include "Menu.hpp"
 #include "Player.hpp"
@@ -11,6 +12,7 @@
 #include "engine/renderer/App.hpp"
 #include "engine/events/Events.hpp"
 #include "engine/ecs/Registry.hpp"
+#include "common/Packets.hpp"
 #include "Background.hpp"
 #include "Gameover.hpp"
 
@@ -81,25 +83,20 @@ namespace R_Type
         engine::R_Graphic::App &getApp();
         engine::registry &getRegistry();
 
-    public:
-        void setServerEndpoint(const std::string &ip, unsigned short port);
-
     private:
         void waiting_connection();
         void handle_collision(engine::registry &reg, size_t i, size_t j);
 
     private:
-        std::unique_ptr<engine::net::Endpoint> _serverEndpoint;
+        std::unique_ptr<engine::net::NetClient> _client;
+        std::vector<std::pair<PacketHeader, std::vector<uint8_t>>> _pendingSnapshots;
         uint32_t _tick = 0;
         std::unordered_set<engine::R_Events::Key> _pressedKeys;
         uint32_t _player = 0;
         std::unordered_set<uint32_t> _activeEntities;
-        engine::net::Endpoint _sender;
         engine::R_Graphic::App _app;
         engine::registry _registry;
         std::unique_ptr<Background> _background;
-        engine::net::IoContext _ioContext;
-        std::unique_ptr<engine::net::UdpSocket> _client;
         std::unique_ptr<Player> _playerData;
         std::unique_ptr<Enemy> _enemyData;
         std::unordered_map<uint32_t, size_t> _entityMap;
