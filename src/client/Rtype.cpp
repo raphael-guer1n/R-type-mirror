@@ -495,7 +495,7 @@ void R_Type::Rtype::draw()
         SDL_RenderFillRect(ren, &banner);
         if (_uiFont) {
             SDL_Color white = {255, 255, 255, 255};
-            SDL_Surface* surf = TTF_RenderUTF8_Blended(_uiFont, "Mode Accessibilité activé", white);
+            SDL_Surface* surf = TTF_RenderUTF8_Blended(_uiFont, "Accessibility mode on", white);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(ren, surf);
                 SDL_Rect dst = {40, 20, surf->w, surf->h};
