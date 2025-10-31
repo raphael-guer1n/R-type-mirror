@@ -5,6 +5,7 @@
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
 #include "Hud.hpp"
+#include <SDL_ttf.h>
 #include "Menu.hpp"
 #include "Player.hpp"
 #include "Enemy.hpp"
@@ -104,11 +105,13 @@ namespace R_Type
         std::unique_ptr<R_Type::Gameover> _gameOverScreen;
         bool _inMenu = true;
         bool _connected = false;
+        bool _hasEverConnected = false;
         bool _gameOver = false;
         bool _won = false;
         std::unordered_map<size_t, int> _playerIndexByLocalId;
         bool _showHitboxes = false;
         int _hitboxOverlayThickness = 3;
+        TTF_Font* _uiFont = nullptr;
         
         std::unique_ptr<Engine::Profiling::ProfilerOverlay> _profilerOverlay;
         bool _showProfiler = false;

@@ -46,6 +46,7 @@
 #include "server/Components_ai.hpp"
 #include "server/EnemyConfig.hpp"
 #include "server/Server.hpp"
+#include "common/Accessibility.hpp"
 #include "server/System_ai.hpp"
 #include "Server.hpp"
 
@@ -62,6 +63,8 @@ server::server(engine::net::IoContext &ctx, unsigned short port)
 // Default components
 void server::register_components()
 {
+  AccessibilityConfig::load_from_json("configs/accessibility_config.json");
+
   _registry.register_component<component::position>();
   _registry.register_component<component::velocity>();
   _registry.register_component<component::hitbox>();
@@ -129,7 +132,9 @@ void server::run()
       
       {
         PROFILE_SCOPE("Physics Systems");
-        position_system(_registry, positions, velocities, 1.0f / 60.0f);
+        float dt = 1.0f / 60.0f;
+        float speedFactor = AccessibilityConfig::enabled ? AccessibilityConfig::speed_game : 1.0f;
+        position_system(_registry, positions, velocities, dt * speedFactor);
         _registry.run_systems();
       }
       
