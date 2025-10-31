@@ -27,12 +27,12 @@ namespace engine::net
         UdpSocket(const UdpSocket &) = delete;
         UdpSocket &operator=(const UdpSocket &) = delete;
 
-        // Send raw bytes to a remote endpoint
-        void sendRaw(const void *data, std::size_t size, const Endpoint &endpoint);
-
         // Send header + payload convenience
         void send(const PacketHeader &header, const std::vector<std::uint8_t> &payload,
                   const Endpoint &endpoint);
+
+
+        bool PollPacket(PacketHeader& outHeader, std::vector<uint8_t>& outPayload, Endpoint& outSender);
 
         // Non-blocking receive; returns header+payload when data is available.
         // Fills 'sender' with the packet source.

@@ -15,6 +15,8 @@ add_library(engine
     audio/Music.cpp
     network/IoContext.cpp
     network/UdpSocket.cpp
+    network/NetServer.cpp
+    network/NetClient.cpp
 )
 
 target_include_directories(engine

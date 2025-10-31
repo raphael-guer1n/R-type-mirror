@@ -4,6 +4,8 @@
 #include "engine/network/detail/IoContextInternal.hpp"
 #include <iostream>
 #include <cstring>
+#include "UdpSocket.hpp"
+#include "ThreadSafeQueue.hpp"
 
 namespace engine::net
 {
@@ -18,33 +20,61 @@ namespace engine::net
         return Endpoint{ep.address().to_string(), ep.port()};
     }
 
-    class UdpSocketImpl
-    {
-    public:
-        explicit UdpSocketImpl(IoContext &io, unsigned short port)
-            : socket(*static_cast<asio::io_context *>(io.native_handle()),
-                     asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
-        {
-            socket.non_blocking(true);
-        }
+    class UdpSocketImpl {
+        public:
+            explicit UdpSocketImpl(IoContext &io, unsigned short port)
+                : socket(*static_cast<asio::io_context *>(io.native_handle()),
+                    asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
+            {
+                StartReceive();
+            }
 
-        asio::ip::udp::socket socket;
+            void StartReceive()
+            {
+                socket.async_receive_from(
+                    asio::buffer(recvBuffer), remoteEndpoint,
+                    [this](std::error_code ec, std::size_t bytes_recvd)
+                    {
+                        if (!ec && bytes_recvd >= sizeof(PacketHeader))
+                        {
+                            PacketHeader hdr{};
+                            std::memcpy(&hdr, recvBuffer.data(), sizeof(PacketHeader));
+
+                            std::vector<uint8_t> payload(bytes_recvd - sizeof(PacketHeader));
+                            if (!payload.empty())
+                            {
+                                std::memcpy(payload.data(), recvBuffer.data() + sizeof(PacketHeader), payload.size());
+                            }
+
+                            Endpoint sender = from_asio_endpoint(remoteEndpoint);
+                            receivedPackets.push({hdr, std::move(payload), sender});
+                        }
+                        StartReceive();
+                    });
+            }
+
+            asio::ip::udp::socket socket;
+            asio::ip::udp::endpoint remoteEndpoint;
+            std::array<uint8_t, 1500> recvBuffer{};
+
+            struct Received
+            {
+                PacketHeader header;
+                std::vector<uint8_t> payload;
+                Endpoint sender;
+            };
+            ThreadSafeQueue<Received> receivedPackets;
     };
 
     UdpSocket::UdpSocket(IoContext &ctx, unsigned short localPort)
         : _impl(std::make_unique<UdpSocketImpl>(ctx, localPort))
     {
-        std::cout << "UDP socket bound on port " << localPort << "\n";
+        std::cout << "UDP socket async listening on port " << localPort << "\n";
     }
 
     UdpSocket::~UdpSocket() = default;
     UdpSocket::UdpSocket(UdpSocket &&) noexcept = default;
     UdpSocket &UdpSocket::operator=(UdpSocket &&) noexcept = default;
-
-    void UdpSocket::sendRaw(const void *data, std::size_t size, const Endpoint &endpoint)
-    {
-        _impl->socket.send_to(asio::buffer(data, size), to_asio_endpoint(endpoint));
-    }
 
     void UdpSocket::send(const PacketHeader &header, const std::vector<std::uint8_t> &payload,
                          const Endpoint &endpoint)
@@ -53,7 +83,20 @@ namespace engine::net
         std::memcpy(buffer.data(), &header, sizeof(PacketHeader));
         if (!payload.empty())
             std::memcpy(buffer.data() + sizeof(PacketHeader), payload.data(), payload.size());
-        sendRaw(buffer.data(), buffer.size(), endpoint);
+        _impl->socket.async_send_to(
+            asio::buffer(buffer), to_asio_endpoint(endpoint),
+            [](const asio::error_code&, std::size_t) {});
+    }
+
+    bool UdpSocket::PollPacket(PacketHeader &outHeader, std::vector<uint8_t> &outPayload, Endpoint &outSender)
+    {
+        UdpSocketImpl::Received pkt;
+        if (!_impl->receivedPackets.pop(pkt))
+            return false;
+        outHeader = pkt.header;
+        outPayload = std::move(pkt.payload);
+        outSender = std::move(pkt.sender);
+        return true;
     }
 
     std::optional<std::pair<PacketHeader, std::vector<std::uint8_t>>>
