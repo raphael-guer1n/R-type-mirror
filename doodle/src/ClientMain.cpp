@@ -23,11 +23,12 @@ int main(int argc, char **argv) {
 
         Window window("Doodle - Client", 480, 800);
         Renderer renderer(window);
-        SDL_Renderer *ren = window.getRenderer();
 
-        engine::net::IoContext io;
-        engine::net::UdpSocket sock(io, 0);
-        engine::net::Endpoint serverEndpoint = engine::net::make_endpoint(serverIp, serverPort);
+    engine::net::IoContext io;
+    engine::net::UdpSocket sock(io, 0);
+    engine::net::Endpoint serverEndpoint = engine::net::make_endpoint(serverIp, serverPort);
+    bool connected = false;
+    uint32_t lastConnReqMs = SDL_GetTicks();
 
         std::cout << "Client: using server " << serverIp << ":" << serverPort << std::endl;
 
@@ -76,29 +77,40 @@ int main(int argc, char **argv) {
             }
 
             uint32_t nowMs = SDL_GetTicks();
-            if (nowMs - lastInputSendMs >= INPUT_SEND_MS) {
-                lastInputSendMs = nowMs;
-                InputPacket inp{};
-                inp.clientId = 0;
-                inp.tick = tick++;
-                inp.keyCount = static_cast<uint16_t>(pressed.size());
-                std::vector<int32_t> keys;
-                keys.reserve(pressed.size());
-                for (auto k : pressed)
-                    keys.push_back(static_cast<int32_t>(k));
-                const uint16_t payloadSize = static_cast<uint16_t>(sizeof(InputPacket) + keys.size() * sizeof(int32_t));
-                std::vector<uint8_t> ibuf(payloadSize);
-                std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
-                if (!keys.empty())
-                    std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keys.size() * sizeof(int32_t));
-                PacketHeader outh{INPUT_PKT, static_cast<uint16_t>(ibuf.size()), inp.tick};
-                try {
-                    sock.send(outh, ibuf, serverEndpoint);
-                    if (VERBOSE)
-                        std::cout << "Client: sent input keyCount=" << inp.keyCount << " tick=" << inp.tick << std::endl;
-                } catch (const std::exception &ex) {
-                    if (VERBOSE)
-                        std::cerr << "Client: send error: " << ex.what() << std::endl;
+            if (!connected) {
+                if (nowMs - lastConnReqMs >= 1000u) {
+                    lastConnReqMs = nowMs;
+                    ConnectReq req{0u};
+                    std::vector<uint8_t> buf(sizeof(ConnectReq));
+                    std::memcpy(buf.data(), &req, sizeof(ConnectReq));
+                    PacketHeader h{CONNECT_REQ, static_cast<uint16_t>(buf.size()), 0};
+                    try { sock.send(h, buf, serverEndpoint); if (VERBOSE) std::cout << "Client: sent CONNECT_REQ" << std::endl; } catch (...) {}
+                }
+            } else {
+                if (nowMs - lastInputSendMs >= INPUT_SEND_MS) {
+                    lastInputSendMs = nowMs;
+                    InputPacket inp{};
+                    inp.clientId = 0;
+                    inp.tick = tick++;
+                    inp.keyCount = static_cast<uint16_t>(pressed.size());
+                    std::vector<int32_t> keys;
+                    keys.reserve(pressed.size());
+                    for (auto k : pressed)
+                        keys.push_back(static_cast<int32_t>(k));
+                    const uint16_t payloadSize = static_cast<uint16_t>(sizeof(InputPacket) + keys.size() * sizeof(int32_t));
+                    std::vector<uint8_t> ibuf(payloadSize);
+                    std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
+                    if (!keys.empty())
+                        std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keys.size() * sizeof(int32_t));
+                    PacketHeader outh{INPUT_PKT, static_cast<uint16_t>(ibuf.size()), inp.tick};
+                    try {
+                        sock.send(outh, ibuf, serverEndpoint);
+                        if (VERBOSE)
+                            std::cout << "Client: sent input keyCount=" << inp.keyCount << " tick=" << inp.tick << std::endl;
+                    } catch (const std::exception &ex) {
+                        if (VERBOSE)
+                            std::cerr << "Client: send error: " << ex.what() << std::endl;
+                    }
                 }
             }
 
@@ -110,7 +122,13 @@ int main(int argc, char **argv) {
                 auto [hdr, payload] = *pkt_opt;
                 if (VERBOSE)
                     std::cout << "Client: received packet type=" << int(hdr.type) << " size=" << hdr.size << std::endl;
-                if (hdr.type == SNAPSHOT && payload.size() >= sizeof(Snapshot)) {
+                if (hdr.type == CONNECT_ACK && payload.size() >= sizeof(ConnectAck)) {
+                    ConnectAck ack{};
+                    std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
+                    connected = true;
+                    if (VERBOSE) std::cout << "Client: CONNECT_ACK received tickRate=" << ack.tickRate << " playerId=" << ack.playerEntityId << std::endl;
+                }
+                else if (hdr.type == SNAPSHOT && payload.size() >= sizeof(Snapshot)) {
                     Snapshot snap{};
                     std::memcpy(&snap, payload.data(), sizeof(Snapshot));
                     if (VERBOSE)
@@ -119,21 +137,7 @@ int main(int argc, char **argv) {
                     size_t n = snap.entityCount;
                     size_t payloadEntitiesBytes = payload.size() - sizeof(Snapshot);
 
-                    struct EntityStateNoPlatform {
-                        uint32_t entityId;
-                        float x, y;
-                        float vx, vy;
-                        uint8_t type;
-                        uint8_t hp;
-                        bool collided;
-                        float hb_w;
-                        float hb_h;
-                        float hb_ox;
-                        float hb_oy;
-                    };
-
                     size_t countWithPlatform = (payloadEntitiesBytes) / sizeof(EntityState);
-                    size_t countNoPlatform = (payloadEntitiesBytes) / sizeof(EntityStateNoPlatform);
 
                     int playerCount = 0;
                     auto &positions = reg.get_components<component::position>();
@@ -143,10 +147,14 @@ int main(int argc, char **argv) {
                     auto &kinds = reg.get_components<component::entity_kind>();
 
                     if (countWithPlatform >= n) {
+                        // Track which entity IDs are present in this snapshot to prune stale client-side entities
+                        std::vector<uint8_t> present;
                         const EntityState *states = reinterpret_cast<const EntityState *>(payload.data() + sizeof(Snapshot));
                         for (size_t i = 0; i < n; ++i) {
                             const EntityState &es = states[i];
                             size_t idx = es.entityId;
+                            if (idx >= present.size()) present.resize(idx + 1, 0);
+                            present[idx] = 1;
                             if (idx >= positions.size())
                                 positions.insert_at(idx, component::position{});
                             if (idx >= velocities.size())
@@ -165,36 +173,29 @@ int main(int argc, char **argv) {
                             if (kinds[idx] == component::entity_kind::player)
                                 ++playerCount;
                         }
-                    } else if (countNoPlatform >= n) {
-                        const EntityStateNoPlatform *oldStates = reinterpret_cast<const EntityStateNoPlatform *>(payload.data() + sizeof(Snapshot));
-                        for (size_t i = 0; i < n; ++i) {
-                            const EntityStateNoPlatform &es = oldStates[i];
-                            size_t idx = es.entityId;
-                            if (idx >= positions.size())
-                                positions.insert_at(idx, component::position{});
-                            if (idx >= velocities.size())
-                                velocities.insert_at(idx, component::velocity{});
-                            if (idx >= hitboxes.size())
-                                hitboxes.insert_at(idx, component::hitbox{});
-                            if (idx >= platforms.size())
-                                platforms.insert_at(idx, component::platform{});
-                            if (idx >= kinds.size())
-                                kinds.insert_at(idx, component::entity_kind{});
-                            positions[idx] = component::position{es.x, es.y};
-                            velocities[idx] = component::velocity{es.vx, es.vy};
-                            hitboxes[idx] = component::hitbox{es.hb_w, es.hb_h, es.hb_ox, es.hb_oy};
-                            kinds[idx] = static_cast<component::entity_kind>(es.type);
-                            platforms[idx] = component::platform{0};
-                            if (kinds[idx] == component::entity_kind::player)
-                                ++playerCount;
+
+                        // Prune any local entities not present in this snapshot
+                        size_t maxSize = positions.size();
+                        for (size_t i = 0; i < maxSize; ++i) {
+                            bool isPresent = (i < present.size()) ? (present[i] != 0) : false;
+                            if (!isPresent) {
+                                if (i < positions.size()) positions.erase(i);
+                                if (i < velocities.size()) velocities.erase(i);
+                                if (i < hitboxes.size()) hitboxes.erase(i);
+                                if (i < platforms.size()) platforms.erase(i);
+                                if (i < kinds.size()) kinds.erase(i);
+                            }
                         }
                     } else {
                         size_t usable = std::min(n, countWithPlatform);
                         if (usable > 0) {
+                            std::vector<uint8_t> present;
                             const EntityState *states = reinterpret_cast<const EntityState *>(payload.data() + sizeof(Snapshot));
                             for (size_t i = 0; i < usable; ++i) {
                                 const EntityState &es = states[i];
                                 size_t idx = es.entityId;
+                                if (idx >= present.size()) present.resize(idx + 1, 0);
+                                present[idx] = 1;
                                 if (idx >= positions.size())
                                     positions.insert_at(idx, component::position{});
                                 if (idx >= velocities.size())
@@ -212,6 +213,19 @@ int main(int argc, char **argv) {
                                 platforms[idx] = component::platform{es.platformType};
                                 if (kinds[idx] == component::entity_kind::player)
                                     ++playerCount;
+                            }
+
+                            // Prune local entities not present in the subset parsed
+                            size_t maxSize = positions.size();
+                            for (size_t i = 0; i < maxSize; ++i) {
+                                bool isPresent = (i < present.size()) ? (present[i] != 0) : false;
+                                if (!isPresent) {
+                                    if (i < positions.size()) positions.erase(i);
+                                    if (i < velocities.size()) velocities.erase(i);
+                                    if (i < hitboxes.size()) hitboxes.erase(i);
+                                    if (i < platforms.size()) platforms.erase(i);
+                                    if (i < kinds.size()) kinds.erase(i);
+                                }
                             }
                         }
                         if (VERBOSE)
@@ -265,6 +279,9 @@ int main(int argc, char **argv) {
                         g = 200;
                         b = 0;
                     }
+                    else if (k == component::entity_kind::playerProjectile) {
+                        r = 255; g = 60; b = 60; // player bullet
+                    }
                     else if (k == component::entity_kind::decor) {
                         if (i < platforms.size() && platforms[i] && platforms[i].has_value()) {
                             uint8_t pk = platforms[i].value().kind;
@@ -293,20 +310,17 @@ int main(int argc, char **argv) {
                         b = 0;
                     }
                 }
-                SDL_SetRenderDrawColor(ren, r, g, b, a);
-                SDL_Rect rect{screenX, screenY, static_cast<int>(hb.width), static_cast<int>(hb.height)};
-                SDL_RenderFillRect(ren, &rect);
+                renderer.setDrawColor(r, g, b, a);
+                renderer.fillRect(screenX, screenY, static_cast<int>(hb.width), static_cast<int>(hb.height));
 
                 if (static_cast<ssize_t>(i) == playerIdx) {
-                    SDL_SetRenderDrawColor(ren, 0, 255, 0, 255);
-                    SDL_Rect outline{screenX - 2, screenY - 2, static_cast<int>(hb.width) + 4, static_cast<int>(hb.height) + 4};
-                    SDL_RenderDrawRect(ren, &outline);
+                    renderer.setDrawColor(0, 255, 0, 255);
+                    renderer.drawRect(screenX - 2, screenY - 2, static_cast<int>(hb.width) + 4, static_cast<int>(hb.height) + 4);
                 }
             }
             if (playerIdx == -1) {
-                SDL_SetRenderDrawColor(ren, 255, 0, 0, 255);
-                SDL_Rect dbg{(SCREEN_W / 2) - 40, (SCREEN_H / 2) - 40, 80, 80};
-                SDL_RenderFillRect(ren, &dbg);
+                renderer.setDrawColor(255, 0, 0, 255);
+                renderer.fillRect((SCREEN_W / 2) - 40, (SCREEN_H / 2) - 40, 80, 80);
                 if (VERBOSE && SDL_GetTicks() - lastParseLogMs > 1000u) {
                     std::cerr << "Client: WARNING - no player entity found in snapshot (drawing debug rect)" << std::endl;
                 }
