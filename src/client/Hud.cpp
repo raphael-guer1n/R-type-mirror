@@ -147,8 +147,14 @@ void R_Type::Hud::drawOverlay(R_Type::Rtype &rtype)
 
         std::string text = "LEVEL " + std::to_string(_levelToDisplay);
 
-        drawText(text, 0.5, 100, 100, rtype);
+        int winW = 0, winH = 0;
+        SDL_GetRendererOutputSize(win.getRenderer(), &winW, &winH);
 
+        float spacing = 33.0f * 0.5f;
+        float totalWidth = text.size() * spacing;
+        float posX = (winW - totalWidth) / 2.0f;
+
+        drawText(text, 0.5f, posX, 40.0f, rtype);
         return;
     }
 }
