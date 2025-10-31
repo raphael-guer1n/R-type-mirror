@@ -41,12 +41,10 @@ void AccessibilityConfig::load_from_json(const std::string &path)
         auto v = j["visual"];
         if (v.contains("contrast_mode")) contrast_mode = v["contrast_mode"].get<bool>();
         if (v.contains("mode_daltonien")) mode_daltonien = v["mode_daltonien"].get<std::string>();
-        if (v.contains("flash_effect")) flash_effect = v["flash_effect"].get<bool>();
-        if (v.contains("taille_hud")) taille_hud = v["taille_hud"].get<float>();
+
     }
     if (j.contains("audio")) {
         auto a = j["audio"];
-        if (a.contains("subtitles")) subtitles = a["subtitles"].get<bool>();
         if (a.contains("indicateurs_visuals_audio")) indicateurs_visuals_audio = a["indicateurs_visuals_audio"].get<bool>();
         if (a.contains("volume_general")) volume_general = a["volume_general"].get<float>();
     }

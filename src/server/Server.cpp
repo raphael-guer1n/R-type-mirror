@@ -132,7 +132,9 @@ void server::run()
       
       {
         PROFILE_SCOPE("Physics Systems");
-        position_system(_registry, positions, velocities, 1.0f / 60.0f);
+        float dt = 1.0f / 60.0f;
+        float speedFactor = AccessibilityConfig::enabled ? AccessibilityConfig::speed_game : 1.0f;
+        position_system(_registry, positions, velocities, dt * speedFactor);
         _registry.run_systems();
       }
       
