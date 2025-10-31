@@ -1,14 +1,11 @@
 {
   "visual": {
     "contrast_mode": true,
-    "mode_daltonien": "deuteranopie",
-    "flash_effect": false,
-    "taille_hud": 18
+    "mode_daltonien": "deuteranopie"
   },
   "audio": {
-    "subtitles": true,
     "indicateurs_visuals_audio": true,
-    "volume_general": 0.8
+    "volume_general": 0.2
   },
   "enter": {
     "key_remap": {
@@ -23,6 +20,6 @@
   },
   "cognitive": {
     "less_movement": true,
-    "speed_game": 0.4
+    "speed_game": 0.5
   }
 }
