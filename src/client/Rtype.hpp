@@ -82,10 +82,15 @@ namespace R_Type
         void draw();
         engine::R_Graphic::App &getApp();
         engine::registry &getRegistry();
+        void requestLobbyList();
+        void createLobby(const std::string& name);
+        void joinLobby(uint8_t lobbyId);
+        std::vector<LobbyInfo> getLobbies();
 
     private:
         void waiting_connection();
         void handle_collision(engine::registry &reg, size_t i, size_t j);
+        void handleListLobby(const std::vector<uint8_t> &payload);
 
     private:
         std::unique_ptr<engine::net::NetClient> _client;
@@ -111,6 +116,7 @@ namespace R_Type
         std::unordered_map<size_t, int> _playerIndexByLocalId;
         bool _showHitboxes = false;
         int _hitboxOverlayThickness = 3;
+        std::vector<LobbyInfo> _lobbies;
     };
     void setAnimation(component::animation &anim, const std::string &clip, bool reverse);
 }

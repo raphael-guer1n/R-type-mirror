@@ -24,8 +24,7 @@ R_Type::Rtype::Rtype()
         _client->set_packet_handler([this](
             const PacketHeader&hdr,
             const std::vector<uint8_t> &payload) {
-            if (hdr.type == CONNECT_ACK && payload.size() >= sizeof(ConnectAck))
-            {
+            if (hdr.type == CONNECT_ACK && payload.size() >= sizeof(ConnectAck)) {
                 ConnectAck ack{};
                 std::memcpy(&ack, payload.data(), sizeof(ack));
                 _player = ack.playerEntityId;
@@ -34,22 +33,22 @@ R_Type::Rtype::Rtype()
                 std::cout << "Connected to server as player " << _player << "\n";
                 return;
             }
-
-            if (hdr.type == SNAPSHOT && payload.size() >= sizeof(Snapshot))
-            {
+            if (hdr.type == SNAPSHOT && payload.size() >= sizeof(Snapshot)) {
                 Snapshot snap{};
                 std::memcpy(&snap, payload.data(), sizeof(snap));
                 _pendingSnapshots.push_back({hdr, payload});
             }
-
-            if (hdr.type == GAME_OVER && payload.size() >= sizeof(GameOverPayload))
-            {
+            if (hdr.type == GAME_OVER && payload.size() >= sizeof(GameOverPayload)) {
                 GameOverPayload go{};
                 std::memcpy(&go, payload.data(), sizeof(go));
                 _gameOver = true;
                 _won = (_player == go.winnerEntityId);
             }
+            if (hdr.type == LOBBY_LIST_RESPONSE && payload.size() >= sizeof(LobbyListResponse)) {
+                handleListLobby(payload);
+            }
         });
+        _client->start();
         _registry.register_component<component::drawable>();
         _registry.register_component<component::position>();
         _registry.register_component<component::velocity>();
@@ -73,24 +72,24 @@ R_Type::Rtype::Rtype()
 }
 
 void R_Type::Rtype::update(float deltaTime,
-                           const std::vector<R_Events::Event> &events)
+    const std::vector<R_Events::Event> &events)
 {
     if (_gameOver)
         return;
     if (_inMenu)
     {
-        bool start = _menu->update(events);
+        bool start = _menu->update(events, *this);
         if (start)
         {
             _inMenu = false;
-            _client->start();
-            std::cout << "Sent CONNECT_REQ\n";
+            // _client->start();
+            // std::cout << "Sent CONNECT_REQ\n";
         }
         return;
     }
     if (!_connected && !_inMenu)
     {
-        waiting_connection();
+        // waiting_connection();
         return;
     }
     for (auto &ev : events)

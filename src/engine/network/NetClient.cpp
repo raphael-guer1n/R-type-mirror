@@ -26,11 +26,11 @@ void NetClient::start()
 
     std::cout << "Client started, connecting to " << _serverIp << ":" << _serverPort << "\n";
 
-    ConnectReq req{42};
-    PacketHeader hdr{CONNECT_REQ, sizeof(ConnectReq), 0};
-    std::vector<uint8_t> buf(sizeof(ConnectReq));
-    std::memcpy(buf.data(), &req, sizeof(ConnectReq));
-    send(hdr, buf);
+    // ConnectReq req{42};
+    // PacketHeader hdr{CONNECT_REQ, sizeof(ConnectReq), 0};
+    // std::vector<uint8_t> buf(sizeof(ConnectReq));
+    // std::memcpy(buf.data(), &req, sizeof(ConnectReq));
+    // send(hdr, buf);
 }
 
 void NetClient::stop()

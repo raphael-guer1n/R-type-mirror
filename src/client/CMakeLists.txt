@@ -7,6 +7,7 @@ add_executable(r-type_client
     Menu.cpp
     Enemy.cpp
     Gameover.cpp
+    Lobby.cpp
 )
 
 target_include_directories(r-type_client PRIVATE

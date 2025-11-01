@@ -1,6 +1,8 @@
-#include "Menu.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <string>
+#include "Menu.hpp"
+#include "Rtype.hpp"
 #include "engine/audio/Music.hpp"
 
 R_Type::Menu::Menu(engine::R_Graphic::App &app)
@@ -53,6 +55,13 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::intVec2(_buttonWidth, _buttonHeight)
     );
 
+    _input = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/input.png",
+        engine::R_Graphic::doubleVec2(620, 10),
+        engine::R_Graphic::intVec2(550, 150)
+    );
+
     _quitButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(),
         "./Assets/Menu/quit_btn.png",
@@ -71,6 +80,20 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         _app.getWindow(),
         "./Assets/Menu/back_btn.png",
         engine::R_Graphic::doubleVec2(startX, y),
+        engine::R_Graphic::intVec2(optionSize, optionSize)
+    );
+
+    _refresh = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/refresh_btn.png",
+        engine::R_Graphic::doubleVec2(1770, 10),
+        engine::R_Graphic::intVec2(optionSize, optionSize)
+    );
+
+    _acceptButton = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/accept_btn.png",
+        engine::R_Graphic::doubleVec2(1200, 10),
         engine::R_Graphic::intVec2(optionSize, optionSize)
     );
 
@@ -117,11 +140,24 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
     } else {
         std::cerr << "[AUDIO] Failed to load Menu.ogg\n";
     }
+    _font = TTF_OpenFont("./Assets/fonts/arial.ttf", 64);
+    if (!_font)
+        std::cerr << "Failed to load font\n";
 }
 
-bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
+bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
+    Rtype& rtype)
 {
     for (auto &ev : events) {
+        if (_typing && ev.type == engine::R_Events::Type::KeyDown &&
+            !_lobbyName.empty() &&
+            ev.key.code == engine::R_Events::Key::Backspace) {
+            _lobbyName.pop_back();
+        } else if (ev.type == engine::R_Events::Type::KeyDown &&
+            static_cast<int>(ev.key.code) >= 32 &&
+            static_cast<int>(ev.key.code) <= 126) {
+            _lobbyName.push_back(static_cast<char>(ev.key.code));
+        }
         if (ev.type != engine::R_Events::Type::MouseButtonDown)
             continue;
 
@@ -131,17 +167,18 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
         if (_currentPage == Page::Main) {
             if (x >= _centerX && x <= _centerX + _buttonWidth &&
                 y >= _winH / 2 - 150 && y <= _winH / 2 - 150 + _buttonHeight) {
-                _startPressed = true;
+                _currentPage = Page::Lobby;
+                // _startPressed = true;
 
-                _menuMusic.stop();
+                // _menuMusic.stop();
 
-                if (_gameMusic.load("./Assets/Music/Game.ogg")) {
-                    _gameMusic.play(true);
-                } else {
-                    std::cerr << "[AUDIO] Failed to load Game.ogg\n";
-                }
+                // if (_gameMusic.load("./Assets/Music/Game.ogg")) {
+                //     _gameMusic.play(true);
+                // } else {
+                //     std::cerr << "[AUDIO] Failed to load Game.ogg\n";
+                // }
 
-                return true;
+                // return true;
             }
 
             if (x >= _centerX && x <= _centerX + _buttonWidth &&
@@ -198,6 +235,23 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
                     SDL_SetWindowPosition(sdlWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                 }
             }
+        } else if (_currentPage == Page::Lobby) {
+            if (x >= 0 && x <= 150 && y >= 10 && y <= 160) {
+                _currentPage = Page::Main;
+            }
+            if (x >= 620 && x <= 1170 && y >= 10 && y <= 160) {
+                _typing = true;
+            } else {
+                _typing = false;
+            }
+            if (x >= 1200 && x <= 1350 && y >= 10 && y <= 160) {
+                if (!_lobbyName.empty())
+                    rtype.createLobby(_lobbyName);
+            }
+            if (x >= 1770 && x <= 1920 && y >= 10 && y <= 160) {
+                std::cout << "REQ LOBBY" << std::endl;
+                rtype.requestLobbyList();
+            }
         }
     }
     return false;
@@ -209,6 +263,8 @@ void R_Type::Menu::draw()
         drawMainMenu();
     else if (_currentPage == Page::Settings)
         drawSettingsMenu();
+    else if (_currentPage == Page::Lobby)
+        drawLobbyMenu();
 }
 
 void R_Type::Menu::drawMainMenu()
@@ -227,4 +283,46 @@ void R_Type::Menu::drawSettingsMenu()
     _backButton->draw(_app.getWindow(), nullptr);
     _soundButton->draw(_app.getWindow(), nullptr);
     _windowButton->draw(_app.getWindow(), nullptr);
+}
+
+void R_Type::Menu::drawLobbyMenu()
+{
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Color yellow = {240, 225, 60, 255};
+
+    _background->draw(_app.getWindow(), nullptr);
+    _refresh->draw(_app.getWindow(), nullptr);
+    _backButton->setPosition(0, 10);
+    _backButton->draw(_app.getWindow(), nullptr);
+    _input->draw(_app.getWindow(), nullptr);
+    _acceptButton->draw(_app.getWindow(), nullptr);
+    if (!_lobbyName.empty()) {
+        if (!_typing)
+            drawText(_app.getWindow().getRenderer(), _lobbyName, 650, 44, white);
+        else
+            drawText(_app.getWindow().getRenderer(), _lobbyName, 650, 44, yellow);
+    }
+}
+
+void R_Type::Menu::drawText(SDL_Renderer *renderer, const std::string &text, int x, int y, SDL_Color color)
+{
+    if (!_font) return;
+
+    SDL_Surface* surface = TTF_RenderText_Solid(_font, text.c_str(), color);
+    if (!surface) {
+        std::cerr << "RenderText failed: " << TTF_GetError() << std::endl;
+        return;
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!texture) {
+        SDL_FreeSurface(surface);
+        return;
+    }
+
+    SDL_Rect destRect = { x, y, surface->w, surface->h };
+    SDL_RenderCopy(renderer, texture, nullptr, &destRect);
+
+    SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
 }

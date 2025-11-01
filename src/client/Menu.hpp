@@ -44,6 +44,7 @@
 
 #pragma once
 
+#include <SDL_ttf.h>
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Texture.hpp"
 #include "engine/events/Events.hpp"
@@ -51,38 +52,47 @@
 
 namespace R_Type {
 
+class Rtype;
 class Menu {
 public:
     explicit Menu(engine::R_Graphic::App &app);
     ~Menu() = default;
 
-    bool update(const std::vector<engine::R_Events::Event> &events);
+    bool update(const std::vector<engine::R_Events::Event> &events, Rtype& rtype);
     void draw();
 
     private:
         enum class Page {
             Main,
-            Settings
+            Settings,
+            Lobby
         };
         engine::audio::Music _menuMusic;
         engine::audio::Music _gameMusic;
 
         void drawMainMenu();
         void drawSettingsMenu();
+        void drawLobbyMenu();
+        void drawText(SDL_Renderer* renderer,
+            const std::string& text, int x, int y, SDL_Color color);
 
         engine::R_Graphic::App &_app;
         Page _currentPage = Page::Main;
 
         std::shared_ptr<engine::R_Graphic::Texture> _background;
+        std::shared_ptr<engine::R_Graphic::Texture> _refresh;
         std::shared_ptr<engine::R_Graphic::Texture> _settingsBackground;
 
         std::shared_ptr<engine::R_Graphic::Texture> _startButton;
         std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;
         std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _acceptButton;
 
         std::shared_ptr<engine::R_Graphic::Texture> _backButton;
         std::shared_ptr<engine::R_Graphic::Texture> _soundButton;
         std::shared_ptr<engine::R_Graphic::Texture> _windowButton;
+
+        std::shared_ptr<engine::R_Graphic::Texture> _input;
 
         std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
 
@@ -95,5 +105,9 @@ public:
         int _buttonHeight = 0;
         int _centerX = 0;
         int _winH = 0;
+
+        std::string _lobbyName = "Rtype";
+        TTF_Font *_font = nullptr;
+        bool _typing = false;
 };
 }
