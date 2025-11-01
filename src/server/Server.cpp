@@ -163,10 +163,10 @@ void server::run()
       const auto& frameMetrics = profiler.getFrameMetrics();
       const auto& memMetrics = profiler.getMemoryMetrics();
       
-      std::cout << "[Profiling] FPS: " << std::fixed << std::setprecision(1) << frameMetrics.displayFps
-                << " | Frame: " << frameMetrics.displayFrameTime << "ms"
-                << " | Entities: " << _live_entities.size()
-                << " | Memory: " << (memMetrics.physicalMemoryUsed / 1024.0 / 1024.0) << "MB\n";
+      // std::cout << "[Profiling] FPS: " << std::fixed << std::setprecision(1) << frameMetrics.displayFps
+      //           << " | Frame: " << frameMetrics.displayFrameTime << "ms"
+      //           << " | Entities: " << _live_entities.size()
+      //           << " | Memory: " << (memMetrics.physicalMemoryUsed / 1024.0 / 1024.0) << "MB\n";
     }
   }
 }

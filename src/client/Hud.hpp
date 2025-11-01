@@ -36,10 +36,12 @@ namespace R_Type
         void setChargeLevel(R_Type::Rtype &rtype, float level);
         void drawOverlay(R_Type::Rtype &rtype);
         void startLevelAnimation(int level, engine::registry &registry);
-        void drawText(std::string &text, float hudScale, float x, float y, R_Type::Rtype &rtype);
+        void drawText(std::string &text, float hudScale, float x, float y,
+            R_Type::Rtype &rtype, bool level = false);
 
     private:
         std::optional<size_t> _chargeFillLocalId;
+        engine::registry _registry;
         float _chargeLevel = 0.f;
         int _barOriginX = 0;
         int _barOriginY = 0;
