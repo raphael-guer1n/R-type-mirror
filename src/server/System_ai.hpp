@@ -180,7 +180,7 @@ namespace systems
         }
     };
 
-/*     ai_dispatcher["boss_laser"] = [](entity_t e, registry &r, uint32_t tick,
+    ai_dispatcher["boss_laser"] = [](entity_t e, registry &r, uint32_t tick,
                                       auto &pos, auto &vel, auto &ai)
     {
         vel.vx = -ai.speed * 0.5f;
@@ -218,7 +218,7 @@ namespace systems
                 }
             }
         }
-    }; */
+    };
 }
 
   inline void enemy_ai_system(registry &r,
