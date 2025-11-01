@@ -22,7 +22,7 @@ R_Type::Rtype::Rtype()
     : _app("R-Type", 1920, 1080)
 {
     engine::audio::AudioManager::instance().loadConfig("./configs/audio_config.json");
-    
+ 
     _profilerOverlay = std::make_unique<Engine::Profiling::ProfilerOverlay>();
     if (_profilerOverlay->initialize(_app.getWindow().getRenderer(), "Assets/fonts/arial.ttf")) {
         Engine::Profiling::ProfilerDisplayConfig config;
@@ -56,6 +56,8 @@ R_Type::Rtype::Rtype()
         _registry.register_component<component::collision_state>();
         _registry.register_component<component::animation>();
         _registry.register_component<component::lifetime>();
+        _registry.register_component<component::hud_tag>();
+        _registry.register_component<component::health>();
         _registry.register_component<component::hitbox>();
         _background = std::make_unique<Background>(*this);
         _playerData = std::make_unique<Player>(*this);
