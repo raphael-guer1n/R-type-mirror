@@ -4,6 +4,7 @@
 #include <random>
 #include <vector>
 #include <cstring>
+#include <cmath>
 
 using namespace engine;
 #include "engine/network/IoContext.hpp"
@@ -284,6 +285,50 @@ int main(int argc, char **argv)
                 auto &poss = reg.get_components<component::position>();
                 if (gameStarted) {
                     position_system(reg, poss, vels, fixedDt);
+
+                    // Horizontal wrap for player (Doodle Jump style)
+                    auto &hbsAll = reg.get_components<component::hitbox>();
+                    if (player < poss.size() && poss[player] && poss[player].has_value() &&
+                        player < hbsAll.size() && hbsAll[player] && hbsAll[player].has_value()) {
+                        auto &pp = poss[player].value();
+                        const auto &phb = hbsAll[player].value();
+                        float left = pp.x + phb.offset_x;
+                        float right = left + phb.width;
+                        if (left > SCREEN_W) {
+                            pp.x = -phb.width - phb.offset_x;
+                        } else if (right < 0.f) {
+                            pp.x = SCREEN_W - phb.offset_x;
+                        }
+                    }
+
+                    // Moving platforms (kind==1) bounce within screen bounds
+                    auto &platsAll = reg.get_components<component::platform>();
+                    auto &velsAll = reg.get_components<component::velocity>();
+                    auto &hbs = reg.get_components<component::hitbox>();
+                    for (auto e : platforms) {
+                        if (e >= platsAll.size() || !platsAll[e] || !platsAll[e].has_value())
+                            continue;
+                        if (platsAll[e].value().kind != 1)
+                            continue;
+                        if (e >= poss.size() || !poss[e] || !poss[e].has_value())
+                            continue;
+                        if (e >= velsAll.size() || !velsAll[e] || !velsAll[e].has_value())
+                            continue;
+                        if (e >= hbs.size() || !hbs[e] || !hbs[e].has_value())
+                            continue;
+                        auto &p = poss[e].value();
+                        auto &v = velsAll[e].value();
+                        const auto &hb = hbs[e].value();
+                        float left = p.x + hb.offset_x;
+                        float right = left + hb.width;
+                        if (left < 0.f) {
+                            p.x = -hb.offset_x;
+                            v.vx = std::abs(v.vx);
+                        } else if (right > SCREEN_W) {
+                            p.x = SCREEN_W - hb.width - hb.offset_x;
+                            v.vx = -std::abs(v.vx);
+                        }
+                    }
                 }
 
                 if (gameStarted && poss[player] && poss[player].has_value()) {
