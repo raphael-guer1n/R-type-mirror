@@ -8,3 +8,5 @@ vcpkg_installed/
 vcpkg
 Debug/
 Release/
+doodle_server
+doodle_client
