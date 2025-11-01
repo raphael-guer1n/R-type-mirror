@@ -407,17 +407,29 @@ void R_Type::Rtype::receiveSnapshot()
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
                         break;
                     case component::entity_kind::enemy:
-                    if (es.entityId % 3 == 0)
-                        _enemyData->setType("boss");
-                    else if (es.entityId % 2 == 0)
-                        _enemyData->setType("shooter");
-                    else
-                        _enemyData->setType("crawler");
+                    {
+                        const uint32_t id = es.entityId;
+
+                        /* if (id % 9 == 0)
+                            _enemyData->setType("boss_laser"); */
+                        if (id % 7 == 0)
+                            _enemyData->setType("boss");
+                        else if (id % 5 == 0)
+                            _enemyData->setType("spinner");
+                        else if (id % 4 == 0)
+                            _enemyData->setType("charger");
+                        else if (id % 3 == 0)
+                            _enemyData->setType("shooter");
+                        else
+                            _enemyData->setType("crawler");
+
                         tex = _enemyData->enemyTexture;
                         rect = _enemyData->enemyRect;
+
                         ensure_slot(hitboxes, idLocal, component::hitbox{152, 100});
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Enemies});
                         break;
+                    }
                     default:
                         tex = _playerData->playerTexture;
                         rect = _playerData->playerRect;

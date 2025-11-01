@@ -62,103 +62,164 @@ namespace systems
 }
 
   inline void init_ai_behaviors()
-  {
+{
+    // === ENNEMI BASIQUE : avance en ligne droite ===
     ai_dispatcher["basic"] = [](entity_t, registry &, uint32_t, auto &, auto &vel, auto &ai)
     {
-      vel.vx = -ai.speed;
-      vel.vy = 0.f;
+        vel.vx = -ai.speed;
+        vel.vy = 0.f;
     };
 
+    // === ENNEMI ZIGZAG : mouvement sinusoïdal ===
     ai_dispatcher["zigzag"] = [](entity_t, registry &, uint32_t tick,
                                  auto &, auto &vel, auto &ai)
     {
-      vel.vx = -ai.speed;
-      vel.vy = std::sin(tick * 0.01f) * ai.speed;
+        vel.vx = -ai.speed;
+        vel.vy = std::sin(tick * 0.01f) * ai.speed;
     };
 
-    ai_dispatcher["straight_shooter"] =
-        [](entity_t e, registry &r, uint32_t tick,
-           auto &pos, auto &vel, auto &ai)
+    // === ENNEMI TIREUR DROIT (shooter) ===
+    ai_dispatcher["straight_shooter"] = [](entity_t e, registry &r, uint32_t tick,
+                                            auto &pos, auto &vel, auto &ai)
     {
-      vel.vx = -ai.speed;
-      vel.vy = 0.f;
+        vel.vx = -ai.speed;
+        vel.vy = 0.f;
 
-      auto &sbArr = r.get_components<component::spellbook>();
-      if (e >= sbArr.size() || !sbArr[e])
-        return;
-      auto &spells = sbArr[e]->spells;
-      for (auto &s : spells)
-      {
-        if (tick > s.lastCast + s.cooldown)
+        auto &sbArr = r.get_components<component::spellbook>();
+        if (e >= sbArr.size() || !sbArr[e])
+            return;
+
+        auto &spells = sbArr[e]->spells;
+        for (auto &s : spells)
         {
-          s.lastCast = tick;
-          float speedVal =
-              std::sqrt(s.speedX * s.speedX + s.speedY * s.speedY);
-          auto proj = server_spawn_projectile(
-              r, e, pos.x, pos.y,
-              s.speedX, s.speedY,
-              speedVal,
-              s.damage,
-              s.width, s.height, 300);
-          systems::spawned_projectiles.push_back(proj);
+            if (tick > s.lastCast + s.cooldown)
+            {
+                s.lastCast = tick;
+                float speedVal = std::sqrt(s.speedX * s.speedX + s.speedY * s.speedY);
+                auto proj = server_spawn_projectile(
+                    r, e, pos.x, pos.y,
+                    s.speedX, s.speedY,
+                    speedVal, s.damage,
+                    s.width, s.height, 300);
+                systems::spawned_projectiles.push_back(proj);
+            }
         }
-      }
     };
 
-    ai_dispatcher["boss"] =
-        [](entity_t e, registry &r, uint32_t tick,
-           auto &pos, auto &vel, auto &ai)
+    // === ENNEMI TOURNANT (spinner) : tourne autour d’un point imaginaire ===
+    ai_dispatcher["spinner"] = [](entity_t, registry &, uint32_t tick,
+                                  auto &pos, auto &vel, auto &ai)
     {
-      vel.vx = -ai.speed;
-      vel.vy = std::sin(tick * 0.005f) * ai.speed;
-      auto &sbArr = r.get_components<component::spellbook>();
-      if (e >= sbArr.size() || !sbArr[e])
-        return;
-
-      auto &spells = sbArr[e]->spells;
-      auto &positions = r.get_components<component::position>();
-      auto &kinds = r.get_components<component::entity_kind>();
-
-      for (auto &s : spells)
-      {
-        if (tick <= s.lastCast + s.cooldown)
-          continue;
-        s.lastCast = tick;
-        for (size_t i = 0; i < kinds.size(); ++i)
-        {
-          if (!kinds[i] ||
-              kinds[i].value() != component::entity_kind::player)
-            continue;
-          if (i >= positions.size() || !positions[i])
-            continue;
-          const auto &pPos = positions[i].value();
-          float dx = pPos.x - pos.x;
-          float dy = pPos.y - pos.y;
-          float len = std::sqrt(dx * dx + dy * dy);
-          if (len <= 0.001f)
-            continue;
-          dx /= len;
-          dy /= len;
-          float speedVal =
-              std::sqrt(s.speedX * s.speedX + s.speedY * s.speedY);
-          std::cout << "projectile size " << s.width << "x" << s.height << "\n";
-          auto proj = server_spawn_projectile(
-              r,
-              e,
-              pos.x,
-              pos.y,
-              dx,
-              dy,
-              speedVal,
-              s.damage,
-              s.width,
-              s.height,
-              300);
-          systems::spawned_projectiles.push_back(proj);
-        }
-      }
+        float radius = 2.0f;
+        vel.vx = -ai.speed + std::cos(tick * 0.05f) * radius;
+        vel.vy = std::sin(tick * 0.05f) * radius;
     };
-  }
+
+    // === ENNEMI CHARGER (fonce en ligne droite, s’arrête, repart) ===
+    ai_dispatcher["charger"] = [](entity_t, registry &, uint32_t tick,
+                                  auto &, auto &vel, auto &ai)
+    {
+        float phase = std::fmod(tick / 120.0f, 4.0f);
+        if (phase < 1.5f)
+        {
+            vel.vx = -ai.speed * 2.0f; // charge rapide
+            vel.vy = 0.f;
+        }
+        else
+        {
+            vel.vx = -ai.speed * 0.3f; // ralentit
+            vel.vy = 0.f;
+        }
+    };
+
+    // === ENNEMI BOSS ===
+    ai_dispatcher["boss"] = [](entity_t e, registry &r, uint32_t tick,
+                                auto &pos, auto &vel, auto &ai)
+    {
+        vel.vx = -ai.speed;
+        vel.vy = std::sin(tick * 0.005f) * ai.speed;
+
+        auto &sbArr = r.get_components<component::spellbook>();
+        if (e >= sbArr.size() || !sbArr[e])
+            return;
+
+        auto &spells = sbArr[e]->spells;
+        auto &positions = r.get_components<component::position>();
+        auto &kinds = r.get_components<component::entity_kind>();
+
+        for (auto &s : spells)
+        {
+            if (tick <= s.lastCast + s.cooldown)
+                continue;
+            s.lastCast = tick;
+
+            for (size_t i = 0; i < kinds.size(); ++i)
+            {
+                if (!kinds[i] || kinds[i].value() != component::entity_kind::player)
+                    continue;
+                if (i >= positions.size() || !positions[i])
+                    continue;
+
+                const auto &pPos = positions[i].value();
+                float dx = pPos.x - pos.x;
+                float dy = pPos.y - pos.y;
+                float len = std::sqrt(dx * dx + dy * dy);
+                if (len <= 0.001f)
+                    continue;
+                dx /= len;
+                dy /= len;
+
+                float speedVal = std::sqrt(s.speedX * s.speedX + s.speedY * s.speedY);
+                auto proj = server_spawn_projectile(
+                    r, e, pos.x, pos.y,
+                    dx, dy,
+                    speedVal, s.damage,
+                    s.width, s.height, 300);
+                systems::spawned_projectiles.push_back(proj);
+            }
+        }
+    };
+
+/*     ai_dispatcher["boss_laser"] = [](entity_t e, registry &r, uint32_t tick,
+                                      auto &pos, auto &vel, auto &ai)
+    {
+        vel.vx = -ai.speed * 0.5f;
+        vel.vy = std::sin(tick * 0.004f) * (ai.speed * 0.8f);
+
+        auto &sbArr = r.get_components<component::spellbook>();
+        if (e >= sbArr.size() || !sbArr[e])
+            return;
+
+        auto &spells = sbArr[e]->spells;
+        for (auto &s : spells)
+        {
+            if (tick > s.lastCast + s.cooldown)
+            {
+                s.lastCast = tick;
+
+                std::vector<std::pair<float, float>> dirs = {
+                    {-1.f, 0.f},
+                    {-0.8f, 0.3f},
+                    {-0.8f, -0.3f}};
+
+                for (auto [dx, dy] : dirs)
+                {
+                    float len = std::sqrt(dx * dx + dy * dy);
+                    if (len <= 0.01f)
+                        continue;
+                    dx /= len;
+                    dy /= len;
+
+                    float speedVal = std::sqrt(s.speedX * s.speedX + s.speedY * s.speedY);
+                    auto proj = server_spawn_projectile(
+                        r, e, pos.x, pos.y, dx, dy, speedVal,
+                        s.damage, s.width, s.height, 400);
+                    systems::spawned_projectiles.push_back(proj);
+                }
+            }
+        }
+    }; */
+}
 
   inline void enemy_ai_system(registry &r,
                               sparse_array<component::position> &positions,

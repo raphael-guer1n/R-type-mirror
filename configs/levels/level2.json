@@ -2,6 +2,7 @@
   "duration": 12,
   "entities": [
     { "config": "configs/enemy/crawler.json", "x": 2000, "y": 200, "velocityX": -150, "velocityY": 0 },
-    { "config": "configs/enemy/shooter.json", "x": 2200, "y": 600, "velocityX": -200, "velocityY": 0 }
+    { "config": "configs/enemy/shooter.json", "x": 2200, "y": 600, "velocityX": -200, "velocityY": 0 },
+    { "config": "configs/enemy/spinner.json", "x": 2200, "y": 600, "velocityX": -250, "velocityY": 0 }
   ]
 }

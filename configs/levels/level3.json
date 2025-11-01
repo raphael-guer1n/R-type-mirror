@@ -1,6 +1,9 @@
 {
   "duration": 15,
   "entities": [
-    { "config": "configs/enemy/boss.json", "x": 2500, "y": 400, "velocityX": -50, "velocityY": 0 }
+    { "config": "configs/enemy/boss.json", "x": 2500, "y": 400, "velocityX": -50, "velocityY": 0 },
+    { "config": "configs/enemy/charger.json", "x": 2200, "y": 600, "velocityX": -200, "velocityY": 0 },
+    { "config": "configs/enemy/crawler.json", "x": 2200, "y": 600, "velocityX": -200, "velocityY": 0 }
+
   ]
 }
