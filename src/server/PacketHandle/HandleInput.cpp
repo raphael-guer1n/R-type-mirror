@@ -1,8 +1,9 @@
-#include "Server.hpp"
-#include "SpawnProjectile.hpp"
+#include "server/Server.hpp"
+#include "server/SpawnProjectile.hpp"
 #include "engine/events/Events.hpp"
+#include "server/GameLogic.hpp"
 
-void server::handle_input(const engine::net::Endpoint &sender,
+void GameLogic::handle_input(const engine::net::Endpoint &sender,
   const std::vector<uint8_t> &payload)
 {
   if (payload.size() < sizeof(InputPacket))

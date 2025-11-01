@@ -2,8 +2,9 @@
 #include "server/Components_ai.hpp"
 #include "server/System_ai.hpp"
 #include "common/Systems.hpp"
+#include "server/GameLogic.hpp"
 
-void server::register_gravity_system()
+void GameLogic::register_gravity_system()
 {
   _registry.add_system<component::projectile_tag, component::gravity, component::velocity>(
       [this](engine::registry &reg,

@@ -1,8 +1,9 @@
 #include "server/Server.hpp"
 #include "server/System_ai.hpp"
 #include "common/Systems.hpp"
+#include "server/GameLogic.hpp"
 
-void server::register_projectile_movement_system()
+void GameLogic::register_projectile_movement_system()
 {
   _registry.add_system<component::position, component::projectile_tag>(
       [this](engine::registry &reg,

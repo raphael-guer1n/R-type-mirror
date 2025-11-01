@@ -4,8 +4,9 @@
 #include "common/Systems.hpp"
 #include "server/ServerUtils.hpp"
 #include "server/SpawnProjectile.hpp"
+#include "server/GameLogic.hpp"
 
-void server::register_collision_system()
+void GameLogic::register_collision_system()
 {
     _registry.add_system<component::position, component::hitbox>(
         [this](engine::registry &reg,

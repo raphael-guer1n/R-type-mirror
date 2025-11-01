@@ -3,8 +3,9 @@
 #include "server/System_ai.hpp"
 #include "common/Systems.hpp"
 #include "server/ServerUtils.hpp"
+#include "server/GameLogic.hpp"
 
-void server::register_bounds_system()
+void GameLogic::register_bounds_system()
 {
   _registry.add_system<component::position, component::velocity, component::entity_kind>(
       [this](engine::registry &reg,

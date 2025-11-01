@@ -5,8 +5,7 @@ add_executable(r-type_server
     ServerUtils.cpp
     Main.cpp
     SpawnProjectile.cpp
-    HandleInput.cpp
-    HandleConnect.cpp
+    GameLogic.cpp
     enemies/Boss.cpp
     enemies/Crawler.cpp
     enemies/Shooter.cpp
@@ -16,6 +15,9 @@ add_executable(r-type_server
     register/Gravity.cpp
     register/HealthAndSpawn.cpp
     register/ProjectileMovement.cpp
+    Lobby/Lobby.cpp
+    Lobby/LobbyManager.cpp
+    PacketHandle/HandleInput.cpp
 )
 
 find_package(asio CONFIG REQUIRED)
