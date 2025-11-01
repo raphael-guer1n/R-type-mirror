@@ -5,6 +5,7 @@
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
 #include "Hud.hpp"
+#include <SDL_ttf.h>
 #include "Menu.hpp"
 #include "Player.hpp"
 #include "Enemy.hpp"
@@ -84,6 +85,15 @@ namespace R_Type
         void handle_collision(engine::registry &reg, size_t i, size_t j);
 
     private:
+        enum class GameState {
+        MENU,
+        LOADING,
+        PLAYING,
+        GAME_OVER
+        };
+
+        GameState _state = GameState::MENU;
+        float _fadeAlpha = 0.0f;
         std::unique_ptr<engine::net::Endpoint> _serverEndpoint;
         uint32_t _tick = 0;
         std::unordered_set<engine::R_Events::Key> _pressedKeys;
@@ -104,11 +114,13 @@ namespace R_Type
         std::unique_ptr<R_Type::Gameover> _gameOverScreen;
         bool _inMenu = true;
         bool _connected = false;
+        bool _hasEverConnected = false;
         bool _gameOver = false;
         bool _won = false;
         std::unordered_map<size_t, int> _playerIndexByLocalId;
         bool _showHitboxes = false;
         int _hitboxOverlayThickness = 3;
+        TTF_Font* _uiFont = nullptr;
         
         std::unique_ptr<Engine::Profiling::ProfilerOverlay> _profilerOverlay;
         bool _showProfiler = false;

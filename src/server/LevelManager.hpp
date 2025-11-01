@@ -17,7 +17,7 @@ public:
 
     void update();
     void startNextLevel();
-
+    bool _noMoreLevels = false;
 private:
     void loadLevelFile(size_t index, nlohmann::json &out);
     void spawnEntities(const nlohmann::json &levelJson);

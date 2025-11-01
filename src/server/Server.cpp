@@ -44,6 +44,7 @@
 #include "engine/ecs/Systems.hpp"
 #include "server/Components_ai.hpp"
 #include "server/EnemyConfig.hpp"
+#include "common/Accessibility.hpp"
 #include "server/System_ai.hpp"
 #include "Server.hpp"
 
@@ -61,6 +62,8 @@ server::server(engine::net::IoContext &ctx, unsigned short port)
 // Default components
 void server::register_components()
 {
+  AccessibilityConfig::load_from_json("configs/accessibility_config.json");
+
   _registry.register_component<component::position>();
   _registry.register_component<component::velocity>();
   _registry.register_component<component::hitbox>();
@@ -128,7 +131,9 @@ void server::run()
       
       {
         PROFILE_SCOPE("Physics Systems");
-        position_system(_registry, positions, velocities, 1.0f / 60.0f);
+        float dt = 1.0f / 60.0f;
+        float speedFactor = AccessibilityConfig::enabled ? AccessibilityConfig::speed_game : 1.0f;
+        position_system(_registry, positions, velocities, dt * speedFactor);
         _registry.run_systems();
       }
       
@@ -444,6 +449,26 @@ void server::game_handler()
     _live_entities.insert(static_cast<uint32_t>(e));
   }
   _levelManager->update();
+
+  if (_levelManager->_noMoreLevels)
+  {
+    auto &healths = _registry.get_components<component::health>();
+    auto &kinds   = _registry.get_components<component::entity_kind>();
+    std::vector<uint32_t> alivePlayers;
+
+    for (auto &&[i, kind] : indexed_zipper(kinds))
+    {
+        if (kind == component::entity_kind::player)
+        {
+            if (i < healths.size() && healths[i] && healths[i]->hp > 0)
+                alivePlayers.push_back(static_cast<uint32_t>(i));
+        }
+    }
+    uint32_t winnerId = alivePlayers.empty() ? UINT32_MAX : alivePlayers[0];
+    broadcast_game_over(winnerId);
+    _running = false;
+    return;
+  }
   systems::spawned_projectiles.clear();
 }
 

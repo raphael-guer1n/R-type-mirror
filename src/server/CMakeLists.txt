@@ -4,6 +4,7 @@ add_executable(r-type_server
     Server.cpp
     ServerUtils.cpp
     LevelManager.cpp
+    ../common/Accessibility.cpp
     Main.cpp
 )
 

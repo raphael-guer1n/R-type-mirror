@@ -23,7 +23,6 @@ void LevelManager::loadLevelFile(size_t index, json &out)
 
     if (!f.is_open())
         throw std::runtime_error("Cannot open level file: " + path);
-
     f >> out;
 }
 
@@ -34,14 +33,11 @@ void LevelManager::startNextLevel()
         loadLevelFile(_currentLevel, level);
     } catch (...) {
         std::cout << "No more levels!\n";
+        _noMoreLevels = true; 
         return;
     }
-
     _levelDuration = level["duration"].get<uint32_t>() * 60;
     _levelStartTick = _tick;
-
-    std::cout << "[SERVER] === LEVEL " << _currentLevel << " START ===\n";
-
     notifyLevelStart(_currentLevel);
     spawnEntities(level);
 }
@@ -51,10 +47,10 @@ void LevelManager::spawnEntities(const json &levelJson)
     for (auto &entry : levelJson["entities"])
     {
         std::string cfgPath = entry["config"]; 
-        float x            = entry["x"];
-        float y            = entry["y"];
-        float velX         = entry["velocityX"];
-        float velY         = entry["velocityY"];
+        float x = entry["x"];
+        float y = entry["y"];
+        float velX = entry["velocityX"];
+        float velY = entry["velocityY"];
 
         try {
             EnemyConfig cfg = EnemyConfig::load_enemy_config(cfgPath);
