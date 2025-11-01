@@ -515,7 +515,119 @@ void server::game_handler()
       std::cerr << "Failed to load shooter enemy: " << ex.what() << "\n";
     }
   }
-  if (_tick % 600 == 0)
+  
+if (_tick % 900 == 0)
+  {
+      try
+      {
+          EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/spinner.json");
+          auto e = _registry.spawn_entity();
+          _live_entities.insert((uint32_t)e);
+
+          _registry.add_component(e, component::position{
+              SCREEN_WIDTH + 100,
+              static_cast<float>(std::uniform_int_distribution<int>(100, 1000)(_gen))
+          });
+          _registry.add_component(e, component::velocity{0, 0});
+          _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
+          _registry.add_component(e, component::entity_kind::enemy);
+          _registry.add_component(e, component::collision_state{false});
+          _registry.add_component(e, component::health{(uint8_t)cfg.hp});
+
+          component::ai_controller ai;
+          ai.behavior = cfg.behavior;
+          ai.speed = cfg.speed;
+          _registry.add_component<component::ai_controller>(e, std::move(ai));
+
+          if (!cfg.spells.empty())
+          {
+              component::spellbook sb;
+              sb.spells = cfg.spells;
+              _registry.add_component<component::spellbook>(e, std::move(sb));
+          }
+
+          std::cout << "[SPAWN] Spinner enemy spawned\n";
+      }
+      catch (std::exception &ex)
+      {
+          std::cerr << "[ERROR] Failed to load spinner enemy: " << ex.what() << "\n";
+      }
+  }
+
+  if (_tick % 1200 == 0)
+  {
+      try
+      {
+          EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/charger.json");
+          auto e = _registry.spawn_entity();
+          _live_entities.insert((uint32_t)e);
+
+          _registry.add_component(e, component::position{
+              SCREEN_WIDTH + 100,
+              static_cast<float>(std::uniform_int_distribution<int>(200, 800)(_gen))
+          });
+          _registry.add_component(e, component::velocity{0, 0});
+          _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
+          _registry.add_component(e, component::entity_kind::enemy);
+          _registry.add_component(e, component::collision_state{false});
+          _registry.add_component(e, component::health{(uint8_t)cfg.hp});
+
+          component::ai_controller ai;
+          ai.behavior = cfg.behavior;
+          ai.speed = cfg.speed;
+          _registry.add_component<component::ai_controller>(e, std::move(ai));
+
+          if (!cfg.spells.empty())
+          {
+              component::spellbook sb;
+              sb.spells = cfg.spells;
+              _registry.add_component<component::spellbook>(e, std::move(sb));
+          }
+
+          std::cout << "[SPAWN] Charger enemy spawned\n";
+      }
+      catch (std::exception &ex)
+      {
+          std::cerr << "[ERROR] Failed to load charger enemy: " << ex.what() << "\n";
+      }
+  }
+/* 
+  if (_tick % 5400 == 0)
+  {
+      try
+      {
+          EnemyConfig cfg = EnemyConfig::load_enemy_config("configs/enemy/boss_laser.json");
+          auto boss = _registry.spawn_entity();
+          _live_entities.insert(static_cast<uint32_t>(boss));
+
+          _registry.add_component(boss, component::position{1800.f, 400.f});
+          _registry.add_component(boss, component::velocity{0.f, 0.f});
+          _registry.add_component<component::hitbox>(boss, std::move(cfg.hitbox));
+          _registry.add_component(boss, component::entity_kind::enemy);
+          _registry.add_component(boss, component::collision_state{false});
+          _registry.add_component(boss, component::health{(uint8_t)cfg.hp});
+
+          component::ai_controller ai;
+          ai.behavior = cfg.behavior;
+          ai.speed = cfg.speed;
+          _registry.add_component<component::ai_controller>(boss, std::move(ai));
+
+          if (!cfg.spells.empty())
+          {
+              component::spellbook sb;
+              sb.spells = cfg.spells;
+              _registry.add_component<component::spellbook>(boss, std::move(sb));
+          }
+
+          std::cout << "[SERVER] Boss Laser spawned! HP=" << cfg.hp
+                    << " Behavior=" << ai.behavior << "\n";
+      }
+      catch (std::exception &ex)
+      {
+          std::cerr << "[SERVER] Failed to spawn boss_laser: " << ex.what() << "\n";
+      }
+  } */
+  if (_tick % 3000 == 0)
   {
     try
     {
