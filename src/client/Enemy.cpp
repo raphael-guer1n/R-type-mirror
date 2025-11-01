@@ -71,11 +71,11 @@ void R_Type::Enemy::setType(const std::string &type)
         rect = engine::R_Graphic::textureRect(5, 6, 29, 40);
         scale = 3.5f;
     }
-/*     else if (type == "boss_laser") {
+    else if (type == "boss_laser") {
         path = "./Assets/sprites/r-typesheet14.gif";
         rect = engine::R_Graphic::textureRect(5, 6, 50, 60);
         scale = 4.4f;
-    } */
+    }
     else {
         std::cerr << "[Enemy] Unknown type '" << type << "', using default sprite.\n";
         path = "./Assets/sprites/r-typesheet23.gif";

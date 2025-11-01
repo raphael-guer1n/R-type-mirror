@@ -410,9 +410,9 @@ void R_Type::Rtype::receiveSnapshot()
                     {
                         const uint32_t id = es.entityId;
 
-                        /* if (id % 9 == 0)
-                            _enemyData->setType("boss_laser"); */
-                        if (id % 7 == 0)
+                        if (id % 9 == 0)
+                            _enemyData->setType("boss_laser");
+                        else if (id % 7 == 0)
                             _enemyData->setType("boss");
                         else if (id % 5 == 0)
                             _enemyData->setType("spinner");
