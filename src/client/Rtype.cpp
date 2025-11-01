@@ -107,6 +107,14 @@ void R_Type::Rtype::update(float deltaTime,
         return;
     }
     
+    if (_state == GameState::LOADING)
+    {
+        _fadeAlpha = std::min(255.0f, _fadeAlpha + (deltaTime * 60.0f));
+        return;
+    }
+    if (_state == GameState::PLAYING && _fadeAlpha > 0)
+        _fadeAlpha = std::max(0.0f, _fadeAlpha - (deltaTime * 60.0f));
+
     auto& profiler = Engine::Profiling::Profiler::getInstance();
     
     for (auto &ev : events)
@@ -209,6 +217,7 @@ void R_Type::Rtype::update(float deltaTime,
                       { this->handle_collision(_registry, i, j); });
         lifetime_system(_registry, adjustedDelta);
         _registry.run_systems();
+        _background->update(deltaTime);
     }
     
     // Update world metrics
@@ -221,9 +230,14 @@ void R_Type::Rtype::update(float deltaTime,
 
 void R_Type::Rtype::receiveSnapshot()
 {
+    if (_state == GameState::LOADING)
+    return;
     while (auto pkt_opt = _client->receive(_sender))
     {
         auto [shdr, spayload] = *pkt_opt;
+
+        if (_state == GameState::LOADING && shdr.type == SNAPSHOT)
+            continue;
 
         if (shdr.type == GAME_OVER && spayload.size() >= sizeof(GameOverPayload))
         {
@@ -236,6 +250,27 @@ void R_Type::Rtype::receiveSnapshot()
             audio.stopMusic();
 
             continue;
+        }
+        if (shdr.type == LEVEL_START && spayload.size() >= sizeof(LevelStartPayload))
+        {
+            LevelStartPayload p{};
+            memcpy(&p, spayload.data(), sizeof(LevelStartPayload));
+            _state = GameState::PLAYING;
+            _fadeAlpha = 255.0f;
+            std::cout << "[CLIENT] Leaving LOADING state" << std::endl;
+            std::cout << "[CLIENT] LEVEL_START : " << p.level << std::endl;
+
+            _hud->startLevelAnimation(p.level, _registry);
+        }
+        if (shdr.type == LEVEL_END && spayload.size() >= sizeof(LevelEndPayload))
+        {
+            LevelEndPayload p{};
+            memcpy(&p, spayload.data(), sizeof(LevelEndPayload));
+            _state = GameState::LOADING;
+            _fadeAlpha = 0.0f;
+            _background->changeTheme(p.level + 1);
+            std::cout << "[CLIENT] LEVEL_END : " << p.level << std::endl;
+            std::cout << "[CLIENT] Entering LOADING state" << std::endl;
         }
         if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))
         {
@@ -296,13 +331,16 @@ void R_Type::Rtype::receiveSnapshot()
                     {
                         idLocal = it->second;
                     }
-                    ensure_cache(idLocal);
-                    if (idLocal < kinds.size() && kinds[idLocal] &&
-                        kinds[idLocal].value() == component::entity_kind::decor)
-                    {
-                        continue;
-                    }
+                    auto &hudTags = _registry.get_components<component::hud_tag>();
+                    auto &kindsLocal = _registry.get_components<component::entity_kind>();
 
+                    if (idLocal < hudTags.size() && hudTags[idLocal].has_value())
+                        continue;
+                    if (idLocal < kindsLocal.size()
+                        && kindsLocal[idLocal].has_value()
+                        && kindsLocal[idLocal].value() == component::entity_kind::decor)
+                        continue;
+                    ensure_cache(idLocal);
                     newActive.insert(idLocal);
 
                     ensure_slot(positions, idLocal, component::position{});
@@ -461,6 +499,8 @@ void R_Type::Rtype::draw()
     if (!_connected)
         return;
     if (_gameOver) {
+        _fadeAlpha = 0;
+        _state = GameState::PLAYING;
         _gameOverScreen->draw(_won);
         return;
     }
@@ -468,19 +508,14 @@ void R_Type::Rtype::draw()
     SDL_Renderer* ren = _app.getWindow().getRenderer();
     SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
     SDL_RenderClear(ren);
+
     auto &positions = _registry.get_components<component::position>();
     auto &drawables = _registry.get_components<component::drawable>();
     auto &kinds = _registry.get_components<component::entity_kind>();
     auto &velocities = _registry.get_components<component::velocity>();
 
-    if (AccessibilityConfig::enabled && AccessibilityConfig::contrast_mode) {
-        SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(ren, 255, 255, 255, 60);
-        SDL_Rect screen = {0, 0, 1920, 1080};
-        SDL_RenderPresent(ren);
-        SDL_RenderFillRect(ren, &screen);
-    }
     draw_system(_registry, positions, drawables, _app.getWindow());
+
     if (_showHitboxes) {
         SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
         auto &hitboxes = _registry.get_components<component::hitbox>();
@@ -505,8 +540,14 @@ void R_Type::Rtype::draw()
             }
         }
     }
-    if (_profilerOverlay && _showProfiler) {
+    if (_profilerOverlay && _showProfiler)
         _profilerOverlay->render();
+    if ((_fadeAlpha > 0.0f || _state == GameState::LOADING) && !_gameOver)
+    {
+        SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ren, 0, 0, 0, (Uint8)_fadeAlpha);
+        SDL_Rect screen = {0, 0, 1920, 1080};
+        SDL_RenderFillRect(ren, &screen);
     }
 }
 

@@ -85,6 +85,15 @@ namespace R_Type
         void handle_collision(engine::registry &reg, size_t i, size_t j);
 
     private:
+        enum class GameState {
+        MENU,
+        LOADING,
+        PLAYING,
+        GAME_OVER
+        };
+
+        GameState _state = GameState::MENU;
+        float _fadeAlpha = 0.0f;
         std::unique_ptr<engine::net::Endpoint> _serverEndpoint;
         uint32_t _tick = 0;
         std::unordered_set<engine::R_Events::Key> _pressedKeys;

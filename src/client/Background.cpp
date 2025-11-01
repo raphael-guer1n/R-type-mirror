@@ -1,52 +1,110 @@
-/**
- * @brief Initializes the background entities for the R-Type client.
- *
- * This constructor creates two background entities to enable a seamless scrolling starfield effect.
- * Each entity is assigned a position, velocity, and decor kind, and is associated with a drawable
- * component using the starfield texture. The second entity is positioned to the right of the first,
- * allowing for continuous background movement as the game progresses.
- *
- * @param rtype Reference to the main Rtype application, used to access the window, registry, and resources.
- */
-#include <iostream>
 #include "Background.hpp"
 #include "common/Layers.hpp"
 #include "engine/ecs/Systems.hpp"
 #include "Rtype.hpp"
+#include <iostream>
 
 R_Type::Background::Background(R_Type::Rtype& rtype)
+    : _rtype(rtype), _bg1(rtype.getRegistry().spawn_entity()), _bg2(rtype.getRegistry().spawn_entity())
 {
-    R_Graphic::intVec2 pos = rtype.getApp().getWindow().getSize();
-    auto& registry = rtype.getRegistry();
-    auto e = registry.spawn_entity();
+    auto &registry = _rtype.getRegistry();
+    auto size = _rtype.getApp().getWindow().getSize();
 
-    registry.add_component(e, component::position{0.0f, 0.0f});
-    registry.add_component(e, component::velocity{-100.0f, 0.0f});
-    registry.add_component(e, component::entity_kind{component::entity_kind::decor});
-    auto tex = std::make_shared<R_Graphic::Texture>(
-        rtype.getApp().getWindow(),
-        "./Assets/Background/Starfield.png",
-        R_Graphic::doubleVec2(0.0, 0.0),
-        rtype.getApp().getWindow().getSize()
-    );
-    R_Graphic::textureRect rect(0, 0,
-        rtype.getApp().getWindow().getSize().x,
-        rtype.getApp().getWindow().getSize().y
-    );
-    registry.emplace_component<component::drawable>(e, tex, rect, layers::Background);
-    auto e1 = registry.spawn_entity();
-    registry.add_component(e1, component::position{static_cast<float>(pos.x), 0.0f});
-    registry.add_component(e1, component::velocity{-100.0f, 0.0f});
-    registry.add_component(e1, component::entity_kind{component::entity_kind::decor});
+    registry.add_component(_bg1, component::position{0.0f, 0.0f});
+    registry.add_component(_bg1, component::velocity{-100.0f, 0.0f});
+    registry.add_component(_bg1, component::entity_kind{component::entity_kind::decor});
+
     auto tex1 = std::make_shared<R_Graphic::Texture>(
-        rtype.getApp().getWindow(),
+        _rtype.getApp().getWindow(),
         "./Assets/Background/Starfield.png",
         R_Graphic::doubleVec2(0.0, 0.0),
-        rtype.getApp().getWindow().getSize()
+        size
     );
-    R_Graphic::textureRect rect1(0, 0,
-        rtype.getApp().getWindow().getSize().x,
-        rtype.getApp().getWindow().getSize().y
+    _currentTexture = tex1;
+    registry.emplace_component<component::drawable>(_bg1, tex1,
+        R_Graphic::textureRect{0, 0, size.x, size.y}, layers::Background);
+
+    registry.add_component(_bg2, component::position{static_cast<float>(size.x), 0.0f});
+    registry.add_component(_bg2, component::velocity{-100.0f, 0.0f});
+    registry.add_component(_bg2, component::entity_kind{component::entity_kind::decor});
+
+    auto tex2 = std::make_shared<R_Graphic::Texture>(
+        _rtype.getApp().getWindow(),
+        "./Assets/Background/Starfield.png",
+        R_Graphic::doubleVec2(0.0, 0.0),
+        size
     );
-    registry.emplace_component<component::drawable>(e1, tex1, rect1, layers::Background);
+    registry.emplace_component<component::drawable>(_bg2, tex2,
+        R_Graphic::textureRect{0, 0, size.x, size.y}, layers::Background);
+}
+
+void R_Type::Background::changeTheme(int level)
+{
+    std::string texturePath;
+
+    switch(level)
+    {
+        case 1: texturePath = "./Assets/Background/Starfield.png"; break;
+        case 2: texturePath = "./Assets/Background/l9.png"; break;
+        case 3: texturePath = "./Assets/Background/l10.png"; break;
+        default: texturePath = "./Assets/Background/Starfield.png"; break;
+    }
+
+    auto newTex = std::make_shared<engine::R_Graphic::Texture>(
+        _rtype.getApp().getWindow(),
+        texturePath,
+        engine::R_Graphic::doubleVec2(0.0, 0.0),
+        _rtype.getApp().getWindow().getSize()
+    );
+
+    auto &registry = _rtype.getRegistry();
+    auto &drawables = registry.get_components<component::drawable>();
+
+    if (_bg1 < drawables.size() && drawables[_bg1])
+        drawables[_bg1]->texture = newTex;
+
+    if (_bg2 < drawables.size() && drawables[_bg2])
+        drawables[_bg2]->texture = newTex;
+
+    _currentTexture = newTex;
+    _nextTexture.reset();     
+    _isTransitioning = false; 
+}
+
+
+void R_Type::Background::update(float deltaTime)
+{
+    if (!_isTransitioning)
+        return;
+
+    auto &registry = _rtype.getRegistry();
+    auto &drawables = registry.get_components<component::drawable>();
+
+    _fadeAlpha -= 150.f * deltaTime;
+    if (_fadeAlpha < 0.f)
+        _fadeAlpha = 0.f;
+
+    Uint8 currentAlpha = (Uint8)_fadeAlpha;
+    Uint8 nextAlpha = (Uint8)(255 - _fadeAlpha);
+
+    if (_bg1 < drawables.size() && drawables[_bg1] && drawables[_bg1]->texture)
+    SDL_SetTextureAlphaMod(drawables[_bg1]->texture->getSDLTexture(), currentAlpha);
+
+    if (_bg2 < drawables.size() && drawables[_bg2] && drawables[_bg2]->texture)
+        SDL_SetTextureAlphaMod(drawables[_bg2]->texture->getSDLTexture(), currentAlpha);
+
+    if (_nextTexture)
+        SDL_SetTextureAlphaMod(_nextTexture->getSDLTexture(), nextAlpha);
+
+    if (_fadeAlpha == 0.f)
+    {
+        _isTransitioning = false;
+        _fadeAlpha = 255.f;
+
+        if (_bg1 < drawables.size() && drawables[_bg1])
+            drawables[_bg1]->texture = _nextTexture;
+
+        if (_bg2 < drawables.size() && drawables[_bg2])
+            drawables[_bg2]->texture = _nextTexture;
+    }
 }
