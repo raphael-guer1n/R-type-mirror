@@ -7,6 +7,7 @@
 #include "common/Components_client_sdl.hpp"
 #include "common/Packets.hpp"
 #include "engine/network/UdpSocket.hpp"
+#include "common/Accessibility.hpp"
 #include "engine/ecs/Systems.hpp"
 #include "Background.hpp"
 #include "Hud.hpp"
@@ -36,7 +37,12 @@ R_Type::Rtype::Rtype()
         _profilerOverlay->setConfig(config);
         std::cout << "[Profiling] Overlay initialized\n";
     }
-    
+    if (TTF_WasInit() == 0) {
+        if (TTF_Init() == -1) {
+            std::cerr << "[UI] Erreur TTF_Init: " << TTF_GetError() << "\n";
+        }
+    }
+    _uiFont = TTF_OpenFont("Assets/fonts/arial.ttf", 28);
     try
     {
         _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
@@ -69,6 +75,15 @@ R_Type::Rtype::~Rtype() = default;
 void R_Type::Rtype::update(float deltaTime,
                            const std::vector<R_Events::Event> &events)
 {
+    for (auto &ev : events) {
+        if (ev.type == R_Events::Type::Quit ||
+            (ev.type == R_Events::Type::KeyDown && ev.key.code == R_Events::Key::Escape))
+        {
+            std::cout << "Quit requested (from gameplay)\n";
+            SDL_Quit();
+            std::exit(0);
+        }
+    }
     if (_gameOver)
         return;
     if (_inMenu)
@@ -92,6 +107,14 @@ void R_Type::Rtype::update(float deltaTime,
         return;
     }
     
+    if (_state == GameState::LOADING)
+    {
+        _fadeAlpha = std::min(255.0f, _fadeAlpha + (deltaTime * 60.0f));
+        return;
+    }
+    if (_state == GameState::PLAYING && _fadeAlpha > 0)
+        _fadeAlpha = std::max(0.0f, _fadeAlpha - (deltaTime * 60.0f));
+
     auto& profiler = Engine::Profiling::Profiler::getInstance();
     
     for (auto &ev : events)
@@ -151,7 +174,9 @@ void R_Type::Rtype::update(float deltaTime,
     }
 
     static uint32_t spaceHoldTicks = 0;
-    bool spaceHeld = _pressedKeys.count(engine::R_Events::Key::Space) > 0;
+    auto shootKeyStr = AccessibilityConfig::key_remap["shoot"];
+    auto shootKey = stringToKey(shootKeyStr);
+    bool spaceHeld = _pressedKeys.count(shootKey) > 0;
     int numKeys = 0;
     const Uint8 *state = SDL_GetKeyboardState(&numKeys);
     if (state && SDL_SCANCODE_SPACE < numKeys)
@@ -183,14 +208,16 @@ void R_Type::Rtype::update(float deltaTime,
     
     {
         PROFILE_SCOPE("Game Systems");
-        position_system(_registry, positions, velocities, deltaTime);
+        float adjustedDelta = deltaTime * (AccessibilityConfig::enabled ? AccessibilityConfig::speed_game : 1.0f);
+        position_system(_registry, positions, velocities, adjustedDelta);
         control_system(_registry, velocities, controls);
         scroll_reset_system(_registry, positions, kinds, _app);
-        animation_system(_registry, animations, drawables, deltaTime);
+        animation_system(_registry, animations, drawables, adjustedDelta);
         hitbox_system(_registry, positions, hitboxes, [this](size_t i, size_t j)
                       { this->handle_collision(_registry, i, j); });
-        lifetime_system(_registry, deltaTime);
+        lifetime_system(_registry, adjustedDelta);
         _registry.run_systems();
+        _background->update(deltaTime);
     }
     
     // Update world metrics
@@ -203,9 +230,14 @@ void R_Type::Rtype::update(float deltaTime,
 
 void R_Type::Rtype::receiveSnapshot()
 {
+    if (_state == GameState::LOADING)
+    return;
     while (auto pkt_opt = _client->receive(_sender))
     {
         auto [shdr, spayload] = *pkt_opt;
+
+        if (_state == GameState::LOADING && shdr.type == SNAPSHOT)
+            continue;
 
         if (shdr.type == GAME_OVER && spayload.size() >= sizeof(GameOverPayload))
         {
@@ -218,6 +250,27 @@ void R_Type::Rtype::receiveSnapshot()
             audio.stopMusic();
 
             continue;
+        }
+        if (shdr.type == LEVEL_START && spayload.size() >= sizeof(LevelStartPayload))
+        {
+            LevelStartPayload p{};
+            memcpy(&p, spayload.data(), sizeof(LevelStartPayload));
+            _state = GameState::PLAYING;
+            _fadeAlpha = 255.0f;
+            std::cout << "[CLIENT] Leaving LOADING state" << std::endl;
+            std::cout << "[CLIENT] LEVEL_START : " << p.level << std::endl;
+
+            _hud->startLevelAnimation(p.level, _registry);
+        }
+        if (shdr.type == LEVEL_END && spayload.size() >= sizeof(LevelEndPayload))
+        {
+            LevelEndPayload p{};
+            memcpy(&p, spayload.data(), sizeof(LevelEndPayload));
+            _state = GameState::LOADING;
+            _fadeAlpha = 0.0f;
+            _background->changeTheme(p.level + 1);
+            std::cout << "[CLIENT] LEVEL_END : " << p.level << std::endl;
+            std::cout << "[CLIENT] Entering LOADING state" << std::endl;
         }
         if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))
         {
@@ -278,13 +331,16 @@ void R_Type::Rtype::receiveSnapshot()
                     {
                         idLocal = it->second;
                     }
-                    ensure_cache(idLocal);
-                    if (idLocal < kinds.size() && kinds[idLocal] &&
-                        kinds[idLocal].value() == component::entity_kind::decor)
-                    {
-                        continue;
-                    }
+                    auto &hudTags = _registry.get_components<component::hud_tag>();
+                    auto &kindsLocal = _registry.get_components<component::entity_kind>();
 
+                    if (idLocal < hudTags.size() && hudTags[idLocal].has_value())
+                        continue;
+                    if (idLocal < kindsLocal.size()
+                        && kindsLocal[idLocal].has_value()
+                        && kindsLocal[idLocal].value() == component::entity_kind::decor)
+                        continue;
+                    ensure_cache(idLocal);
                     newActive.insert(idLocal);
 
                     ensure_slot(positions, idLocal, component::position{});
@@ -351,6 +407,12 @@ void R_Type::Rtype::receiveSnapshot()
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Projectiles});
                         break;
                     case component::entity_kind::enemy:
+                    if (es.entityId % 3 == 0)
+                        _enemyData->setType("boss");
+                    else if (es.entityId % 2 == 0)
+                        _enemyData->setType("shooter");
+                    else
+                        _enemyData->setType("crawler");
                         tex = _enemyData->enemyTexture;
                         rect = _enemyData->enemyRect;
                         ensure_slot(hitboxes, idLocal, component::hitbox{152, 100});
@@ -430,38 +492,62 @@ void R_Type::Rtype::receiveSnapshot()
 
 void R_Type::Rtype::draw()
 {
-    if (_inMenu)
-    {
+    if (_inMenu) {
         _menu->draw();
         return;
     }
     if (!_connected)
         return;
-    if (_gameOver)
-    {
+    if (_gameOver) {
+        _fadeAlpha = 0;
+        _state = GameState::PLAYING;
         _gameOverScreen->draw(_won);
         return;
     }
+
+    SDL_Renderer* ren = _app.getWindow().getRenderer();
+    SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+    SDL_RenderClear(ren);
+
     auto &positions = _registry.get_components<component::position>();
     auto &drawables = _registry.get_components<component::drawable>();
     auto &kinds = _registry.get_components<component::entity_kind>();
     auto &velocities = _registry.get_components<component::velocity>();
 
     draw_system(_registry, positions, drawables, _app.getWindow());
-    if (_showHitboxes)
-    {
-        if (auto *ren = _app.getWindow().getRenderer())
-        {
-            SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
-        }
+
+    if (_showHitboxes) {
+        SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
         auto &hitboxes = _registry.get_components<component::hitbox>();
         hitbox_overlay_system(_registry, positions, hitboxes, kinds, _app.getWindow(), _hitboxOverlayThickness);
     }
     if (_hud)
         _hud->drawOverlay(*this);
-        
-    if (_profilerOverlay && _showProfiler) {
+    if (AccessibilityConfig::enabled) {
+        SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ren, 40, 40, 40, 220);
+        SDL_Rect banner = {0, 0, 1920, 80};
+        SDL_RenderFillRect(ren, &banner);
+        if (_uiFont) {
+            SDL_Color white = {255, 255, 255, 255};
+            SDL_Surface* surf = TTF_RenderUTF8_Blended(_uiFont, "Accessibility mode on", white);
+            if (surf) {
+                SDL_Texture* tex = SDL_CreateTextureFromSurface(ren, surf);
+                SDL_Rect dst = {40, 20, surf->w, surf->h};
+                SDL_RenderCopy(ren, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+                SDL_FreeSurface(surf);
+            }
+        }
+    }
+    if (_profilerOverlay && _showProfiler)
         _profilerOverlay->render();
+    if ((_fadeAlpha > 0.0f || _state == GameState::LOADING) && !_gameOver)
+    {
+        SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ren, 0, 0, 0, (Uint8)_fadeAlpha);
+        SDL_Rect screen = {0, 0, 1920, 1080};
+        SDL_RenderFillRect(ren, &screen);
     }
 }
 

@@ -41,5 +41,21 @@ namespace R_Type
         public:
             Background(R_Type::Rtype& rtype);
             ~Background() = default;
+            void changeTheme(int level);
+            void update(float deltaTime);
+            bool isTransitioning() const { return _isTransitioning; }
+            std::shared_ptr<engine::R_Graphic::Texture> getNextTexture() const { return _nextTexture; }
+
+        private:
+        R_Type::Rtype& _rtype;
+        std::shared_ptr<engine::R_Graphic::Texture> _backgroundTexture; 
+
+        engine::entity_t _bg1;
+        engine::entity_t _bg2;
+        float _fadeAlpha = 255.0f;
+        bool _isTransitioning = false;
+        std::shared_ptr<engine::R_Graphic::Texture> _currentTexture = nullptr;
+        std::shared_ptr<engine::R_Graphic::Texture> _nextTexture;
+
     };
 }
