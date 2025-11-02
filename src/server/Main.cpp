@@ -33,13 +33,12 @@ int main(int argc, char* argv[])
     }
     try
     {
-        engine::net::IoContext io;
-        server s(io, port);
+        server s(port);
 
         std::cout << "Server Address: localhost (127.0.0.1)\n";
         std::cout << "Port: " << port << "\n";
         std::cout << "[Profiling] Server profiling enabled. Stats will be logged periodically.\n";
-        
+
         s.run();
     }
     catch (const std::exception &e)

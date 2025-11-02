@@ -4,6 +4,7 @@
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
+#include "engine/network/NetClient.hpp"
 #include "Hud.hpp"
 #include <SDL_ttf.h>
 #include "Menu.hpp"
@@ -12,6 +13,7 @@
 #include "engine/renderer/App.hpp"
 #include "engine/events/Events.hpp"
 #include "engine/ecs/Registry.hpp"
+#include "common/Packets.hpp"
 #include "Background.hpp"
 #include "Gameover.hpp"
 
@@ -72,9 +74,10 @@ namespace R_Type
          * @return Reference to engine::registry.
          */
         engine::registry &getRegistry();
-
-    public:
-        void setServerEndpoint(const std::string &ip, unsigned short port);
+        void requestLobbyList();
+        void createLobby(const std::string& name);
+        void joinLobby(uint8_t lobbyId);
+        std::vector<LobbyInfo> getLobbies();
 
     private:
         /**
@@ -82,7 +85,12 @@ namespace R_Type
          */
         void waiting_connection();
         
+        // Handle when receiving packets
         void handle_collision(engine::registry &reg, size_t i, size_t j);
+        void handleListLobby(const std::vector<uint8_t> &payload);
+        void handleLobbyJoined(const std::vector<uint8_t> &payload);
+        void handleLevelStart(const std::vector<uint8_t> &payload);
+        void handleLevelEnd(const std::vector<uint8_t> &payload);
 
     private:
         enum class GameState {
@@ -94,17 +102,15 @@ namespace R_Type
 
         GameState _state = GameState::MENU;
         float _fadeAlpha = 0.0f;
-        std::unique_ptr<engine::net::Endpoint> _serverEndpoint;
+        std::unique_ptr<engine::net::NetClient> _client;
+        std::vector<std::pair<PacketHeader, std::vector<uint8_t>>> _pendingSnapshots;
         uint32_t _tick = 0;
         std::unordered_set<engine::R_Events::Key> _pressedKeys;
         uint32_t _player = 0;
         std::unordered_set<uint32_t> _activeEntities;
-        engine::net::Endpoint _sender;
         engine::R_Graphic::App _app;
         engine::registry _registry;
         std::unique_ptr<Background> _background;
-        engine::net::IoContext _ioContext;
-        std::unique_ptr<engine::net::UdpSocket> _client;
         std::unique_ptr<Player> _playerData;
         std::unique_ptr<Enemy> _enemyData;
         std::unordered_map<uint32_t, size_t> _entityMap;
@@ -117,9 +123,12 @@ namespace R_Type
         bool _hasEverConnected = false;
         bool _gameOver = false;
         bool _won = false;
+        bool _inLobby = false;
+        int _currentLobbyId = -1;
         std::unordered_map<size_t, int> _playerIndexByLocalId;
         bool _showHitboxes = false;
         int _hitboxOverlayThickness = 3;
+        std::vector<LobbyInfo> _lobbies;
         TTF_Font* _uiFont = nullptr;
         
         std::unique_ptr<Engine::Profiling::ProfilerOverlay> _profilerOverlay;

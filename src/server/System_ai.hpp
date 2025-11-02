@@ -13,6 +13,7 @@
 #include "engine/ecs/Registry.hpp"
 #include "engine/ecs/iterator/Indexed_zipper.hpp"
 #include "server/Components_ai.hpp"
+#include "engine/ecs/EntityFactory.hpp"
 
 using namespace engine;
 

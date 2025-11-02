@@ -9,6 +9,7 @@
 #include "engine/network/UdpSocket.hpp"
 #include "common/Accessibility.hpp"
 #include "engine/ecs/Systems.hpp"
+#include "common/Packets.hpp"
 #include "Background.hpp"
 #include "Hud.hpp"
 #include "common/Systems_client_sdl.hpp"
@@ -22,7 +23,7 @@ R_Type::Rtype::Rtype()
     : _app("R-Type", 1920, 1080)
 {
     engine::audio::AudioManager::instance().loadConfig("./configs/audio_config.json");
- 
+
     _profilerOverlay = std::make_unique<Engine::Profiling::ProfilerOverlay>();
     if (_profilerOverlay->initialize(_app.getWindow().getRenderer(), "Assets/fonts/arial.ttf")) {
         Engine::Profiling::ProfilerDisplayConfig config;
@@ -45,9 +46,44 @@ R_Type::Rtype::Rtype()
     _uiFont = TTF_OpenFont("Assets/fonts/arial.ttf", 28);
     try
     {
-        _client = std::make_unique<engine::net::UdpSocket>(_ioContext, 0);
-        _serverEndpoint = std::make_unique<engine::net::Endpoint>(engine::net::make_endpoint("127.0.0.1", 4242));
-
+        _client = std::make_unique<engine::net::NetClient>("127.0.0.1", 4242);
+        _client->set_packet_handler([this](
+            const PacketHeader&hdr,
+            const std::vector<uint8_t> &payload) {
+            if (hdr.type == CONNECT_ACK && payload.size() >= sizeof(ConnectAck)) {
+                ConnectAck ack{};
+                std::memcpy(&ack, payload.data(), sizeof(ack));
+                _player = ack.playerEntityId;
+                _connected = true;
+                _registry.spawn_entity();
+                std::cout << "Connected to server as player " << _player << "\n";
+                return;
+            }
+            if (hdr.type == SNAPSHOT && payload.size() >= sizeof(Snapshot)) {
+                Snapshot snap{};
+                std::memcpy(&snap, payload.data(), sizeof(snap));
+                _pendingSnapshots.push_back({hdr, payload});
+            }
+            if (hdr.type == GAME_OVER && payload.size() >= sizeof(GameOverPayload)) {
+                GameOverPayload go{};
+                std::memcpy(&go, payload.data(), sizeof(go));
+                _gameOver = true;
+                _won = (_player == go.winnerEntityId);
+            }
+            if (hdr.type == LOBBY_LIST_RESPONSE && payload.size() >= sizeof(LobbyListResponse)) {
+                handleListLobby(payload);
+            }
+            if (hdr.type == LOBBY_JOINED && payload.size() >= sizeof(LobbyJoinedResponse)) {
+                handleLobbyJoined(payload);
+            }
+            if (hdr.type == LEVEL_START && payload.size() >= sizeof(LevelStartPayload)) {
+                handleLevelStart(payload);
+            }
+            if (hdr.type == LEVEL_END && payload.size() >= sizeof(LevelEndPayload)) {
+                handleLevelEnd(payload);
+            }
+        });
+        _client->start();
         _registry.register_component<component::drawable>();
         _registry.register_component<component::position>();
         _registry.register_component<component::velocity>();
@@ -75,7 +111,7 @@ R_Type::Rtype::Rtype()
 R_Type::Rtype::~Rtype() = default;
 
 void R_Type::Rtype::update(float deltaTime,
-                           const std::vector<R_Events::Event> &events)
+    const std::vector<R_Events::Event> &events)
 {
     for (auto &ev : events) {
         if (ev.type == R_Events::Type::Quit ||
@@ -90,25 +126,18 @@ void R_Type::Rtype::update(float deltaTime,
         return;
     if (_inMenu)
     {
-        bool start = _menu->update(events);
+        bool start = _menu->update(events, *this);
+        _client->poll();
         if (start)
         {
             _inMenu = false;
-            ConnectReq req{42};
-            PacketHeader hdr{CONNECT_REQ, sizeof(ConnectReq), 0};
-            std::vector<uint8_t> buf(sizeof(ConnectReq));
-            std::memcpy(buf.data(), &req, sizeof(ConnectReq));
-            _client->send(hdr, buf, *_serverEndpoint);
-            std::cout << "Sent CONNECT_REQ\n";
         }
         return;
     }
     if (!_connected && !_inMenu)
     {
-        waiting_connection();
         return;
     }
-    
     if (_state == GameState::LOADING)
     {
         _fadeAlpha = std::min(255.0f, _fadeAlpha + (deltaTime * 60.0f));
@@ -118,7 +147,7 @@ void R_Type::Rtype::update(float deltaTime,
         _fadeAlpha = std::max(0.0f, _fadeAlpha - (deltaTime * 60.0f));
 
     auto& profiler = Engine::Profiling::Profiler::getInstance();
-    
+
     for (auto &ev : events)
     {
         if (ev.type == R_Events::Type::KeyDown)
@@ -142,7 +171,7 @@ void R_Type::Rtype::update(float deltaTime,
         engine::audio::AudioManager::instance().playSound("projectile");
     }
     wasCPressed = cPressed;
-    
+
     // Toggle debug hitboxes on CTRL+B (either Ctrl key is fine)
     bool ctrlDown = (_pressedKeys.count(engine::R_Events::Key::LCtrl) ||
                      _pressedKeys.count(engine::R_Events::Key::RCtrl));
@@ -154,7 +183,6 @@ void R_Type::Rtype::update(float deltaTime,
         _showHitboxes = !_showHitboxes;
     }
     prevCombo = combo;
-    
     {
         PROFILE_SCOPE("Network Send");
         InputPacket inp{};
@@ -172,7 +200,7 @@ void R_Type::Rtype::update(float deltaTime,
         std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
         if (keyCount > 0)
             std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keyCount * sizeof(int32_t));
-        _client->send(ihdr, ibuf, *_serverEndpoint);
+        _client->send(ihdr, ibuf);
     }
 
     static uint32_t spaceHoldTicks = 0;
@@ -192,12 +220,12 @@ void R_Type::Rtype::update(float deltaTime,
     float chargeLevel = std::min(1.0f, spaceHoldTicks / 60.0f);
     if (_hud)
         _hud->setChargeLevel(*this, chargeLevel);
-    
+
     {
         PROFILE_SCOPE("Network Receive");
         receiveSnapshot();
     }
-    
+
     _playerData->playerUpdateAnimation(_entityMap, _player, _registry, _pressedKeys);
     auto &positions = _registry.get_components<component::position>();
     auto &animations = _registry.get_components<component::animation>();
@@ -207,7 +235,6 @@ void R_Type::Rtype::update(float deltaTime,
     auto &drawables = _registry.get_components<component::drawable>();
     auto &collisions = _registry.get_components<component::collision_state>();
     auto &hitboxes = _registry.get_components<component::hitbox>();
-    
     {
         PROFILE_SCOPE("Game Systems");
         float adjustedDelta = deltaTime * (AccessibilityConfig::enabled ? AccessibilityConfig::speed_game : 1.0f);
@@ -216,31 +243,28 @@ void R_Type::Rtype::update(float deltaTime,
         scroll_reset_system(_registry, positions, kinds, _app);
         animation_system(_registry, animations, drawables, adjustedDelta);
         hitbox_system(_registry, positions, hitboxes, [this](size_t i, size_t j)
-                      { this->handle_collision(_registry, i, j); });
+                    { this->handle_collision(_registry, i, j); });
         lifetime_system(_registry, adjustedDelta);
         _registry.run_systems();
         _background->update(deltaTime);
     }
-    
     // Update world metrics
-    auto playerPos = (_player < positions.size() && positions[_player]) 
-                     ? positions[_player].value() 
+    auto playerPos = (_player < positions.size() && positions[_player])
+                     ? positions[_player].value()
                      : component::position{0, 0};
     profiler.setWorldPosition(playerPos.x, playerPos.y);
     profiler.setEntityCount(_activeEntities.size());
 }
 
+
 void R_Type::Rtype::receiveSnapshot()
 {
     if (_state == GameState::LOADING)
-    return;
-    while (auto pkt_opt = _client->receive(_sender))
-    {
-        auto [shdr, spayload] = *pkt_opt;
-
+        return;
+    _client->poll();
+    for (auto &[shdr, spayload]: _pendingSnapshots) {
         if (_state == GameState::LOADING && shdr.type == SNAPSHOT)
             continue;
-
         if (shdr.type == GAME_OVER && spayload.size() >= sizeof(GameOverPayload))
         {
             GameOverPayload go{};
@@ -252,27 +276,6 @@ void R_Type::Rtype::receiveSnapshot()
             audio.stopMusic();
 
             continue;
-        }
-        if (shdr.type == LEVEL_START && spayload.size() >= sizeof(LevelStartPayload))
-        {
-            LevelStartPayload p{};
-            memcpy(&p, spayload.data(), sizeof(LevelStartPayload));
-            _state = GameState::PLAYING;
-            _fadeAlpha = 255.0f;
-            std::cout << "[CLIENT] Leaving LOADING state" << std::endl;
-            std::cout << "[CLIENT] LEVEL_START : " << p.level << std::endl;
-
-            _hud->startLevelAnimation(p.level, _registry);
-        }
-        if (shdr.type == LEVEL_END && spayload.size() >= sizeof(LevelEndPayload))
-        {
-            LevelEndPayload p{};
-            memcpy(&p, spayload.data(), sizeof(LevelEndPayload));
-            _state = GameState::LOADING;
-            _fadeAlpha = 0.0f;
-            _background->changeTheme(p.level + 1);
-            std::cout << "[CLIENT] LEVEL_END : " << p.level << std::endl;
-            std::cout << "[CLIENT] Entering LOADING state" << std::endl;
         }
         if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))
         {
@@ -496,16 +499,20 @@ void R_Type::Rtype::receiveSnapshot()
             _activeEntities = std::move(newActive);
         }
     }
+    _pendingSnapshots.clear();
 }
 
 void R_Type::Rtype::draw()
 {
-    if (_inMenu) {
-        _menu->draw();
+    if (_inMenu)
+    {
+        _menu->draw(*this);
         return;
     }
-    if (!_connected)
+    if (!_connected) {
+        _client->poll();
         return;
+    }
     if (_gameOver) {
         _fadeAlpha = 0;
         _state = GameState::PLAYING;
@@ -569,29 +576,11 @@ engine::registry &R_Type::Rtype::getRegistry()
     return _registry;
 }
 
-void R_Type::Rtype::setServerEndpoint(const std::string &ip, unsigned short port)
-{
-    _serverEndpoint = std::make_unique<engine::net::Endpoint>(
-        engine::net::make_endpoint(ip, port));
-}
-
 void R_Type::Rtype::waiting_connection()
 {
     if (!_connected)
     {
-        if (auto pkt_opt = _client->receive(_sender))
-        {
-            auto [recvHdr, payload] = *pkt_opt;
-            if (recvHdr.type == CONNECT_ACK &&
-                payload.size() >= sizeof(ConnectAck))
-            {
-                ConnectAck ack{};
-                std::memcpy(&ack, payload.data(), sizeof(ConnectAck));
-                _player = ack.playerEntityId;
-                _connected = true;
-                _registry.spawn_entity();
-            }
-        }
+        _client->poll();
     }
 }
 
@@ -620,9 +609,9 @@ void R_Type::Rtype::handle_collision(engine::registry &reg, size_t i, size_t j)
         component::animation anim = _playerData->explosionAnimation;
         reg.add_component(explosion, component::lifetime{0.8f});
         reg.add_component(explosion, component::drawable{
-                                         _playerData->playerTexture,
-                                         _playerData->explosionRect,
-                                         layers::Effects});
+            _playerData->playerTexture,
+            _playerData->explosionRect,
+            layers::Effects});
         reg.add_component(explosion, component::animation{anim});
         return;
     }

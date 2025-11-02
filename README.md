@@ -84,6 +84,6 @@ Choose one or several:
 ## Authors
 - Raphael Guerin
 - Alexis Constantinopoulos
-- Liza Goulmot
+- Lisa Goulmot
 - Maryse Katary
 - Kevin Poly

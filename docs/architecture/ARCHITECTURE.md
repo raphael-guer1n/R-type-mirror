@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document describes the runtime architecture of the project in a language- and library-agnostic way. It reflects the current implementation: a server-authoritative model over UDP, a deterministic server loop at ~60 Hz, and an ECS-based game logic.
+This document describes the runtime architecture of the project in a language- and library-agnostic way. It reflects the current implementation: a server-authoritative model over UDP, ECS-based game logic, and asynchronous networking using threads.
 
 ## High-level System View
 
@@ -9,8 +9,8 @@ flowchart LR
   %% --- SERVER SIDE ---
   subgraph Server
     Loop["Main Loop (~60 Hz)"]
-    NetS["UDP Socket (non-blocking)"]
     ECS["ECS Systems"]
+    NetS["Network Thread (UDP Socket)"]
   end
 
   %% --- CLIENT SIDE ---
@@ -23,15 +23,16 @@ flowchart LR
   %% --- CONNECTIONS ---
   Input --> NetC
   NetC -->|"INPUT"| NetS
-  NetS -->|"SNAPSHOT / EVENT"| NetC
+  NetS -->|"INPUT Queue"| Loop
   Loop --> ECS
   ECS --> Loop
-  Loop -->|"Broadcast SNAPSHOT"| NetS
+  Loop -->|"Snapshot Queue"| NetS
+  NetS --> NetC
   NetC --> View
 ```
 
-- Server: The authoritative source of truth. Applies inputs, advances the world each tick, spawns entities, resolves collisions/damage, and broadcasts state.
-- Client: Captures user input, sends INPUT messages, consumes SNAPSHOT/EVENT updates, and renders. It runs lightweight local systems (control, integration, scrolling, animation) for presentation; server snapshots remain authoritative and overwrite state.
+- Server: The authoritative source of truth. Processes inputs asynchronously via a network thread, advances the world each tick, spawns entities, resolves collisions/damage, and broadcasts snapshots/events via a snapshot queue.
+- Client: Captures user input, sends INPUT messages, consumes SNAPSHOT/EVENT updates, and renders. Local ECS presentation systems run for responsiveness; server snapshots overwrite state for authority.
 
 ---
 
@@ -39,122 +40,128 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  MainLoop["Main Loop (~60 Hz)"] --> ECS["ECS Systems"]
+  NetThread["Network Thread (UDP I/O)"] -->|"INPUT Queue"| MainLoop["Main Loop (~60 Hz)"]
+  MainLoop --> ECS["ECS Systems"]
   ECS -->|"Update Entities"| MainLoop
-  MainLoop -->|"non-blocking recv/send"| Net["UDP Socket"]
+  MainLoop -->|"Snapshot Queue"| NetThread
 ```
 
-- Single deterministic main loop (~60 Hz).
-- Networking is performed via a non-blocking UDP socket within the same thread.
-- The loop never waits on clients; it continues to tick the simulation.
+- Network thread handles all UDP send/receive asynchronously.
+- Main loop thread consumes INPUT packets from queue, updates ECS, and pushes snapshots/events to network queue.
+- Queues are thread-safe (mutexes or lock-free).
+- Main loop remains deterministic and non-blocking.
 
 ---
 
 ## Server Runtime Model
 
-The server runs a deterministic main loop at ~60 Hz and uses a non-blocking UDP socket. The loop never waits on clients; it continues to tick the simulation.
+The server runs a deterministic main loop at ~60 Hz and uses a separate network thread for UDP I/O.
 
 Pseudocode overview:
 
 ```
 initialize();
 wait_for_players();
-const tick_dt = 16 ms;
+
+start_thread(network_thread, [&]{
+    while (running) {
+        pkt = udp_socket.try_receive();
+        if (pkt) input_queue.push(pkt);
+        snapshot = snapshot_queue.pop();
+        if (snapshot) udp_socket.send(snapshot);
+    }
+});
+
+tick_dt = 16 ms
 last_tick = now();
 
 while (running) {
-  // Networking (non-blocking)
-  repeat {
-    pkt = try_receive(); // returns none if no packet
-    if (!pkt) break;
-    process_network_input(pkt); // INPUT handling, validation
-  }
+    // Process all available INPUT packets
+    while (input_queue.has_items()) {
+        pkt = input_queue.pop();
+        process_network_input(pkt);
+    }
 
-  // Fixed-step simulation (~60 Hz)
-  if (now() - last_tick >= tick_dt) {
-    game_logic_tick();   // systems: movement, collisions, AI, damage, spawns
-    broadcast_snapshot(); // cap entity count per packet for MTU safety
-    tick++;
-    last_tick += tick_dt;
-    // catch-up: if drift accumulated, clamp to now()
-    if (now() - last_tick >= tick_dt) last_tick = now();
-  }
+    // Fixed-step simulation (~60 Hz)
+    if (now() - last_tick >= tick_dt) {
+        game_logic_tick();    // ECS: movement, collisions, AI, damage, spawns
+        snapshot = build_snapshot();
+        snapshot_queue.push(snapshot);
+        tick++;
+        last_tick += tick_dt;
+        if (now() - last_tick >= tick_dt) last_tick = now();
+    }
 }
 ```
 
 Notes:
-- UDP I/O is non-blocking; dropped or late packets do not stall the simulation.
-- World updates and networking happen in the same main loop for predictability.
-- Snapshots currently cap the number of entities per packet to bound size.
+- Network I/O never blocks the main loop.
+- Queues decouple network and ECS threads.
+- Snapshots are capped to respect MTU (~1500 bytes).
 
 ---
 
 ## Client Runtime Model
 
-Each frame the client:
-1) Collects input (pressed/released keys).  
-2) Sends a compact INPUT message (tick + variable-length key list).  
-3) Consumes all available network packets (notably SNAPSHOT/EVENT).  
-4) Runs local presentation systems (e.g., control to reset velocities, position integration with deltaTime, background scrolling for decor, animation updates).  
-5) Applies the latest authoritative world from SNAPSHOT (overwriting as needed).  
-6) Renders the frame.
+Each frame:
+1. Capture input (pressed/released keys)
+2. Send INPUT message to server
+3. Consume all available network packets (SNAPSHOT/EVENT/LEVEL_START/LEVEL_END)
+4. Run local ECS presentation systems:
+   - control_system, position_system, scroll_reset_system, animation_system
+5. Apply latest authoritative snapshot (overwrite state)
+6. Render frame
 
-This preserves responsiveness while remaining faithful to the server-authoritative model.
+Ensures responsive gameplay while maintaining server authority.
 
 ---
 
 ## Networking Model (summary)
 
-- Transport: UDP, binary protocol with a fixed 8-byte header.  
-- Direction: Client→Server INPUT at ~display rate; Server→Client SNAPSHOT/EVENT at tick rate.  
-- Authority: Server dictates world state; clients do not simulate ownership.  
-- Reliability: No per-packet ACK in the header; clients may retry handshakes.  
-- See `docs/protocol/PROTOCOL.md` for exact field formats and sizes.
+- Transport: UDP, binary protocol with fixed 8-byte header
+- Direction: Client→Server INPUT, Server→Client SNAPSHOT/EVENT
+- Queued architecture decouples networking from ECS
+- Authority: Server is authoritative; clients do not simulate ownership
+- Reliability: Critical handshake retries; no per-packet ACK
 
 ---
 
 ## Game Logic and ECS
 
-The game logic follows an Entity-Component-System approach:
+Server-side ECS Systems:
+- Movement / integration (fixed timestep)
+- Projectile updates & lifetime management
+- Collision & damage with cooldown
+- AI behaviors & spawn logic
+- Snapshot building for network
 
-- Entity: Opaque identifier.  
-- Component: Data containers (e.g., position, velocity, hitbox, health, collision state, kind, projectile tag, AI traits).  
-- System: Stateless logic operating over component sets each tick (e.g., movement/integration, collisions/damage, AI behaviors, spawn/despawn, animation updates).
-
-Representative server-side systems:
-- Movement/integration (fixed timestep).  
-- Projectile update/cleanup (advance projectiles, lifetime expiry).  
-- Collision + damage with cooldown; sets collision_state which is propagated as a flag in snapshots.  
-- AI behaviors (enemy patterns, boss phases) and spawn logic.  
-- Snapshot building: collects a bounded set of active entities into a packet.
-
-Representative client-side systems (presentation):
-- control_system: resets velocities for controllable entities each frame (inputs define new velocity).  
-- position_system: integrates positions using current velocities and deltaTime.  
-- scroll_reset_system: maintains continuous background scrolling for decor entities.  
-- animation_system + draw: updates sprite frames and renders by layer.
+Client-side ECS Systems (presentation):
+- Control & velocity reset
+- Position integration
+- Decor/background scrolling
+- Animation & rendering per layer
 
 ---
 
-## Layers (agnostic)
+## Layers
 
-1) Presentation layer — draws sprites/UI; no game rules.  
-2) Networking layer — sends/receives binary UDP packets; parses/serializes messages.  
-3) Game logic layer — ECS: maintains world state and runs systems at a fixed rate.  
-4) Input layer (client) — captures user inputs and generates INPUT messages.
+1. Presentation layer — draws sprites/UI; no game rules
+2. Networking layer — async UDP send/receive; parses/serializes messages
+3. Game logic layer — ECS, deterministic tick updates
+4. Input layer (client) — captures user inputs, generates INPUT messages
 
 ---
 
 ## Performance & Limits
 
-- Target rate: ~60 ticks/s on the server.  
-- Network safety: snapshot entity count capped (to fit typical MTU ~1500 bytes).  
-- Non-blocking UDP ensures the main loop remains responsive under packet loss or delay.
+- Server tick rate: ~60 Hz
+- Snapshots capped to MTU (~1500 bytes)
+- Non-blocking UDP ensures responsiveness under packet loss
 
 ---
 
 ## Fault Tolerance
 
-- The server loop proceeds regardless of client delays/crashes.  
-- Unknown or malformed packets are ignored per protocol spec.  
-- Client state reconstruction relies on the latest received snapshot.
+- Main loop continues regardless of client delays or crashes
+- Unknown/malformed packets ignored
+- Clients reconstruct state from latest authoritative snapshot

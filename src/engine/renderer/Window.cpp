@@ -32,6 +32,7 @@ engine::R_Graphic::Window::Window(const std::string &title, int width, int heigh
 engine::R_Graphic::Window::~Window() {
     if (_renderer) SDL_DestroyRenderer(_renderer);
     if (_window) SDL_DestroyWindow(_window);
+    TTF_Quit();
     SDL_Quit();
 }
 

@@ -84,7 +84,9 @@ if(ENGINE_NETWORK)
     list(APPEND ENGINE_SOURCES
         network/IoContext.cpp
         network/UdpSocket.cpp
-    )
+        network/NetServer.cpp
+        network/NetClient.cpp
+)
     
     message(STATUS "Engine: Network subsystem enabled")
 endif()

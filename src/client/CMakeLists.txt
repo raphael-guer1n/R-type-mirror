@@ -7,6 +7,8 @@ add_executable(r-type_client
     Menu.cpp
     Enemy.cpp
     Gameover.cpp
+    Lobby.cpp
+    Level.cpp
     ../common/Accessibility.cpp
 )
 

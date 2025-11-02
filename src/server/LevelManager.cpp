@@ -7,10 +7,10 @@
 #include <iostream>
 using json = nlohmann::json;
 
-LevelManager::LevelManager(engine::registry &registry, engine::net::UdpSocket &socket,
+LevelManager::LevelManager(engine::registry &registry, engine::net::NetServer &server,
                            std::vector<PlayerInfo> &players, uint32_t &tick,
                            std::unordered_set<uint32_t> &liveEntities)
-    : _registry(registry), _socket(socket), _players(players), _tick(tick),
+    : _registry(registry), _server(server), _players(players), _tick(tick),
       _liveEntities(liveEntities)
 {
     startNextLevel();
@@ -33,7 +33,7 @@ void LevelManager::startNextLevel()
         loadLevelFile(_currentLevel, level);
     } catch (...) {
         std::cout << "No more levels!\n";
-        _noMoreLevels = true; 
+        _noMoreLevels = true;
         return;
     }
     _levelDuration = level["duration"].get<uint32_t>() * 60;
@@ -46,7 +46,7 @@ void LevelManager::spawnEntities(const json &levelJson)
 {
     for (auto &entry : levelJson["entities"])
     {
-        std::string cfgPath = entry["config"]; 
+        std::string cfgPath = entry["config"];
         float x = entry["x"];
         float y = entry["y"];
         float velX = entry["velocityX"];
@@ -99,14 +99,20 @@ void LevelManager::notifyLevelStart(uint32_t level)
 {
     PacketHeader hdr{LEVEL_START, sizeof(LevelStartPayload), 0};
     LevelStartPayload p{level};
-    for (auto &pl : _players)
-        _socket.send(hdr, std::vector<uint8_t>((uint8_t *)&p, (uint8_t *)&p + sizeof(p)), pl.endpoint);
+    std::cout << "notify Start" << std::endl;
+    for (auto &pl : _players) {
+        std::cout << "type shiii" << std::endl;
+        _server.send(hdr, std::vector<uint8_t>((uint8_t *)&p, (uint8_t *)&p + sizeof(p)), pl.endpoint);
+    }
 }
 
 void LevelManager::notifyLevelEnd(uint32_t level)
 {
     PacketHeader hdr{LEVEL_END, sizeof(LevelEndPayload), 0};
     LevelEndPayload p{level};
-    for (auto &pl : _players)
-        _socket.send(hdr, std::vector<uint8_t>((uint8_t *)&p, (uint8_t *)&p + sizeof(p)), pl.endpoint);
+    std::cout << "notify ENd" << std::endl;
+    for (auto &pl : _players) {
+        std::cout << "fine shiii" << std::endl;
+        _server.send(hdr, std::vector<uint8_t>((uint8_t *)&p, (uint8_t *)&p + sizeof(p)), pl.endpoint);
+    }
 }
