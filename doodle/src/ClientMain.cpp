@@ -26,14 +26,15 @@ int main(int argc, char **argv) {
         Renderer renderer(window);
 
         // Load simple sprites for doodle (no animation). If files are missing we fall back to colored rects.
-        std::shared_ptr<engine::R_Graphic::Texture> texPlayer, texTileRegular, texTileMoving, texTileGhost, texPlayerProj, texDecor, texMonster;
-        texPlayer = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle.png");
-        texTileRegular = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_regular.png");
-        texTileMoving = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_moving.png");
-        texTileGhost = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_ghost.png");
-        //texPlayerProj = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle_bullet.png");
-        //texDecor = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle_decor.png");
-        texMonster = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/monster.png");
+    std::shared_ptr<engine::R_Graphic::Texture> texPlayer, texTileRegular, texTileMoving, texTileGhost, texPlayerProj, texDecor, texMonster, texTrampoline;
+    texPlayer = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle.png");
+    texTileRegular = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_regular.png");
+    texTileMoving = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_moving.png");
+    texTileGhost = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_ghost.png");
+    texTrampoline = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/trampoline.png");
+    //texPlayerProj = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle_bullet.png");
+    //texDecor = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle_decor.png");
+    texMonster = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/monster.png");
 
     engine::net::IoContext io;
     engine::net::UdpSocket sock(io, 0);
@@ -266,6 +267,8 @@ int main(int argc, char **argv) {
 
             const int SCREEN_W = 480;
             const int SCREEN_H = 800;
+            // Toggle rendering of debug hitboxes (outlines). Set to false to disable.
+            constexpr bool SHOW_HITBOXES = false;
             float cameraY = cameraYPrev;
             if (playerIdx >= 0 && playerIdx < static_cast<ssize_t>(positions.size()) && positions[playerIdx]) {
                 float targetY = positions[playerIdx].value().y - (SCREEN_H / 2.0f);
@@ -303,32 +306,42 @@ int main(int argc, char **argv) {
                         // for platforms choose specific tile based on platform kind
                         if (i < platforms.size() && platforms[i] && platforms[i].has_value()) {
                             uint8_t pk = platforms[i].value().kind;
+                            // default base tile
+                            std::shared_ptr<engine::R_Graphic::Texture> baseTex = texTileRegular;
+                            std::shared_ptr<engine::R_Graphic::Texture> overlayTex = nullptr;
                             switch (pk)
                             {
                             case 1: // moving
-                                useTex = texTileMoving ? texTileMoving : texTileRegular;
+                                baseTex = texTileMoving ? texTileMoving : texTileRegular;
                                 r = 50; g = 130; b = 255;
                                 break;
                             case 2: // single-use / fragile -> ghost
-                                useTex = texTileGhost ? texTileGhost : texTileRegular;
+                                baseTex = texTileGhost ? texTileGhost : texTileRegular;
                                 r = 210; g = 180; b = 0;
                                 break;
+                            case 3: // (unused) previously trampoline - now trampolines are separate entities
+                                baseTex = texTileRegular ? texTileRegular : texDecor;
+                                r = 255; g = 160; b = 40;
+                                break;
                             default: // regular
-                                useTex = texTileRegular ? texTileRegular : texDecor;
+                                baseTex = texTileRegular ? texTileRegular : texDecor;
                                 r = 100; g = 100; b = 100;
                                 break;
                             }
+                            useTex = baseTex;
+                            // store overlay in a local variable to draw after base
+                            // no immediate overlay drawing here; trampoline overlays are drawn separately below
                         }
                         else {
                             useTex = texDecor;
                             r = 0; g = 0; b = 0;
                         }
-                    } else {
+                    }
+                } else {
                         // fallback sprite for other kinds
                         useTex = texDecor;
                         r = 255; g = 0; b = 0;
                     }
-                }
 
                 // If a texture is available, draw it centered on the hitbox; else draw the colored rect as before
                 if (useTex) {
@@ -345,7 +358,7 @@ int main(int argc, char **argv) {
                     renderer.fillRect(screenX, screenY, static_cast<int>(hb.width), static_cast<int>(hb.height));
                 }
 
-                if (static_cast<ssize_t>(i) == playerIdx) {
+                if (SHOW_HITBOXES && static_cast<ssize_t>(i) == playerIdx) {
                     renderer.setDrawColor(0, 255, 0, 255);
                     renderer.drawRect(screenX - 2, screenY - 2, static_cast<int>(hb.width) + 4, static_cast<int>(hb.height) + 4);
                 }
@@ -355,6 +368,52 @@ int main(int argc, char **argv) {
                 renderer.fillRect((SCREEN_W / 2) - 40, (SCREEN_H / 2) - 40, 80, 80);
                 if (VERBOSE && SDL_GetTicks() - lastParseLogMs > 1000u) {
                     std::cerr << "Client: WARNING - no player entity found in snapshot (drawing debug rect)" << std::endl;
+                }
+            }
+            // Draw trampoline overlays on top of platforms that are marked as kind==3
+            {
+                auto &plats = reg.get_components<component::platform>();
+                auto &ppos = reg.get_components<component::position>();
+                auto &phb = reg.get_components<component::hitbox>();
+                for (size_t pi = 0; pi < positions.size(); ++pi) {
+                    if (!(ppos[pi] && phb[pi] && plats[pi] && plats[pi].has_value())) continue;
+                    uint8_t pk = plats[pi].value().kind;
+                    if (pk != 3) continue;
+                    auto platP = ppos[pi].value();
+                    auto platHb = phb[pi].value();
+                    // Determine base texture used to compute platform texture height
+                    std::shared_ptr<engine::R_Graphic::Texture> baseTex = texTileRegular;
+                    if (plats[pi] && plats[pi].has_value()) {
+                        uint8_t kind = plats[pi].value().kind;
+                        if (kind == 1) baseTex = texTileMoving ? texTileMoving : texTileRegular;
+                        else if (kind == 2) baseTex = texTileGhost ? texTileGhost : texTileRegular;
+                        else baseTex = texTileRegular;
+                    }
+                    double platTexH = 0.0;
+                    if (baseTex) {
+                        auto psz = baseTex->getSize();
+                        platTexH = static_cast<double>(psz.y);
+                    }
+                    if (texTrampoline) {
+                        auto tsize = texTrampoline->getSize();
+                        double trampW = static_cast<double>(tsize.x);
+                        double trampH = static_cast<double>(tsize.y);
+                        double drawX = platP.x + platHb.offset_x + (platHb.width * 0.5) - (trampW * 0.5);
+                        const double TRAMPOLINE_GAP = 0.0;
+                        double platformTexTop = platP.y + platHb.offset_y + (platHb.height * 0.5) - (platTexH * 0.5);
+                        double drawY = platformTexTop - trampH - TRAMPOLINE_GAP;
+                        texTrampoline->setPosition(drawX, drawY - cameraY);
+                        texTrampoline->draw(window, nullptr);
+                    } else {
+                        double drawX = platP.x + platHb.offset_x;
+                        const double TRAMPOLINE_GAP = 0.0;
+                        double platformTexTop = platP.y + platHb.offset_y;
+                        double drawY = platformTexTop - TRAMPOLINE_GAP - 8.0;
+                        int w = static_cast<int>(platHb.width);
+                        int h = 8;
+                        renderer.setDrawColor(255, 160, 40, 255);
+                        renderer.fillRect(static_cast<int>(drawX), static_cast<int>(drawY - cameraY), w, h);
+                    }
                 }
             }
             renderer.display();
