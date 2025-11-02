@@ -1,5 +1,5 @@
 {
-    "type": "enemy",
+    "type": "charger",
     "hp": 3,
     "speed": 350,
     "behavior": "charger",
@@ -7,6 +7,34 @@
         "w": 150,
         "h": 100
     },
-    "spells": [],
+    "spells": [
+        {
+            "name": "charge_shot",
+            "cooldown": 80,
+            "damage": 2,
+            "speedX": -6,
+            "speedY": 0,
+            "width": 60,
+            "height": 30
+        },
+        {
+            "name": "charge_shot_down",
+            "cooldown": 100,
+            "damage": 2,
+            "speedX": -5,
+            "speedY": 2,
+            "width": 60,
+            "height": 30
+        },
+        {
+            "name": "charge_shot_up",
+            "cooldown": 100,
+            "damage": 2,
+            "speedX": -5,
+            "speedY": -2,
+            "width": 60,
+            "height": 30
+        }
+    ],
     "color": "orange"
 }

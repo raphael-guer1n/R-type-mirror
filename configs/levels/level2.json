@@ -2,6 +2,8 @@
   "duration": 12,
   "entities": [
     { "config": "configs/enemy/crawler.json", "x": 2000, "y": 200, "velocityX": -150, "velocityY": 0 },
-    { "config": "configs/enemy/shooter.json", "x": 2200, "y": 600, "velocityX": -200, "velocityY": 0 }
+    { "config": "configs/enemy/shooter.json", "x": 2200, "y": 600, "velocityX": -200, "velocityY": 0 },
+    { "config": "configs/enemy/spinner.json", "x": 2400, "y": 800, "velocityX": -250, "velocityY": 0 },
+    { "config": "configs/enemy/charger.json", "x": 2500, "y": 400, "velocityX": -50, "velocityY": 0 }
   ]
 }
