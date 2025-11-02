@@ -16,7 +16,7 @@ using namespace engine;
 using namespace engine::R_Graphic;
 
 namespace {
-    constexpr bool VERBOSE = true;
+    constexpr bool VERBOSE = false;
     constexpr int SCREEN_W = 480;
     constexpr int SCREEN_H = 800;
     constexpr uint32_t INPUT_SEND_HZ = 20;
