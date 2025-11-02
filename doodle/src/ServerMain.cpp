@@ -26,6 +26,7 @@ namespace {
     constexpr float ENEMY_W_C = 163.0f;
     constexpr float ENEMY_H_C = 102.0f;
     constexpr float STOMP_MULT = 1.3f;
+    constexpr float PROJECTILE_SPEED = 1400.0f;
 
     using clock = std::chrono::steady_clock;
 
@@ -81,7 +82,8 @@ namespace {
                             else if (code == Key::Space) c.shoot = true;
                             else if (code == Key::Enter) startPressed = true;
                         }
-                        if (!gameStarted && startPressed) { gameStarted = true; std::cout << "Server: game started by client ENTER" << std::endl; }
+                        if (!gameStarted && startPressed) {
+                            gameStarted = true; std::cout << "Server: game started by client ENTER" << std::endl; }
                     }
                 }
             }
@@ -141,11 +143,26 @@ namespace {
 
     void prunePlatforms(registry &reg, std::vector<entity_t> &platforms, entity_t player)
     {
-        const float PRUNE_BELOW = 1200.0f; auto &posArr = reg.get_components<component::position>(); auto &playerPosArr = reg.get_components<component::position>();
+        const float PRUNE_BELOW = SCREEN_H * 0.6f; auto &posArr = reg.get_components<component::position>(); auto &playerPosArr = reg.get_components<component::position>();
         if (!(player < playerPosArr.size() && playerPosArr[player] && playerPosArr[player].has_value())) return; float playerY = playerPosArr[player].value().y;
         std::vector<entity_t> kept; kept.reserve(platforms.size());
         for (auto e : platforms) { if (e >= posArr.size() || !posArr[e] || !posArr[e].has_value()) continue; float py = posArr[e].value().y; if (py > playerY + PRUNE_BELOW) { reg.kill_entity(e);} else { kept.push_back(e);} }
         platforms.swap(kept);
+    }
+
+    void resetPlatforms(registry &reg, std::vector<entity_t> &platforms,
+                        float startW, float startH, float startX, float startY,
+                        float &minPlatformY, float &lastSafeY)
+    {
+        for (auto e : platforms) { reg.kill_entity(e); }
+        platforms.clear();
+        entity_t startPlat = reg.spawn_entity();
+        reg.add_component(startPlat, component::position{startX, startY});
+        reg.add_component(startPlat, component::hitbox{startW, startH});
+        reg.add_component(startPlat, component::platform{0});
+        reg.add_component(startPlat, component::entity_kind::decor);
+        platforms.push_back(startPlat);
+        minPlatformY = startY; lastSafeY = startY;
     }
 
     void limitPlatformsCount(registry &reg, std::vector<entity_t> &platforms)
@@ -153,7 +170,7 @@ namespace {
         const size_t MAX_PLATFORMS = 800; if (platforms.size() <= MAX_PLATFORMS) return; size_t removeCount = platforms.size() - MAX_PLATFORMS; for (size_t i = 0; i < removeCount; ++i) reg.kill_entity(platforms[i]); platforms.erase(platforms.begin(), platforms.begin() + removeCount);
     }
 
-    void resolvePlayerPlatformCollisions(registry &reg, entity_t player, float fixedDt)
+    void resolvePlayerPlatformCollisions(registry &reg, entity_t player, float fixedDt, float &outLastSafeY)
     {
         auto &poss = reg.get_components<component::position>(); auto &vels = reg.get_components<component::velocity>(); auto &hbs = reg.get_components<component::hitbox>(); auto &plats = reg.get_components<component::platform>();
         if (!(player < poss.size() && poss[player] && player < vels.size() && vels[player] && player < hbs.size() && hbs[player])) return; float prevY = poss[player].value().y - vels[player].value().vy * fixedDt; float prevBottom = prevY + hbs[player].value().height; float curBottom = poss[player].value().y + hbs[player].value().height; float playerLeft = poss[player].value().x + hbs[player].value().offset_x; float playerRight = playerLeft + hbs[player].value().width;
@@ -161,7 +178,7 @@ namespace {
             if (!(e < poss.size() && poss[e] && poss[e].has_value())) continue; if (!(e < hbs.size() && hbs[e] && hbs[e].has_value())) continue; if (!(e < plats.size() && plats[e] && plats[e].has_value())) continue; float platTop = poss[e].value().y; if (!(platTop >= prevBottom - 50.0f && platTop <= curBottom + 200.0f)) continue;
             float platLeft = poss[e].value().x + hbs[e].value().offset_x; float platRight = platLeft + hbs[e].value().width; bool overlapX = (playerRight > platLeft + 1.0f) && (playerLeft < platRight - 1.0f);
             if (vels[player].value().vy > 0 && overlapX && prevBottom <= platTop + 5.0f && curBottom > platTop) {
-                poss[player].value().y = platTop - hbs[player].value().height; uint8_t pkind = plats[e].value().kind;
+                poss[player].value().y = platTop - hbs[player].value().height; uint8_t pkind = plats[e].value().kind; outLastSafeY = platTop;
                 if (pkind == 3) {
                     vels[player].value().vy = PLAYER_JUMP_V * 1.5f;
                 } else if (pkind == 2) {
@@ -299,7 +316,7 @@ int main(int argc, char **argv)
         reg.add_component(player, component::position{playerSpawnX, playerSpawnY});
         reg.add_component(player, component::velocity{0.0f, 0.0f});
         reg.add_component(player, component::controllable{});
-    reg.add_component(player, component::gravity{GRAVITY_C});
+        reg.add_component(player, component::gravity{GRAVITY_C});
         reg.add_component(player, component::entity_kind::player);
 
         std::cout << "Server: spawned player entity id=" << static_cast<std::size_t>(player) << std::endl;
@@ -327,6 +344,12 @@ int main(int argc, char **argv)
         const float ENEMY_H = 102.0f;
         const float ENEMY_SPEED = 35.0f;
         const float STOMP_MULT = 1.3f;
+
+        float lastSafeY = playerSpawnY;
+        bool fallGraceActive = false;
+        auto fallGraceStart = clock::now();
+        const float FALL_DEATH_DISTANCE = 600.0f;
+        const int FALL_GRACE_MS = 700;
 
     std::cout << "Doodle server listening on port " << port << std::endl;
 
@@ -388,9 +411,9 @@ int main(int argc, char **argv)
 
                             entity_t proj = reg.spawn_entity();
                             reg.add_component(proj, component::position{spawnX, spawnY});
-                            reg.add_component(proj, component::velocity{0.f, -900.f});
+                            reg.add_component(proj, component::velocity{0.f, -PROJECTILE_SPEED});
                             reg.add_component(proj, component::hitbox{projW, projH});
-                            reg.add_component(proj, component::projectile_tag{static_cast<std::uint32_t>(player), 120u, 0.f, -1.f, 900.f, 1});
+                            reg.add_component(proj, component::projectile_tag{static_cast<std::uint32_t>(player), 120u, 0.f, -1.f, PROJECTILE_SPEED, 1});
                             reg.add_component(proj, component::entity_kind::playerProjectile);
                         }
                     }
@@ -425,13 +448,41 @@ int main(int argc, char **argv)
 
                 auto &hbArrPlayerCheck = reg.get_components<component::hitbox>();
                 if (gameStarted && player < poss.size() && poss[player] && player < vels.size() && vels[player] && player < hbArrPlayerCheck.size() && hbArrPlayerCheck[player]) {
-                    resolvePlayerPlatformCollisions(reg, player, fixedDt);
+                    resolvePlayerPlatformCollisions(reg, player, fixedDt, lastSafeY);
+                    bool prevGameStarted = gameStarted;
                     resolvePlayerEnemyCollisions(reg, enemies, player, playerSpawnX, playerSpawnY, gameStarted, fixedDt);
+                    if (prevGameStarted && !gameStarted) {
+                        resetPlatforms(reg, platforms, START_PLATFORM_W, START_PLATFORM_H, START_PLATFORM_X, START_PLATFORM_Y, minPlatformY, lastSafeY);
+                    }
                 }
 
                 if (gameStarted) { clampEnemiesToBounds(reg, enemies); }
 
                 resolveProjectileEnemyHits(reg, enemies);
+
+                if (gameStarted && poss[player] && poss[player].has_value()) {
+                    float py = poss[player].value().y;
+                    if (py > lastSafeY + FALL_DEATH_DISTANCE) {
+                        if (!fallGraceActive) { fallGraceActive = true; fallGraceStart = clock::now(); }
+                        else {
+                            auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - fallGraceStart).count();
+                            if (ms > FALL_GRACE_MS) {
+                                std::cout << "Server: player fell -> respawn and wait" << std::endl;
+                                poss[player].value().x = playerSpawnX; poss[player].value().y = playerSpawnY;
+                                vels[player].value().vx = 0.0f; vels[player].value().vy = 0.0f;
+                                gameStarted = false;
+                                for (auto k : enemies) reg.kill_entity(k);
+                                enemies.clear();
+                                auto &projArrClr = reg.get_components<component::projectile_tag>();
+                                for (size_t i = 0; i < projArrClr.size(); ++i) { if (projArrClr[i] && projArrClr[i].has_value()) reg.kill_entity(reg.entity_from_index(i)); }
+                                resetPlatforms(reg, platforms, START_PLATFORM_W, START_PLATFORM_H, START_PLATFORM_X, START_PLATFORM_Y, minPlatformY, lastSafeY);
+                                fallGraceActive = false;
+                            }
+                        }
+                    } else {
+                        fallGraceActive = false;
+                    }
+                }
 
                 accumulator -= fixedDt;
             }
@@ -455,9 +506,7 @@ int main(int argc, char **argv)
                 }
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
-
     return 0;
 }
 

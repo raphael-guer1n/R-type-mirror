@@ -382,14 +382,6 @@ namespace {
             renderer.drawRect(screenX - 2, screenY - 2, static_cast<int>(hb.width) + 4, static_cast<int>(hb.height) + 4);
         }
 
-        if (playerIdx == -1) {
-            renderer.setDrawColor(255, 0, 0, 255);
-            renderer.fillRect((SCREEN_W / 2) - 40, (SCREEN_H / 2) - 40, 80, 80);
-            if (VERBOSE && SDL_GetTicks() - lastParseLogMs > 1000u) {
-                std::cerr << "Client: WARNING - no player entity found in snapshot (drawing debug rect)" << std::endl;
-            }
-        }
-
         renderer.display();
     }
 }
