@@ -83,8 +83,7 @@ namespace component
         explicit health(std::uint8_t h) : hp(h) {}
     };
     struct score {
-        int current;
-        int highScore;
+        uint32_t value;
     };
     /**
      * @brief Simple drawable component for rendering entities.
