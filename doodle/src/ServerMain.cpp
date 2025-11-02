@@ -6,7 +6,6 @@
 #include <cstring>
 #include <cmath>
 
-using namespace engine;
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
@@ -14,6 +13,8 @@ using namespace engine;
 #include "engine/events/Events.hpp"
 #include <chrono>
 #include <thread>
+
+using namespace engine;
 
 int main(int argc, char **argv)
 {
@@ -63,10 +64,10 @@ int main(int argc, char **argv)
         platforms.push_back(startPlat);
 
         entity_t player = reg.spawn_entity();
-        reg.add_component(player, component::hitbox{28.0f, 36.0f});
+        reg.add_component(player, component::hitbox{60.0f, 90.0f});
         // Place player on top of start platform
         float playerSpawnX = START_PLATFORM_X + (START_PLATFORM_W * 0.5f) - 14.0f; // center horizontally over platform (hb width ~28)
-        float playerSpawnY = START_PLATFORM_Y - 36.0f; // on top (hb height 36)
+        float playerSpawnY = START_PLATFORM_Y - 90.0f; // on top (hb height 36)
         reg.add_component(player, component::position{playerSpawnX, playerSpawnY});
         reg.add_component(player, component::velocity{0.0f, 0.0f});
         reg.add_component(player, component::controllable{});
@@ -93,8 +94,8 @@ int main(int argc, char **argv)
         uint32_t tick = 0;
         uint32_t lastShootTick = 0;
         const uint32_t SHOOT_COOLDOWN_TICKS = 8; // ~133ms @60Hz
-        const float ENEMY_W = 44.0f;
-        const float ENEMY_H = 36.0f;
+        const float ENEMY_W = 163.0f;
+        const float ENEMY_H = 102.0f;
         const float ENEMY_SPEED = 35.0f;
         const float STOMP_MULT = 1.3f; // stomp jump boost
 
@@ -376,15 +377,15 @@ int main(int argc, char **argv)
                             auto &hbAll = reg.get_components<component::hitbox>();
                             if (posAll[pe] && posAll[pe].has_value() && hbAll[pe] && hbAll[pe].has_value()) {
                                 const auto &pp = posAll[pe].value();
-                                const auto &phb = hbAll[pe].value();
-                                float platLeft = pp.x + phb.offset_x;
-                                float range = std::max(0.0f, phb.width - ENEMY_W);
-                                float ex = platLeft + enemyOffset01(rng) * range;
-                                float ey = pp.y - ENEMY_H;
+                                // Always spawn a flying enemy above the platform (never on it)
+                                float ex = enemyOffset01(rng) * (SCREEN_W - ENEMY_W);
+                                float ey = pp.y - ENEMY_H - (10.0f + enemyOffset01(rng) * 40.0f);
                                 entity_t en = reg.spawn_entity();
                                 reg.add_component(en, component::position{ex, ey});
+                                // small horizontal drift velocity so the mob floats left-right
+                                float drift = 20.0f + enemyOffset01(rng) * 20.0f; // 20..40 px/s
                                 float dir = (rng() % 2 == 0) ? 1.0f : -1.0f;
-                                reg.add_component(en, component::velocity{dir * ENEMY_SPEED, 0.0f});
+                                reg.add_component(en, component::velocity{dir * drift, 0.0f});
                                 reg.add_component(en, component::hitbox{ENEMY_W, ENEMY_H});
                                 reg.add_component(en, component::entity_kind::enemy);
                                 enemies.push_back(en);
@@ -514,7 +515,7 @@ int main(int argc, char **argv)
                     enemies.swap(keptEnemies);
                 }
 
-                // Enemy maintenance: keep them on their platform and bounce within platform bounds
+                // Enemy maintenance: simplified flying behavior — bounce horizontally on screen edges
                 if (gameStarted) {
                     auto &posAll = reg.get_components<component::position>();
                     auto &hbAll = reg.get_components<component::hitbox>();
@@ -525,38 +526,14 @@ int main(int argc, char **argv)
                         auto &ep = posAll[en].value();
                         auto &ev = velAll[en].value();
                         const auto &ehb = hbAll[en].value();
-                        // find supporting platform (closest directly below within small epsilon)
-                        bool hasSupport = false;
-                        float bestDy = 5.0f; // tolerance
-                        float eBottom = ep.y + ehb.height;
-                        float eLeft = ep.x + ehb.offset_x;
-                        float eRight = eLeft + ehb.width;
-                        float sTop = 0.f, sLeft = 0.f, sRight = 0.f;
-                        for (auto pe : platforms) {
-                            if (!(posAll[pe] && hbAll[pe])) continue;
-                            float pTop = posAll[pe].value().y;
-                            float pLeft = posAll[pe].value().x + hbAll[pe].value().offset_x;
-                            float pRight = pLeft + hbAll[pe].value().width;
-                            // horizontal overlap required
-                            bool ovx = (eRight > pLeft + 1.0f) && (eLeft < pRight - 1.0f);
-                            float dy = std::fabs(pTop - eBottom);
-                            if (ovx && dy < bestDy) { bestDy = dy; hasSupport = true; sTop = pTop; sLeft = pLeft; sRight = pRight; }
-                        }
-                        if (!hasSupport) {
-                            // no platform under -> remove enemy
-                            reg.kill_entity(en);
-                            continue;
-                        }
-                        // Snap on top of platform
-                        ep.y = sTop - ehb.height;
-                        // bounce within [pLeft, pRight]
-                        float newLeft = ep.x + ehb.offset_x;
-                        float newRight = newLeft + ehb.width;
-                        if (newLeft < sLeft) {
-                            ep.x = sLeft - ehb.offset_x;
+                        // Bounce horizontally within screen bounds (simple flying behavior)
+                        float leftEdge = 0.0f;
+                        float rightEdge = SCREEN_W - ehb.width;
+                        if (ep.x < leftEdge) {
+                            ep.x = leftEdge;
                             ev.vx = std::abs(ev.vx);
-                        } else if (newRight > sRight) {
-                            ep.x = sRight - ehb.width - ehb.offset_x;
+                        } else if (ep.x > rightEdge) {
+                            ep.x = rightEdge;
                             ev.vx = -std::abs(ev.vx);
                         }
                         kept.push_back(en);
