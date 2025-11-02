@@ -17,21 +17,24 @@ Abstract
    multiplayer project. It defines packet formats, semantics, and the
    expected message flow between client and server. The protocol borrows
    from the Quake networking model: compact client commands, delta
-   snapshots, and sequence/ack numbers for robustness.
+   snapshots, and sequence/ack numbers for robustness. New packets are
+   included for lobby management (LIST_LOBBIES, CREATE_LOBBY, JOIN_LOBBY,
+   LOBBY_JOINED) and level control (LEVEL_START, LEVEL_END).
 
 
 1. Introduction
 
    The R-Type protocol is a custom application-layer protocol built on
    top of UDP. It follows a server-authoritative model where the server
-   controls the game state and clients transmit input commands. The
-   design is optimized for low latency, efficient bandwidth usage, and
+   controls the game state and clients transmit input commands. The design
+   is optimized for low latency, efficient bandwidth usage, and
    synchronization across multiple players.
 
    Compared to a simple fixed-struct protocol, this version introduces:
    - An acknowledgment number (ack) in headers.
    - Batched input commands (UserCmd).
    - Delta-compressed snapshots.
+   - Lobby and level control messages.
 
 
 2. Conventions Used in This Document
@@ -63,57 +66,100 @@ Abstract
 
 4. Packet Types
 
-   4.1 CONNECT_REQ (0x01)
+   Type | Name                   | Direction            | Payload overview
+   -----|------------------------|--------------------|-----------------------------
+   0x01 | CONNECT_REQ            | Client → Server    | clientId
+   0x02 | CONNECT_ACK            | Server → Client    | serverId, playerEntityId, tickRate
+   0x03 | INPUT                  | Client → Server    | clientId, tick, keyCount, keys[keyCount]
+   0x04 | SNAPSHOT               | Server → Client    | tick, entityCount, entities[entityCount]
+   0x05 | EVENT                  | Server → Client    | tick, eventType, entityId
+   0x06 | PING                   | Client → Server    | timestamp
+   0x07 | PONG                   | Server → Client    | timestamp
+   0x08 | GAME_OVER              | Server → Client    | winnerEntityId
+   0x09 | LIST_LOBBIES           | Client → Server    | none
+   0x0A | LOBBY_LIST_RESPONSE    | Server → Client    | count, lobbies[4]
+   0x0B | CREATE_LOBBY           | Client → Server    | name[32]
+   0x0C | JOIN_LOBBY             | Client → Server    | lobbyId
+   0x0D | LOBBY_JOINED           | Server → Client    | lobbyId
+   0x0E | LEVEL_START            | Server → Client    | level
+   0x0F | LEVEL_END              | Server → Client    | level
 
-      Sent by client to request connection.
-         - clientId (32 bits)
 
-   4.2 CONNECT_ACK (0x02)
+4.1 CONNECT_REQ (0x01)
+   Sent by client to request connection.
+      - clientId (32 bits)
 
-      Sent by server in response to CONNECT_REQ.
-         - serverId       (32 bits)
-         - playerEntityId (32 bits)
-         - tickRate       (32 bits)
+4.2 CONNECT_ACK (0x02)
+   Sent by server in response to CONNECT_REQ.
+      - serverId       (32 bits)
+      - playerEntityId (32 bits)
+      - tickRate       (32 bits)
 
-   4.3 INPUT (0x03)
+4.3 INPUT (0x03)
+   Sent by client to report keys pressed at a given tick.
+      - clientId  (32-bit unsigned)
+      - tick      (32-bit unsigned)
+      - keyCount  (16-bit unsigned)
+      - keys      (keyCount × 32-bit signed integers)
 
-      Sent by client to report keys pressed at a given tick.
+4.4 SNAPSHOT (0x04)
+   Sent by server to broadcast world state.
+   Snapshot header:
+      - tick        (32-bit unsigned)
+      - entityCount (16-bit unsigned)
 
-      Fields:
-         - clientId  (32-bit unsigned)
-         - tick      (32-bit unsigned)
-         - keyCount  (16-bit unsigned)
-         - keys      (keyCount × 32-bit signed integers)
+   EntityState (repeated entityCount times):
+      - entityId  (32-bit unsigned)
+      - x         (float32)
+      - y         (float32)
+      - vx        (float32)
+      - vy        (float32)
+      - type      (8-bit unsigned)
+      - hp        (8-bit unsigned)
+      - collided  (8-bit unsigned, 0 or 1)
 
-   4.4 SNAPSHOT (0x04)
+4.5 EVENT (0x05)
+   Sent by server for discrete events.
+      - tick      (32-bit unsigned)
+      - eventType (16-bit unsigned)
+      - entityId  (32-bit unsigned)
 
-      Sent by server to broadcast world state.
+4.6 PING / PONG (0x06 / 0x07)
+   Used for latency measurement and keep-alive.
+      - timestamp (64-bit unsigned, format implementation-defined)
 
-      Snapshot header:
-         - tick        (32-bit unsigned)
-         - entityCount (16-bit unsigned)
+4.7 LIST_LOBBIES (0x09)
+   Sent by client to request the current list of lobbies.
+      - No payload.
 
-      EntityState (repeated entityCount times):
-         - entityId  (32-bit unsigned)
-         - x         (float32)
-         - y         (float32)
-         - vx        (float32)
-         - vy        (float32)
-         - type      (8-bit unsigned)
-         - hp        (8-bit unsigned)
-         - collided  (8-bit unsigned, 0 or 1)
+4.8 LOBBY_LIST_RESPONSE (0x0A)
+   Sent by server to respond to a LIST_LOBBIES request.
+      - count (1 byte, unsigned)
+      - lobbies[4]:
+         - id (1 byte, unsigned)
+         - playerCount (1 byte, unsigned)
+         - maxPlayers (1 byte, unsigned)
+         - name[32] (char array, zero-terminated)
 
-   4.5 EVENT (0x05)
+4.9 CREATE_LOBBY (0x0B)
+   Sent by client to create a new lobby.
+      - name[32] (char array, zero-terminated)
 
-      Sent by server for discrete events.
-         - tick      (32-bit unsigned)
-         - eventType (16-bit unsigned)
-         - entityId  (32-bit unsigned)
+4.10 JOIN_LOBBY (0x0C)
+   Sent by client to join an existing lobby.
+      - lobbyId (1 byte, unsigned)
 
-   4.6 PING (0x06) / PONG (0x07)
+4.11 LOBBY_JOINED (0x0D)
+   Sent by server to confirm lobby join.
+      - lobbyId (1 byte, unsigned)
 
-      Used for latency measurement and keep-alive.
-         - timestamp (64-bit unsigned, format implementation-defined)
+4.12 LEVEL_START (0x0E)
+   Sent by server to signal the start of a level.
+      - level (32-bit unsigned)
+
+4.13 LEVEL_END (0x0F)
+   Sent by server to signal the end of a level.
+      - level (32-bit unsigned)
 
 
 5. Message Flow
@@ -122,12 +168,19 @@ Abstract
       Client -> CONNECT_REQ
       Server -> CONNECT_ACK
 
-   2. Game Loop:
+   2. Lobby Management:
+      Client -> LIST_LOBBIES
+      Server -> LOBBY_LIST_RESPONSE
+      Client -> CREATE_LOBBY / JOIN_LOBBY
+      Server -> LOBBY_JOINED
+
+   3. Game Loop:
       Client -> INPUT (keys)
       Server -> SNAPSHOT (world state)
       Server -> EVENT (when needed)
+      Server -> LEVEL_START / LEVEL_END
 
-   3. Keep-alive:
+   4. Keep-alive:
       Client -> PING
       Server -> PONG
 
@@ -150,4 +203,4 @@ Author's Address
 
    R-Type Team
    Epitech
-   Contact: project-rtype@example.com
+   Contact: kevin.poly@epitech.eu

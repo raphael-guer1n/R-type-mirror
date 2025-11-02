@@ -1,3 +1,15 @@
+/**
+ * @file GameLogic.hpp
+ * @brief Declares the GameLogic class responsible for managing the core server-side game simulation.
+ *
+ * This file defines the GameLogic class, which encapsulates the authoritative simulation
+ * of gameplay for the R-Type server. It handles player entities, physics updates,
+ * projectile and enemy spawning, input processing, and synchronization of game state
+ * via network snapshots.
+ *
+ * The class runs independently for each active lobby and maintains its own registry,
+ * tick counter, and live entities list.
+ */
 #pragma once
 #include <unordered_map>
 #include <unordered_set>
@@ -18,11 +30,37 @@
 #define SCREEN_HEIGHT 1080
 #define MAX_PLAYERS 2
 
+/**
+ * @struct PlayerInfo
+ * @brief Represents a player connected to the server.
+ *
+ * Each player is uniquely identified by their network endpoint and is associated
+ * with an in-game entity ID.
+ */
 struct PlayerInfo {
     engine::net::Endpoint endpoint;
     engine::entity_t entityId;
 };
 
+
+/**
+ * @class GameLogic
+ * @brief Handles all server-side game logic, including entity management, physics, and network updates.
+ *
+ * The GameLogic class runs the core simulation loop of a single lobby instance.
+ * It manages players, spawns, collision updates, and level progression.
+ * It also handles player input received over the network and broadcasts synchronized
+ * snapshots of the world state to all connected clients.
+ *
+ * ### Responsibilities:
+ * - Maintain the ECS registry and manage all entity components.
+ * - Process player inputs and translate them into entity updates.
+ * - Spawn entities such as projectiles, enemies, and levels.
+ * - Handle game progression, tick-based updates, and win/loss conditions.
+ * - Broadcast snapshots of the game state to clients at a fixed tick rate.
+ *
+ * @note This class is designed to be deterministic per lobby and must not share state between games.
+ */
 class GameLogic
 {
     public:

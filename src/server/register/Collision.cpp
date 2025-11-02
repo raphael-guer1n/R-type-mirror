@@ -1,3 +1,74 @@
+/**
+ * @brief Registers and defines the Collision System for all entities.
+ *
+ * This system detects and processes collisions between various game entities
+ * — players, enemies, projectiles, and explosions — and applies appropriate
+ * effects such as damage, blocking, or destruction.
+ *
+ * ### Overview
+ * The system uses `hitbox_system()` to detect overlaps between entities
+ * that have both **position** and **hitbox** components. Once a collision
+ * is detected, different interactions are processed depending on the
+ * involved entity types.
+ *
+ * ### Responsibilities
+ * - **Player ↔ Enemy:**
+ *   - Player takes damage when colliding with an enemy.
+ *   - Collision resolution prevents the player from overlapping the enemy.
+ *
+ * - **PlayerProjectile / Charged / Bomb ↔ Enemy:**
+ *   - Applies projectile damage to the enemy.
+ *   - Destroys the projectile on impact.
+ *   - If the projectile is a bomb, spawns an **area explosion** entity using
+ *     `spawn_missile_explosion()`, dealing area-of-effect damage.
+ *
+ * - **EnemyProjectile / Bomb ↔ Player:**
+ *   - Applies damage to the player.
+ *   - Destroys the projectile.
+ *
+ * - **Damage Cooldown Handling:**
+ *   - Uses `serverutils::apply_damage_with_cooldown()` to avoid applying
+ *     damage multiple times within a short interval.
+ *
+ * - **Collision Resolution:**
+ *   - Calls `serverutils::resolve_block()` to physically separate overlapping
+ *     entities (prevents clipping or stacking).
+ *
+ * - **Entity Lifecycle Management:**
+ *   - Projectiles that impact are removed from both the ECS registry
+ *     and `_live_entities` to maintain consistency.
+ *
+ * ### Components Accessed
+ * | Component | Purpose |
+ * |------------|----------|
+ * | `component::position` | Entity position for overlap checks |
+ * | `component::hitbox` | Collision bounds |
+ * | `component::collision_state` | Tracks collision state and cooldowns |
+ * | `component::velocity` | Adjusts entity motion after resolution |
+ * | `component::entity_kind` | Determines interaction type |
+ * | `component::damage` | Tracks applied damage values |
+ * | `component::damage_cooldown` | Enforces hit cooldown between collisions |
+ * | `component::projectile_tag` | Stores projectile owner, damage, and properties |
+ *
+ * ### Notes
+ * - Must run **after** movement updates but **before** health or cleanup systems.
+ * - Ensures that all projectile and collision interactions are synchronized
+ *   with `_live_entities` tracking for network updates.
+ * - The lambda inside `hitbox_system` directly handles all possible
+ *   interaction pairs `(i, j)`.
+ *
+ * ### Example Flow
+ * ```
+ * PlayerProjectile hits Enemy
+ * ├─ Apply Damage to Enemy
+ * ├─ If Bomb: Spawn Explosion Entity
+ * └─ Destroy Projectile
+ * ```
+ *
+ * @warning This system is complex and order-sensitive.
+ *          Be careful when introducing new `entity_kind` types to ensure
+ *          they are handled symmetrically in both `(i, j)` and `(j, i)` cases.
+ */
 #include "server/Server.hpp"
 #include "server/Components_ai.hpp"
 #include "server/System_ai.hpp"

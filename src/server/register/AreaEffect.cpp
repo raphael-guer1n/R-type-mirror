@@ -1,3 +1,30 @@
+/**
+ * @brief Registers the Area Effect system within the ECS registry.
+ *
+ * This system handles **area-of-effect damage logic**, typically applied by
+ * projectiles or explosions (e.g., missiles). When an entity with both
+ * `component::area_effect` and `component::entity_kind` (set to `missile_explosion`)
+ * is found, it applies damage to all nearby enemies within the specified radius.
+ *
+ * ### Process:
+ * 1. Iterates through all entities with `position`, `area_effect`, and `entity_kind`.
+ * 2. Checks if the entity is a missile explosion that has not yet applied its effect.
+ * 3. Calculates distance to all other entities with kind `enemy`.
+ * 4. If within the AoE radius, applies or increments a `damage` component on the target.
+ * 5. Marks the area effect as applied to avoid duplicate processing.
+ *
+ * ### Components Used:
+ * - **component::position** — World position of both AoE source and targets.
+ * - **component::area_effect** — Contains radius and damage amount of the AoE.
+ * - **component::entity_kind** — Used to identify the type of entity (e.g., missile, enemy).
+ * - **component::damage** — Created or incremented on affected entities.
+ *
+ * @note This system runs server-side only and should be executed once per tick
+ * after collision and projectile updates.
+ *
+ * @warning Modifying component arrays during iteration (other than `damage`) should
+ * be avoided to prevent invalid references.
+ */
 #include "server/Server.hpp"
 #include "server/Components_ai.hpp"
 #include "server/System_ai.hpp"

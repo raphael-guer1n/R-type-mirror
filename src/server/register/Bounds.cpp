@@ -1,3 +1,36 @@
+/**
+ * @brief Registers the Bounds System within the ECS registry.
+ *
+ * This system ensures all entities remain within the valid game world area
+ * and removes those that travel far beyond the visible screen boundaries.
+ * It handles both **projectiles** and **actors** (players/enemies) differently.
+ *
+ * ### Behavior:
+ * - **Projectiles (player/enemy)**:
+ *   - Destroyed if they go too far off-screen (±50 units beyond window bounds).
+ *   - Removed from `_live_entities` to keep entity tracking consistent.
+ * - **Enemies**:
+ *   - If they move beyond -90 on the X-axis, they are repositioned to the
+ *     right side of the screen (`SCREEN_WIDTH + 100`) — useful for looping spawns.
+ * - **Players and others**:
+ *   - Their position is clamped within the visible screen (0 ≤ x ≤ SCREEN_WIDTH, 0 ≤ y ≤ SCREEN_HEIGHT).
+ *   - Velocity is reset to `0` if an entity hits a boundary to prevent continuous movement out of bounds.
+ *
+ * ### Components Used:
+ * - **component::position** — Entity’s current coordinates.
+ * - **component::velocity** — Movement vector, reset when hitting edges.
+ * - **component::entity_kind** — Used to differentiate projectiles, enemies, and other entity types.
+ *
+ * ### Constants Used:
+ * - `SCREEN_WIDTH` — Game world width.
+ * - `SCREEN_HEIGHT` — Game world height.
+ *
+ * @note This system should execute after all movement systems so that corrections
+ *       and cleanups are applied at the end of each frame.
+ *
+ * @warning Deletion of entities modifies `_live_entities`; ensure this
+ *          container stays synchronized with game state and network updates.
+ */
 #include "server/Server.hpp"
 #include "server/Components_ai.hpp"
 #include "server/System_ai.hpp"

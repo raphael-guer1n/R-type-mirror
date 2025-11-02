@@ -1,6 +1,33 @@
+/**
+ * @file ProjectileFactory.cpp
+ * @brief Defines projectile spawning functions for different projectile types in the R-Type ECS system.
+ *
+ * This module provides helper functions to create and initialize various projectile entities,
+ * including basic shots, alternate projectiles, charged attacks, and bombs.
+ * 
+ * Each function constructs an entity using the ECS registry and attaches the necessary components:
+ * - `component::position` and `component::velocity` for spatial data and movement.
+ * - `component::hitbox` for collision detection.
+ * - `component::projectile_tag` to track ownership, lifetime, and damage.
+ * - `component::collision_state`, `component::health`, and optional `component::gravity` or `component::area_effect` as needed.
+ *
+ * @date 2025
+ * @author 
+ *   Kevin Poly
+ */
 #include "engine/ecs/Components.hpp"
 #include "engine/ecs/EntityFactory.hpp"
 
+
+/**
+ * @brief Spawns a basic player projectile.
+ *
+ * Creates a small, fast-moving projectile that travels horizontally from the player’s position.
+ *
+ * @param owner The entity ID of the player or entity spawning the projectile.
+ * @param reg Reference to the ECS registry.
+ * @return The newly created projectile entity.
+ */
 engine::entity_t spawn_projectile_basic(engine::entity_t owner, engine::registry &reg)
 {
     auto &positions = reg.get_components<component::position>();
@@ -29,6 +56,15 @@ engine::entity_t spawn_projectile_basic(engine::entity_t owner, engine::registry
     );
 }
 
+/**
+ * @brief Spawns an alternate player projectile.
+ *
+ * Similar to the basic projectile but slightly larger and more powerful.
+ *
+ * @param owner The entity ID of the player or entity spawning the projectile.
+ * @param reg Reference to the ECS registry.
+ * @return The newly created projectile entity.
+ */
 engine::entity_t spawn_projectile_alt(engine::entity_t owner, engine::registry &reg)
 {
     auto &positions = reg.get_components<component::position>();
@@ -57,6 +93,16 @@ engine::entity_t spawn_projectile_alt(engine::entity_t owner, engine::registry &
     );
 }
 
+/**
+ * @brief Spawns a charged projectile based on how long the player held the fire button.
+ *
+ * The longer the charge time (`heldTicks`), the bigger, faster, and more damaging the projectile becomes.
+ *
+ * @param owner The entity ID of the player or entity spawning the projectile.
+ * @param heldTicks Duration (in ticks) the fire button was held.
+ * @param reg Reference to the ECS registry.
+ * @return The newly created charged projectile entity.
+ */
 engine::entity_t spawn_projectile_charged(engine::entity_t owner, uint32_t heldTicks, engine::registry &reg)
 {
     auto &positions = reg.get_components<component::position>();
@@ -87,6 +133,15 @@ engine::entity_t spawn_projectile_charged(engine::entity_t owner, uint32_t heldT
     );
 }
 
+/**
+ * @brief Spawns a bomb projectile affected by gravity.
+ *
+ * This projectile arcs downward after being fired and explodes on impact.
+ *
+ * @param owner The entity ID of the player or entity spawning the bomb.
+ * @param reg Reference to the ECS registry.
+ * @return The newly created bomb projectile entity.
+ */
 engine::entity_t spawn_projectile_bomb(engine::entity_t owner, engine::registry &reg)
 {
     auto &positions = reg.get_components<component::position>();
@@ -124,6 +179,15 @@ engine::entity_t spawn_projectile_bomb(engine::entity_t owner, engine::registry 
     );
 }
 
+/**
+ * @brief Spawns a standard large projectile.
+ *
+ * A mid-size projectile that travels in a straight line and deals moderate damage.
+ *
+ * @param owner The entity ID of the player or entity spawning the projectile.
+ * @param reg Reference to the ECS registry.
+ * @return The newly created projectile entity.
+ */
 engine::entity_t spawn_projectile(engine::entity_t owner, engine::registry &reg)
 {
     auto &positions = reg.get_components<component::position>();
@@ -153,6 +217,19 @@ engine::entity_t spawn_projectile(engine::entity_t owner, engine::registry &reg)
     return proj;
 }
 
+
+/**
+ * @brief Spawns an explosion entity at the specified position.
+ *
+ * The explosion has an area-of-effect radius and applies damage to nearby entities.
+ *
+ * @param x The X coordinate of the explosion center.
+ * @param y The Y coordinate of the explosion center.
+ * @param damage The base damage applied within the explosion radius.
+ * @param radius The radius of the area effect.
+ * @param reg Reference to the ECS registry.
+ * @return The newly created explosion entity.
+ */
 engine::entity_t spawn_missile_explosion(float x, float y, int damage, float radius, engine::registry &reg)
 {
     float size = radius * 2.f;

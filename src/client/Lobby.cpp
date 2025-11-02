@@ -1,3 +1,32 @@
+/**
+ * @file Lobby.cpp
+ * @brief Handles client-side lobby networking and state management for R-Type.
+ *
+ * This file implements the `R_Type::Rtype` class functions responsible for interacting with the
+ * game server to manage multiplayer lobbies. The class provides methods to request a list of
+ * available lobbies, create a new lobby, join an existing lobby, and handle server responses 
+ * to update the client’s internal state. Internally, the class maintains a vector of `LobbyInfo`
+ * structures (`_lobbies`) representing all known lobbies, tracks whether the client is currently
+ * inside a lobby (`_inLobby`), and stores the ID of the current lobby (`_currentLobbyId`). 
+ * All network communication is performed through the `_client` object using structured packets 
+ * such as `LIST_LOBBIES`, `CREATE_LOBBY`, and `JOIN_LOBBY`. Server responses, including 
+ * `LobbyListResponse` and `LobbyJoinedResponse`, are parsed and used to synchronize the client 
+ * state with the server. Safety checks are performed, such as ensuring lobby names are under 
+ * 32 characters and preventing joining multiple lobbies simultaneously.
+ *
+ * ### Methods
+ * - `requestLobbyList()` – Sends a request to the server for the list of available lobbies.
+ * - `createLobby(const std::string &name)` – Sends a request to create a new lobby with the given name.
+ * - `joinLobby(uint8_t lobbyId)` – Requests to join a specific lobby by its ID.
+ * - `getLobbies()` – Returns the locally cached list of known lobbies.
+ * - `handleListLobby(const std::vector<uint8_t> &payload)` – Processes the server response with the lobby list.
+ * - `handleLobbyJoined(const std::vector<uint8_t> &payload)` – Processes the server response confirming a lobby join.
+ *
+ * @note All methods that send network packets construct a `PacketHeader` and a payload buffer 
+ * before sending via `_client->send()`. Incoming payloads are copied into structured data types 
+ * using `std::memcpy` and then applied to update the client’s lobby state.
+ */
+
 #include <iostream>
 #include "Rtype.hpp"
 

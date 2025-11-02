@@ -1,3 +1,34 @@
+/**
+ * @brief Processes player input received from the network and applies it to the game state.
+ *
+ * This function handles incoming input packets from clients, decoding player key presses and 
+ * updating their corresponding in-game entities. It manages player movement, firing projectiles, 
+ * and activating abilities. The function also handles input edge detection (press/release) to 
+ * distinguish between held and tapped actions, enabling charged projectiles and bomb abilities.
+ *
+ * ### Responsibilities:
+ * - Decode input payloads received from clients.
+ * - Update player movement based on directional keys.
+ * - Spawn projectiles when the player fires or releases charge attacks.
+ * - Track key press states across ticks for edge-triggered events.
+ *
+ * @param sender The network endpoint of the client sending the input.
+ * @param payload The raw binary payload containing the input packet and key data.
+ *
+ * ### Packet Structure:
+ * The payload must contain at least:
+ * - An `InputPacket` structure (with key count and metadata).
+ * - Followed by `keyCount` integers representing pressed key codes.
+ *
+ * @note
+ * - If the payload is malformed or the sender is not associated with a player entity, the input is ignored.
+ * - Charged projectiles are triggered when the spacebar is released after being held for a threshold duration.
+ *
+ * @see InputPacket
+ * @see spawn_projectile_basic
+ * @see spawn_projectile_charged
+ * @see spawn_projectile_bomb
+ */
 #include "server/Server.hpp"
 #include "server/SpawnProjectile.hpp"
 #include "engine/events/Events.hpp"

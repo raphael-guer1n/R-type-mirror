@@ -1,3 +1,51 @@
+/**
+ * @class Lobby
+ * @brief Represents a single multiplayer game lobby.
+ *
+ * The Lobby class manages a group of players waiting to play a game together.
+ * It handles player addition/removal, packet routing, game logic updates, and
+ * starting/stopping the game session.
+ *
+ * ### Responsibilities
+ * 1. **Player Management**
+ *    - `add_player` / `remove_player` to manage players in the lobby.
+ *    - `has_player` checks if a player is part of the lobby.
+ *    - `_players` vector stores active player endpoints.
+ *    - `_playerMtx` ensures thread-safe access to player data.
+ *
+ * 2. **Game Lifecycle**
+ *    - `start` begins the game, launching the internal game logic.
+ *    - `stop` stops the game and ends the lobby session.
+ *    - `_running` atomic flag tracks whether the game is active.
+ *    - `_ready` flag indicates if the lobby is ready to start the game.
+ *
+ * 3. **Networking**
+ *    - `handle_packet` processes incoming network packets for this lobby.
+ *    - Uses `_server` (engine::net::NetServer) to communicate with clients.
+ *
+ * 4. **Game Logic**
+ *    - `_game` manages the actual game ECS, systems, and entity updates.
+ *    - `update` is called each server tick to progress the game state.
+ *
+ * ### Members
+ * - `_id`: Unique lobby identifier.
+ * - `_name`: Human-readable lobby name.
+ * - `_maxPlayers`: Maximum number of players allowed in the lobby.
+ * - `_players`: Vector of connected player endpoints.
+ * - `_playerMtx`: Mutex protecting `_players`.
+ * - `_server`: Reference to network server for sending/receiving packets.
+ * - `_thread`: Optional thread for asynchronous operations (if used).
+ * - `_game`: Instance of `GameLogic` for running the actual game simulation.
+ *
+ * ### Notes
+ * - This class is not copyable.
+ * - Thread-safety is important when multiple players join/leave or send packets concurrently.
+ * - Designed for integration with `LobbyManager` to manage multiple lobbies.
+ *
+ * @see GameLogic
+ * @see LobbyManager
+ * @see engine::net::NetServer
+ */
 #pragma once
 #include <cstdint>
 #include <unordered_map>

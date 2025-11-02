@@ -15,18 +15,6 @@
  * - Runs game logic and updates entity states each tick.
  * - Broadcasts game state snapshots to all connected players.
  *
- * Key classes and functions:
- * - server::server: Constructor, initializes server and registers components/systems.
- * - server::run: Main game loop, processes inputs, updates game state, and broadcasts snapshots.
- * - server::register_components: Registers all ECS components used in the game.
- * - server::setup_systems: Registers all ECS systems, including AI and collision handling.
- * - server::game_handler: Spawns enemies and handles game-specific logic per tick.
- * - server::broadcast_snapshot: Sends the current game state to all players.
- * - server::wait_for_players: Waits for player connections and spawns player entities.
- * - server::process_network_inputs: Handles incoming network packets and updates player states.
- * - server::spawn_player: Spawns a new player entity with default components.
- * - server::spawn_projectile: Spawns a projectile entity for a given owner.
- *
  */
 #include "engine/ecs/Systems.hpp"
 #include "engine/ecs/EntityFactory.hpp"

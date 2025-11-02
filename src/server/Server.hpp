@@ -14,10 +14,6 @@
 #include "engine/network/NetServer.hpp"
 #include "Lobby/Lobby.hpp"
 #include "Lobby/LobbyManager.hpp"
-#define PLAYER_SPEED 400.0f
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
-#define MAX_PLAYERS 2
 /**
  * @class server
  * @brief Main server class for managing game state, networking, and player entities.
@@ -33,16 +29,6 @@
  * - Spawns and manages player and projectile entities.
  * - Centralizes entity removal logic to maintain ECS pipeline integrity.
  *
- * @section Usage
- * Instantiate with an ASIO io_context and optional port, then call run() to start the server loop.
- *
- * @section Members
- * - _registry: ECS registry for managing entities and components.
- * - _socket: UDP socket for network communication.
- * - _players: List of connected players and their associated entities.
- * - _live_entities: Set of currently active entities.
- * - _tick: Current server tick for synchronization.
- * - _gen: Random number generator for entity spawning and game logic.
  */
 class server
 {
@@ -66,12 +52,4 @@ private:
     std::vector<PlayerInfo> _players;
 
     uint32_t _tick = 0;
-
-    std::random_device rd;
-    std::mt19937 _gen{rd()};
-
-    // Input edge state per player
-    std::unordered_map<uint32_t, bool> _prevSpace;
-    std::unordered_map<uint32_t, bool> _prevC;
-    std::unordered_map<uint32_t, uint32_t> _pressTick;
 };
