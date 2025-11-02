@@ -123,6 +123,8 @@ void GameLogic::register_collision_system()
                                     _live_entities.insert(static_cast<uint32_t>(exp));
                                 }
                             }
+                            auto &score = _registry.get_components<component::score>();
+                            score[i].value += 50;
                             _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(i)));
                             reg.kill_entity(reg.entity_from_index(i));
                         }
@@ -150,6 +152,8 @@ void GameLogic::register_collision_system()
                             _live_entities.insert(static_cast<uint32_t>(exp));
                         }
                         }
+                        auto &score = _registry.get_components<component::score>();
+                        score[j].value += 50;
                         _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(j)));
                         reg.kill_entity(reg.entity_from_index(j));
                     }
