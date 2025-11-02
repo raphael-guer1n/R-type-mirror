@@ -19,13 +19,21 @@ struct PacketHeader
 enum PacketType : uint16_t
 {
     CONNECT_REQ = 1,
-    CONNECT_ACK = 2,
-    INPUT_PKT = 3,
-    SNAPSHOT = 4,
-    EVENT_PKT = 5,
-    PING = 6,
-    PONG = 7,
-    GAME_OVER = 8
+    CONNECT_ACK,
+    INPUT_PKT,
+    SNAPSHOT,
+    EVENT_PKT,
+    PING,
+    PONG,
+    GAME_OVER,
+    LIST_LOBBIES,
+    LOBBY_LIST_RESPONSE,
+    CREATE_LOBBY,
+    JOIN_LOBBY,
+    LOBBY_JOINED,
+    LEVEL_START,
+    LEVEL_END,
+    ACK
 };
 /**    * @brief Connect request packet structure.
     */  
@@ -57,10 +65,10 @@ struct EntityState
     float x, y;
     float vx, vy;
     uint8_t type;
+    uint8_t enemyType;
     uint8_t hp;
     bool collided;
-
-    uint8_t platformType; // optional: used by platforms to indicate variant (0=regular)
+    uint8_t platformType;
 
     float hb_w;
     float hb_h;
@@ -68,7 +76,7 @@ struct EntityState
     float hb_oy;
 };
 /**    * @brief Snapshot packet structure.
-    */  
+    */
 struct Snapshot
 {
     uint32_t tick;
@@ -76,7 +84,7 @@ struct Snapshot
     // followed by `EntityState[entityCount]`
 };
 /**    * @brief Event packet structure.
-    */  
+    */
 struct EventPacket
 {
     uint32_t tick;
@@ -84,14 +92,76 @@ struct EventPacket
     uint16_t entityId;
 };
 /**    * @brief Ping packet structure.
-    */  
+    */
 struct PingPacket
 {
     uint64_t timestamp;
 };
 
+/**
+ * @brief Game over payload.
+ */
 struct GameOverPayload {
     uint32_t winnerEntityId;
+};
+
+/**
+ * @brief Information about a single lobby.
+ */
+struct LobbyInfo
+{
+    uint8_t id;
+    uint8_t playerCount;
+    uint8_t maxPlayers;
+    char name[32];
+};
+
+/**
+ * @brief Response containing a list of lobbies.
+ */
+struct LobbyListResponse
+{
+    uint8_t count;
+    LobbyInfo lobbies[4];
+};
+
+/**
+ * @brief Request to create a new lobby
+ */
+struct LobbyCreateRequest {
+    char name[32];
+};
+
+/**
+ * @brief Request to join a lobby.
+ */
+struct LobbyJoinRequest
+{
+    uint8_t lobbyId;
+};
+/**
+ * @brief Send confirmation of creation.
+ */
+struct LobbyJoinedResponse {
+    uint8_t lobbyId;
+};
+
+/**
+ * @brief Start Level information.
+ */
+struct LevelStartPayload {
+    uint32_t level;
+};
+
+/**
+ * @brief End Level information.
+ */
+struct LevelEndPayload {
+    uint32_t level;
+};
+
+struct AckPayload {
+    uint32_t seq;
 };
 
 #pragma pack(pop)
