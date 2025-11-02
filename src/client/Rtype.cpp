@@ -300,6 +300,7 @@ void R_Type::Rtype::receiveSnapshot()
             Snapshot snap{};
             std::memcpy(&snap, spayload.data(), sizeof(Snapshot));
 
+            
             auto &positions = _registry.get_components<component::position>();
             auto &velocities = _registry.get_components<component::velocity>();
             auto &drawables = _registry.get_components<component::drawable>();
@@ -342,7 +343,12 @@ void R_Type::Rtype::receiveSnapshot()
                 for (size_t i = 0; i < n; ++i)
                 {
                     const EntityState &es = entities[i];
-
+                    if (es.type == static_cast<uint8_t>(component::entity_kind::player))
+                    {
+                        _hud->setScore(es.score);
+                        _hud->setHealth(es.health);
+                        // break; 
+                    }
                     size_t idLocal;
                     auto it = _entityMap.find(es.entityId);
                     if (it == _entityMap.end())
@@ -546,6 +552,7 @@ void R_Type::Rtype::draw()
     auto &drawables  = _registry.get_components<component::drawable>();
     auto &kinds      = _registry.get_components<component::entity_kind>();
     auto &velocities = _registry.get_components<component::velocity>();
+    _hud->hudUpdate(*this);
     draw_system(_registry, positions, drawables, _app.getWindow());
     if (_showHitboxes) {
         SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);

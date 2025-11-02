@@ -123,12 +123,27 @@ void GameLogic::register_collision_system()
                                     _live_entities.insert(static_cast<uint32_t>(exp));
                                 }
                             }
+                            auto &score = _registry.get_components<component::score>();
+                            auto &controllers = _registry.get_components<component::controlled_by>();
+
+                           for (auto &player : _players)
+                            {
+                                if (player.entityId == proj.owner)
+                                {
+                                    size_t idx = static_cast<size_t>(player.entityId);
+
+                                    if (idx < score.size() && score[idx]) {
+                                        score[idx]->value += 50; 
+                                    }
+
+                                    break;
+                                }
+                            }
                             _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(i)));
                             reg.kill_entity(reg.entity_from_index(i));
                         }
                     }
                 }
-
                 if ((kindJ == component::entity_kind::playerProjectile || kindJ == component::entity_kind::projectile_charged || kindJ == component::entity_kind::projectile_bomb) &&
                     kindI == component::entity_kind::enemy)
                 {
@@ -150,12 +165,27 @@ void GameLogic::register_collision_system()
                             _live_entities.insert(static_cast<uint32_t>(exp));
                         }
                         }
+                        auto &score = _registry.get_components<component::score>();
+                        auto &controllers = _registry.get_components<component::controlled_by>();
+
+                        for (auto &player : _players)
+                        {
+                            if (player.entityId == proj.owner)
+                            {
+                                size_t idx = static_cast<size_t>(player.entityId);
+
+                                if (idx < score.size() && score[idx]) {
+                                    score[idx]->value += 50;
+                                }
+
+                                break;
+                            }
+                        }
                         _live_entities.erase(static_cast<uint32_t>(reg.entity_from_index(j)));
                         reg.kill_entity(reg.entity_from_index(j));
                     }
                     }
                 }
-
                 if ((kindI == component::entity_kind::enemyProjectile || kindI == component::entity_kind::projectile_bomb) && kindJ == component::entity_kind::player)
                 {
                     if (i < projectiles.size() && projectiles[i])

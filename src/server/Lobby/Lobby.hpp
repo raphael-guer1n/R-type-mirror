@@ -53,6 +53,9 @@
 #include <string>
 #include <vector>
 #include <random>
+#include <mutex>
+#include <thread>
+#include <atomic>
 #include "engine/ecs/Registry.hpp"
 #include "engine/ecs/Components.hpp"
 #include "common/Packets.hpp"
@@ -89,7 +92,7 @@ class Lobby
         const std::string &name() const { return _name; }
         uint8_t playerCount() const { return static_cast<uint8_t>(_players.size()); }
         uint8_t maxPlayers() const { return _maxPlayers; }
-        bool getRunning() const {return _running;}
+    bool getRunning() const { return _running.load(std::memory_order_relaxed); }
 
     private:
 

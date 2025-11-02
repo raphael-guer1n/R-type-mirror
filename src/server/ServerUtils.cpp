@@ -123,6 +123,9 @@ void try_add_entity(uint32_t entityId,
     es.x = ctx.positions[idx]->x;
     es.y = ctx.positions[idx]->y;
 
+    es.health = ctx.healths[idx] ? ctx.healths[idx]->hp : 0;
+    es.score = ctx.scores[idx] ? ctx.scores[idx]->value : 0; 
+  
     if (idx < ctx.velocities.size() && ctx.velocities[idx]) {
         es.vx = ctx.velocities[idx]->vx;
         es.vy = ctx.velocities[idx]->vy;

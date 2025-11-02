@@ -99,9 +99,7 @@ void LevelManager::notifyLevelStart(uint32_t level)
 {
     PacketHeader hdr{LEVEL_START, sizeof(LevelStartPayload), 0};
     LevelStartPayload p{level};
-    std::cout << "notify Start" << std::endl;
     for (auto &pl : _players) {
-        std::cout << "type shiii" << std::endl;
         _server.send(hdr, std::vector<uint8_t>((uint8_t *)&p, (uint8_t *)&p + sizeof(p)), pl.endpoint);
     }
 }
@@ -110,9 +108,7 @@ void LevelManager::notifyLevelEnd(uint32_t level)
 {
     PacketHeader hdr{LEVEL_END, sizeof(LevelEndPayload), 0};
     LevelEndPayload p{level};
-    std::cout << "notify ENd" << std::endl;
     for (auto &pl : _players) {
-        std::cout << "fine shiii" << std::endl;
         _server.send(hdr, std::vector<uint8_t>((uint8_t *)&p, (uint8_t *)&p + sizeof(p)), pl.endpoint);
     }
 }
