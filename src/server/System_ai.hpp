@@ -63,14 +63,12 @@ namespace systems
 
   inline void init_ai_behaviors()
 {
-    // === ENNEMI BASIQUE : avance en ligne droite ===
     ai_dispatcher["basic"] = [](entity_t, registry &, uint32_t, auto &, auto &vel, auto &ai)
     {
         vel.vx = -ai.speed;
         vel.vy = 0.f;
     };
 
-    // === ENNEMI ZIGZAG : mouvement sinusoïdal ===
     ai_dispatcher["zigzag"] = [](entity_t, registry &, uint32_t tick,
                                  auto &, auto &vel, auto &ai)
     {
@@ -78,7 +76,6 @@ namespace systems
         vel.vy = std::sin(tick * 0.01f) * ai.speed;
     };
 
-    // === ENNEMI TIREUR DROIT (shooter) ===
     ai_dispatcher["straight_shooter"] = [](entity_t e, registry &r, uint32_t tick,
                                             auto &pos, auto &vel, auto &ai)
     {
@@ -106,7 +103,6 @@ namespace systems
         }
     };
 
-    // === ENNEMI TOURNANT (spinner) : tourne autour d’un point imaginaire ===
     ai_dispatcher["spinner"] = [](entity_t, registry &, uint32_t tick,
                                   auto &pos, auto &vel, auto &ai)
     {
@@ -115,24 +111,21 @@ namespace systems
         vel.vy = std::sin(tick * 0.05f) * radius;
     };
 
-    // === ENNEMI CHARGER (fonce en ligne droite, s’arrête, repart) ===
     ai_dispatcher["charger"] = [](entity_t, registry &, uint32_t tick,
                                   auto &, auto &vel, auto &ai)
     {
         float phase = std::fmod(tick / 120.0f, 4.0f);
         if (phase < 1.5f)
         {
-            vel.vx = -ai.speed * 2.0f; // charge rapide
+            vel.vx = -ai.speed * 2.0f;
             vel.vy = 0.f;
         }
         else
         {
-            vel.vx = -ai.speed * 0.3f; // ralentit
+            vel.vx = -ai.speed * 0.3f;
             vel.vy = 0.f;
         }
     };
-
-    // === ENNEMI BOSS ===
     ai_dispatcher["boss"] = [](entity_t e, registry &r, uint32_t tick,
                                 auto &pos, auto &vel, auto &ai)
     {
