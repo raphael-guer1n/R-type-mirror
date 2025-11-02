@@ -56,7 +56,7 @@ void Lobby::add_player(const engine::net::Endpoint &ep)
     PacketHeader h{CONNECT_ACK, static_cast<uint16_t>(sizeof(ConnectAck)), 0};
     std::vector<uint8_t> buf(sizeof(ConnectAck));
     std::memcpy(buf.data(), &ack, sizeof(ConnectAck));
-    _server.send(h, buf, ep);
+    _server.getSocket().send_reliable(h, buf, ep);
     _game.broadcast_snapshot();
     std::cout << "[Lobby " << _id << "] Player joined (" << _players.size() << "/" << _maxPlayers << ")\n";
 }

@@ -35,6 +35,7 @@ namespace engine::net
 
             bool running() const { return _running; }
             std::string detect_local_ip();
+            engine::net::UdpSocket &getSocket() {return _socket;}
         private:
             std::string _ip;
             unsigned short _port;

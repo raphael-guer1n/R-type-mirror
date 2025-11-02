@@ -25,12 +25,6 @@ void NetClient::start()
     _ioThread = std::thread([this]() { _io.run(); });
 
     std::cout << "Client started, connecting to " << _serverIp << ":" << _serverPort << "\n";
-
-    // ConnectReq req{42};
-    // PacketHeader hdr{CONNECT_REQ, sizeof(ConnectReq), 0};
-    // std::vector<uint8_t> buf(sizeof(ConnectReq));
-    // std::memcpy(buf.data(), &req, sizeof(ConnectReq));
-    // send(hdr, buf);
 }
 
 void NetClient::stop()
@@ -50,10 +44,18 @@ void NetClient::poll()
 {
     if (!_running)
         return;
+
     PacketHeader hdr;
     std::vector<uint8_t> payload;
     Endpoint sender;
+
     while (_socket.PollPacket(hdr, payload, sender)) {
+        if (hdr.seq != 0) {
+            PacketHeader ackHdr{ACK, sizeof(uint32_t), 0};
+            std::vector<uint8_t> ackPayload(sizeof(uint32_t));
+            std::memcpy(ackPayload.data(), &hdr.seq, sizeof(uint32_t));
+            _socket.send(ackHdr, ackPayload, sender);
+        }
         if (_handler)
             _handler(hdr, payload);
     }

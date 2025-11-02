@@ -509,8 +509,10 @@ void R_Type::Rtype::draw()
         _menu->draw(*this);
         return;
     }
-    if (!_connected)
+    if (!_connected) {
+        _client->poll();
         return;
+    }
     if (_gameOver) {
         _fadeAlpha = 0;
         _state = GameState::PLAYING;

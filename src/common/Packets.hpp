@@ -32,7 +32,8 @@ enum PacketType : uint16_t
     JOIN_LOBBY,
     LOBBY_JOINED,
     LEVEL_START,
-    LEVEL_END
+    LEVEL_END,
+    ACK
 };
 /**    * @brief Connect request packet structure.
     */  
@@ -156,6 +157,10 @@ struct LevelStartPayload {
  */
 struct LevelEndPayload {
     uint32_t level;
+};
+
+struct AckPayload {
+    uint32_t seq;
 };
 
 #pragma pack(pop)

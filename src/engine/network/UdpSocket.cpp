@@ -56,6 +56,10 @@ namespace engine::net
             asio::ip::udp::socket socket;
             asio::ip::udp::endpoint remoteEndpoint;
             std::array<uint8_t, 1500> recvBuffer{};
+            std::mutex pendingMtx;
+            std::unordered_map<uint32_t, PendingPacket> pendingReliable;
+            std::atomic<uint32_t> nextReliableSeq{1};
+
 
             struct Received
             {
@@ -97,6 +101,53 @@ namespace engine::net
         outPayload = std::move(pkt.payload);
         outSender = std::move(pkt.sender);
         return true;
+    }
+
+    void UdpSocket::send_reliable(const PacketHeader &header, const std::vector<uint8_t> &payload, const Endpoint &endpoint)
+    {
+        PacketHeader hdr = header;
+        hdr.seq = _impl->nextReliableSeq.fetch_add(1);
+
+        PendingPacket p{hdr, payload, endpoint,
+            std::chrono::steady_clock::now(), 0};
+        {
+            std::lock_guard<std::mutex> lock(_impl->pendingMtx);
+            _impl->pendingReliable[hdr.seq] = p;
+        }
+        std::vector<uint8_t> buffer(sizeof(PacketHeader) + payload.size());
+        std::memcpy(buffer.data(), &hdr, sizeof(PacketHeader));
+        std::memcpy(buffer.data() + sizeof(PacketHeader), payload.data(), payload.size());
+        _impl->socket.async_send_to(asio::buffer(buffer), to_asio_endpoint(endpoint),
+            [](const asio::error_code&, std::size_t){});
+    }
+
+    void UdpSocket::update_reliable()
+    {
+        auto now = std::chrono::steady_clock::now();
+        std::lock_guard<std::mutex> lock(_impl->pendingMtx);
+
+        for (auto &kv : _impl->pendingReliable) {
+            PendingPacket &p = kv.second;
+            if (now - p.lastSent >= std::chrono::milliseconds(200)) {
+                p.lastSent = now;
+                ++p.retryCount;
+
+                std::vector<uint8_t> buffer(sizeof(PacketHeader) + p.payload.size());
+                std::memcpy(buffer.data(), &p.header, sizeof(PacketHeader));
+                std::memcpy(buffer.data() + sizeof(PacketHeader), p.payload.data(), p.payload.size());
+
+                _impl->socket.async_send_to(
+                    asio::buffer(buffer),
+                    to_asio_endpoint(p.target),
+                    [](const asio::error_code &, std::size_t) {});
+            }
+        }
+    }
+
+    void UdpSocket::acknowledge(uint32_t seq)
+    {
+        std::lock_guard<std::mutex> lock(_impl->pendingMtx);
+        _impl->pendingReliable.erase(seq);
     }
 
     std::optional<std::pair<PacketHeader, std::vector<std::uint8_t>>>

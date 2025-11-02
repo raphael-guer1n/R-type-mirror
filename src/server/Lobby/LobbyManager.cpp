@@ -26,6 +26,7 @@ LobbyManager::~LobbyManager()
 
 void LobbyManager::tick_all()
 {
+    _netServer.getSocket().update_reliable();
     for (auto it = _lobbies.begin(); it != _lobbies.end();){
         it->second->update();
 
@@ -59,6 +60,13 @@ void LobbyManager::on_packet(const engine::net::Endpoint &sender,
     const PacketHeader &hdr,
     const std::vector<uint8_t> &payload)
 {
+    if (hdr.type == ACK && payload.size() >= sizeof(uint32_t)) {
+        uint32_t ackSeq;
+        std::memcpy(&ackSeq, payload.data(), sizeof(uint32_t));
+        _netServer.getSocket().acknowledge(ackSeq);
+        return;
+    }
+
     switch (hdr.type)
     {
         case LIST_LOBBIES:
@@ -95,7 +103,7 @@ void LobbyManager::send_lobby_list(const engine::net::Endpoint &sender)
     PacketHeader hdr{LOBBY_LIST_RESPONSE, sizeof(resp), 0};
     std::vector<uint8_t> buf(sizeof(resp));
     std::memcpy(buf.data(), &resp, sizeof(resp));
-    _netServer.send(hdr, buf, sender);
+    _netServer.getSocket().send_reliable(hdr, buf, sender);
 }
 
 void LobbyManager::create_lobby(const engine::net::Endpoint &sender,
@@ -129,7 +137,7 @@ void LobbyManager::create_lobby(const engine::net::Endpoint &sender,
     PacketHeader hdr{LOBBY_JOINED, sizeof(resp), 0};
     std::vector<uint8_t> buf(sizeof(resp));
     std::memcpy(buf.data(), &resp, sizeof(resp));
-    _netServer.send(hdr, buf, sender);
+    _netServer.getSocket().send_reliable(hdr, buf, sender);
 }
 
 
@@ -150,7 +158,7 @@ void LobbyManager::join_lobby(const engine::net::Endpoint &sender,
         PacketHeader hdr{LOBBY_JOINED, sizeof(resp), 0};
         std::vector<uint8_t> buf(sizeof(resp));
         std::memcpy(buf.data(), &resp, sizeof(resp));
-        _netServer.send(hdr, buf, sender);
+        _netServer.getSocket().send_reliable(hdr, buf, sender);
     }
 }
 
