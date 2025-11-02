@@ -69,6 +69,7 @@ struct SnapshotBuilderContext {
   engine::sparse_array<component::health> &healths;
   engine::sparse_array<component::hitbox> &hitboxes;
   engine::sparse_array<component::ai_controller> &ai;
+  engine::sparse_array<component::score> &scores;
 };
 /**
  * @brief Attempts to add an entity to the snapshot output.

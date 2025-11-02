@@ -52,4 +52,5 @@ private:
     std::vector<PlayerInfo> _players;
 
     uint32_t _tick = 0;
+    uint32_t _highscore = 0;
 };

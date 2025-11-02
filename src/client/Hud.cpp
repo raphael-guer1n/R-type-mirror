@@ -44,6 +44,8 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     _registry.register_component<component::score>();
     _registry.register_component<component::health>();
     _registry.register_component<component::hud_tag>();
+    _registry.register_component<component::health_tag>();
+    _registry.register_component<component::score_tag>();
     _registry.register_component<component::drawable>();
     _registry.register_component<component::hitbox>();
     _registry.register_component<component::level_effect_tag>();
@@ -59,7 +61,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
 
     _registry.add_component(e, component::position{barX, barY});
     _registry.add_component(e, component::beam_charge{0.0f, false});
-    _registry.add_component(e, component::score{15200, 99999});
+    _registry.add_component(e, component::score{15200});
     _registry.add_component(e, component::hud_tag{});
 
     auto bar = std::make_shared<engine::R_Graphic::Texture>(
@@ -84,13 +86,11 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     _barMaxWidth = 420;
     _barHeight = 20;
 
-    int scoreValue = 200;
+    int scoreValue = _score;
     std::string scoreText = "1P " + std::to_string(scoreValue);
     float startY = 55.0f;
     float totalWidth = scoreText.size() * 33.0f;
     float startX = winW - totalWidth - 110.0f;
-
-    drawText(scoreText, 0.5, startX, startY, rtype);
 
     int highScoreValue = 99999;
     std::string highScoreText = "HI " + std::to_string(highScoreValue);
@@ -101,7 +101,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     drawText(highScoreText, 0.5, highStartX, highStartY, rtype);
 
     int maxHearts = 3;
-    std::uint8_t currentHP = 3;
+    std::uint8_t currentHP = _health;
     float heartY = winH - 100.0f;
     float heartSpacing = 45.0f;
     float heartSize = 32.0f;
@@ -134,6 +134,79 @@ void R_Type::Hud::setChargeLevel(R_Type::Rtype &rtype, float level)
     _chargeLevel = std::max(0.f, std::min(1.f, level));
 }
 
+void R_Type::Hud::hudUpdate(R_Type::Rtype &rtype)
+{
+    auto &scoreTags = _registry.get_components<component::score_tag>();
+    auto &healthTags = _registry.get_components<component::health_tag>();
+    auto &drawables = _registry.get_components<component::drawable>();
+    auto &positions = _registry.get_components<component::position>();
+
+    auto &win = rtype.getApp().getWindow();
+    int winW = 0, winH = 0;
+    SDL_GetRendererOutputSize(win.getRenderer(), &winW, &winH);
+
+    {
+        size_t n = scoreTags.size();
+        for (size_t i = 0; i < n; ++i)
+        {
+            if (scoreTags[i].has_value()) {
+                _registry.kill_entity(engine::entity_t{i});
+            }
+        }
+    }
+    {
+        std::string scoreText = "1P " + std::to_string(_score);
+        float startY = 55.0f;
+        float spacing = 33.0f * 0.5f;
+        float totalWidth = scoreText.size() * spacing;
+        float startX = winW - totalWidth - 110.0f;
+
+        drawText(scoreText, 0.5f, startX, startY, rtype, false, true);
+    }
+    {
+        size_t n = healthTags.size();
+        for (size_t i = 0; i < n; ++i)
+        {
+            if (healthTags[i].has_value()) {
+                _registry.kill_entity(engine::entity_t{i});
+            }
+        }
+    }
+
+    {
+        const uint8_t maxHearts = 3;
+        uint8_t hearts = (_health > maxHearts) ? maxHearts : _health;
+
+        float heartY = winH - 100.0f;
+        float heartSpacing = 45.0f;
+        float heartSize = 32.0f;
+
+        if (hearts > 0)
+        {
+            float totalHeartsWidth = (hearts - 1) * heartSpacing + heartSize;
+            float heartX = (winW - totalHeartsWidth) / 2.0f;
+
+            for (uint8_t i = 0; i < hearts; ++i)
+            {
+                float posX = heartX + i * heartSpacing;
+                auto h = _registry.spawn_entity();
+
+                _registry.add_component(h, component::position{posX, heartY});
+                _registry.add_component(h, component::health_tag{});
+
+                auto heartTex = std::make_shared<engine::R_Graphic::Texture>(
+                    win,
+                    "./Assets/Hud/heart.png",
+                    engine::R_Graphic::doubleVec2(posX, heartY),
+                    engine::R_Graphic::intVec2(32, 32));
+
+                engine::R_Graphic::textureRect rect(0, 0, 32, 32);
+                _registry.emplace_component<component::drawable>(h, heartTex, rect, layers::HudIcons);
+            }
+        }
+    }
+}
+
 void R_Type::Hud::drawOverlay(R_Type::Rtype &rtype)
 {
     auto &win = rtype.getApp().getWindow();
@@ -159,7 +232,7 @@ void R_Type::Hud::drawOverlay(R_Type::Rtype &rtype)
         float totalWidth = text.size() * spacing;
         float posX = (winW - totalWidth) / 2.0f;
 
-        drawText(text, 0.5f, posX, 40.0f, rtype, true);
+        drawText(text, 0.5f, posX, 40.0f, rtype, true, false);
     }
     auto &positions = _registry.get_components<component::position>();
     auto &drawables = _registry.get_components<component::drawable>();
@@ -179,10 +252,9 @@ void R_Type::Hud::startLevelAnimation(int level, engine::registry &registry)
 }
 
 void R_Type::Hud::drawText(std::string &text, float hudScale, float x, float y,
-    R_Type::Rtype &rtype, bool level)
+    R_Type::Rtype &rtype, bool isLevelText, bool isScoreText)
 {
     float spacing = 33.0f;
-    float totalWidth = text.size() * spacing;
 
     engine::R_Graphic::intVec2 scaledSize(
         static_cast<int>(128 * hudScale),
@@ -201,8 +273,12 @@ void R_Type::Hud::drawText(std::string &text, float hudScale, float x, float y,
 
         _registry.add_component(digitEntity, component::position{posX, y});
         _registry.add_component(digitEntity, component::hud_tag{});
-        if (level)
-            _registry.add_component(digitEntity, component::level_effect_tag{});
+
+        if (isScoreText)
+            _registry.add_component(digitEntity, component::score_tag{}); 
+
+        if (isLevelText)
+            _registry.add_component(digitEntity, component::level_effect_tag{}); 
 
         auto tex = std::make_shared<engine::R_Graphic::Texture>(
             rtype.getApp().getWindow(),
@@ -214,3 +290,4 @@ void R_Type::Hud::drawText(std::string &text, float hudScale, float x, float y,
         _registry.emplace_component<component::drawable>(digitEntity, tex, rectDigit, layers::HudText);
     }
 }
+

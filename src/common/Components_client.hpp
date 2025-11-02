@@ -14,6 +14,10 @@ namespace component
 
     struct hud_tag {};
 
+    struct health_tag {};
+
+    struct score_tag {};
+
     struct level_effect_tag {};
 
     // struct health {
@@ -24,11 +28,6 @@ namespace component
     struct beam_charge {
         float value;
         bool isCharging;
-    };
-
-    struct score {
-        int current;
-        int highScore;
     };
 
     struct lifetime {
