@@ -6,6 +6,7 @@
 #include "engine/network/Endpoint.hpp"
 #include "engine/network/NetClient.hpp"
 #include "Hud.hpp"
+#include <SDL_ttf.h>
 #include "Menu.hpp"
 #include "Player.hpp"
 #include "Enemy.hpp"
@@ -16,71 +17,62 @@
 #include "Background.hpp"
 #include "Gameover.hpp"
 
+namespace Engine { namespace Profiling { class ProfilerOverlay; } }
+
 /**
  * @namespace R_Type
  * @brief Namespace containing the main game logic and utilities for the R-Type client.
  */
-
-/**
- * @class Rtype
- * @brief Main class for managing the R-Type client game loop, networking, and rendering.
- *
- * The Rtype class encapsulates the core functionalities of the R-Type client, including:
- * - Handling network communication with the server via UDP.
- * - Managing game state updates, entity registry, and player data.
- * - Processing input events and maintaining active entities.
- * - Rendering graphics and background.
- * - Providing access to the application window and registry.
- *
- * @note This class is not copyable.
- */
-
-/**
- * @brief Updates the game state based on elapsed time and input events.
- * @param deltaTime Time elapsed since the last update (in seconds).
- * @param events List of input or system events to process.
- */
-
-/**
- * @brief Receives and processes a snapshot from the server to synchronize game state.
- */
-
-/**
- * @brief Renders the current game state to the application window.
- */
-
-/**
- * @brief Returns a reference to the application window.
- * @return Reference to engine::R_Graphic::App.
- */
-
-/**
- * @brief Returns a reference to the entity registry.
- * @return Reference to engine::registry.
- */
-
-/**
- * @brief Handles the waiting state during connection to the server.
- */
-
-/**
- * @brief Sets the animation clip and direction for a given animation component.
- * @param anim Reference to the animation component to modify.
- * @param clip Name of the animation clip to set.
- * @param reverse If true, plays the animation in reverse.
- */
 namespace R_Type
 {
     class Hud;
+    
+    /**
+     * @class Rtype
+     * @brief Main class for managing the R-Type client game loop, networking, and rendering.
+     *
+     * The Rtype class encapsulates the core functionalities of the R-Type client, including:
+     * - Handling network communication with the server via UDP.
+     * - Managing game state updates, entity registry, and player data.
+     * - Processing input events and maintaining active entities.
+     * - Rendering graphics and background.
+     * - Providing access to the application window and registry.
+     *
+     * @note This class is not copyable.
+     */
     class Rtype
     {
     public:
         Rtype();
-        ~Rtype() = default;
+        ~Rtype();
+        
+        /**
+         * @brief Updates the game state based on elapsed time and input events.
+         * @param deltaTime Time elapsed since the last update (in seconds).
+         * @param events List of input or system events to process.
+         */
         void update(float deltaTime, const std::vector<engine::R_Events::Event> &events);
+        
+        /**
+         * @brief Receives and processes a snapshot from the server to synchronize game state.
+         */
         void receiveSnapshot();
+        
+        /**
+         * @brief Renders the current game state to the application window.
+         */
         void draw();
+        
+        /**
+         * @brief Returns a reference to the application window.
+         * @return Reference to engine::R_Graphic::App.
+         */
         engine::R_Graphic::App &getApp();
+        
+        /**
+         * @brief Returns a reference to the entity registry.
+         * @return Reference to engine::registry.
+         */
         engine::registry &getRegistry();
         void requestLobbyList();
         void createLobby(const std::string& name);
@@ -88,12 +80,25 @@ namespace R_Type
         std::vector<LobbyInfo> getLobbies();
 
     private:
+        /**
+         * @brief Handles the waiting state during connection to the server.
+         */
         void waiting_connection();
+        
         void handle_collision(engine::registry &reg, size_t i, size_t j);
         void handleListLobby(const std::vector<uint8_t> &payload);
         void handleLobbyJoined(const std::vector<uint8_t> &payload);
 
     private:
+        enum class GameState {
+        MENU,
+        LOADING,
+        PLAYING,
+        GAME_OVER
+        };
+
+        GameState _state = GameState::MENU;
+        float _fadeAlpha = 0.0f;
         std::unique_ptr<engine::net::NetClient> _client;
         std::vector<std::pair<PacketHeader, std::vector<uint8_t>>> _pendingSnapshots;
         uint32_t _tick = 0;
@@ -112,6 +117,7 @@ namespace R_Type
         std::unique_ptr<R_Type::Gameover> _gameOverScreen;
         bool _inMenu = true;
         bool _connected = false;
+        bool _hasEverConnected = false;
         bool _gameOver = false;
         bool _won = false;
         bool _inLobby = false;
@@ -120,6 +126,17 @@ namespace R_Type
         bool _showHitboxes = false;
         int _hitboxOverlayThickness = 3;
         std::vector<LobbyInfo> _lobbies;
+        TTF_Font* _uiFont = nullptr;
+        
+        std::unique_ptr<Engine::Profiling::ProfilerOverlay> _profilerOverlay;
+        bool _showProfiler = false;
     };
+    
+    /**
+     * @brief Sets the animation clip and direction for a given animation component.
+     * @param anim Reference to the animation component to modify.
+     * @param clip Name of the animation clip to set.
+     * @param reverse If true, plays the animation in reverse.
+     */
     void setAnimation(component::animation &anim, const std::string &clip, bool reverse);
 }

@@ -14,6 +14,8 @@ namespace component
 
     struct hud_tag {};
 
+    struct level_effect_tag {};
+
     // struct health {
     //     int current;
     //     int max;

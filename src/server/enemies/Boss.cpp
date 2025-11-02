@@ -2,7 +2,7 @@
 #include "Shooter.hpp"
 #include "server/EnemyConfig.hpp"
 #include "server/Server.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "Boss.hpp"
 
 void Enemies::Boss::NewBoss(engine::registry &reg,

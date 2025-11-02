@@ -4,8 +4,9 @@
 #include <string>
 #include <vector>
 #include <random>
+#include "LevelManager.hpp"
 #include "engine/ecs/Registry.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "common/Packets.hpp"
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
@@ -13,7 +14,6 @@
 #include "engine/network/NetServer.hpp"
 #include "Lobby/Lobby.hpp"
 #include "Lobby/LobbyManager.hpp"
-
 #define PLAYER_SPEED 400.0f
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
@@ -63,7 +63,6 @@ private:
     LobbyManager _lobbyManager;
     std::thread _tickThread;
 
-    std::unordered_set<uint32_t> _live_entities;
     std::vector<PlayerInfo> _players;
 
     uint32_t _tick = 0;

@@ -1,0 +1,6 @@
+{
+  "duration": 15,
+  "entities": [
+    { "config": "configs/enemy/boss.json", "x": 2500, "y": 400, "velocityX": -50, "velocityY": 0 }
+  ]
+}

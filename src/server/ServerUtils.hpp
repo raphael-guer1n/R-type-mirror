@@ -1,5 +1,5 @@
 #pragma once
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "common/Packets.hpp" // for EntityState
 #include "engine/ecs/Registry.hpp"
 #include <cstdint>

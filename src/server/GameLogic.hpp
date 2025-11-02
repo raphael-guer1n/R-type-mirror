@@ -5,12 +5,13 @@
 #include <vector>
 #include <random>
 #include "engine/ecs/Registry.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "common/Packets.hpp"
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
 #include "engine/network/NetServer.hpp"
+#include "LevelManager.hpp"
 
 #define PLAYER_SPEED 400.0f
 #define SCREEN_WIDTH 1920
@@ -62,6 +63,7 @@ class GameLogic
         engine::net::NetServer &_server;
         std::unordered_set<uint32_t> _live_entities;
         std::vector<PlayerInfo> _players;
+        std::unique_ptr<LevelManager> _levelManager;
 
         uint32_t _tick = 0;
         std::random_device rd;

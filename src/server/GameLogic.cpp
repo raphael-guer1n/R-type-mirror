@@ -2,7 +2,8 @@
 #include "System_ai.hpp"
 #include "ServerUtils.hpp"
 #include "engine/ecs/EntityFactory.hpp"
-#include "common/Systems.hpp"
+#include "engine/ecs/Systems.hpp"
+#include "common/Accessibility.hpp"
 #include "enemies/Crawler.hpp"
 #include "enemies/Shooter.hpp"
 #include "enemies/Boss.hpp"
@@ -13,6 +14,7 @@ GameLogic::GameLogic(engine::net::NetServer &server)
 : _server(server)
 {
     register_components();
+    _levelManager = std::make_unique<LevelManager>(_registry, server, _players, _tick, _live_entities);
 }
 
 void GameLogic::update_spawns_and_events()
@@ -25,13 +27,32 @@ void GameLogic::update_spawns_and_events()
   {
     _live_entities.insert(static_cast<uint32_t>(e));
   }
-  systems::spawned_projectiles.clear();
-    if (_tick % 600 == 0)
+  _levelManager->update();
+  if (_levelManager->_noMoreLevels) {
+    auto &healths = _registry.get_components<component::health>();
+    auto &kinds   = _registry.get_components<component::entity_kind>();
+    std::vector<uint32_t> alivePlayers;
+
+    for (auto &&[i, kind] : indexed_zipper(kinds))
     {
-        Enemies::Crawler::NewCrawler(_registry, _live_entities, _gen);
-        Enemies::Shooter::NewShooter(_registry, _live_entities, _gen);
-        Enemies::Boss::NewBoss(_registry, _live_entities, _gen);
+      if (kind == component::entity_kind::player)
+      {
+        if (i < healths.size() && healths[i] && healths[i]->hp > 0)
+          alivePlayers.push_back(static_cast<uint32_t>(i));
+      }
     }
+    uint32_t winnerId = alivePlayers.empty() ? UINT32_MAX : alivePlayers[0];
+    broadcast_game_over(winnerId);
+    _running = false;
+    return;
+  }
+  systems::spawned_projectiles.clear();
+  // if (_tick % 600 == 0)
+  // {
+  //     Enemies::Crawler::NewCrawler(_registry, _live_entities, _gen);
+  //     Enemies::Shooter::NewShooter(_registry, _live_entities, _gen);
+  //     Enemies::Boss::NewBoss(_registry, _live_entities, _gen);
+  // }
 }
 
 void GameLogic::broadcast_snapshot()
@@ -149,6 +170,8 @@ void GameLogic::setup_systems()
 
 void GameLogic::register_components()
 {
+  AccessibilityConfig::load_from_json("configs/accessibility_config.json");
+
   _registry.register_component<component::position>();
   _registry.register_component<component::velocity>();
   _registry.register_component<component::hitbox>();

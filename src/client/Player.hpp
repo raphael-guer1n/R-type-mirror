@@ -3,7 +3,7 @@
 #include <optional>
 #include "engine/renderer/App.hpp"
 #include "engine/renderer/Texture.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "engine/events/Events.hpp"
 /**
  * @file Player.hpp
@@ -76,5 +76,6 @@ namespace R_Type
         private:
             void ensureChargeOverlay(engine::registry& registry, size_t playerLocalId, bool show);
             void updateChargeOverlayPosition(engine::registry& registry, size_t playerLocalId);
+            bool _wasShooting = false;
     };
 }

@@ -1,4 +1,3 @@
-
 /**
  * @file Server.cpp
  * @brief Implementation of the main server logic for the R-Type game.
@@ -29,6 +28,11 @@
  * - server::spawn_projectile: Spawns a projectile entity for a given owner.
  *
  */
+#include "engine/ecs/Systems.hpp"
+#include "engine/ecs/EntityFactory.hpp"
+#include "engine/events/Events.hpp"
+#include "server/ServerUtils.hpp"
+#include "engine/profiling/Profiler.hpp"
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -37,14 +41,14 @@
 #include <thread>
 
 #include "common/Components_client.hpp"
-#include "common/Systems.hpp"
+#include "engine/ecs/Systems.hpp"
 #include "server/Components_ai.hpp"
 #include "server/EnemyConfig.hpp"
-#include "server/Server.hpp"
+#include "common/Accessibility.hpp"
 #include "server/System_ai.hpp"
 #include "Server.hpp"
 #include "server/Server.hpp"
-#include "common/Systems.hpp"
+#include "engine/ecs/Systems.hpp"
 #include "engine/ecs/EntityFactory.hpp"
 #include "server/ServerUtils.hpp"
 #include "enemies/Crawler.hpp"

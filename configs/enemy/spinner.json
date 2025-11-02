@@ -1,0 +1,22 @@
+{
+    "type": "enemy",
+    "hp": 2,
+    "speed": 200,
+    "behavior": "spinner",
+    "hitbox": {
+        "w": 120,
+        "h": 120
+    },
+    "spells": [
+        {
+            "name": "circular_bullet",
+            "cooldown": 45,
+            "damage": 1,
+            "speedX": -3,
+            "speedY": 3,
+            "width": 12,
+            "height": 12
+        }
+    ],
+    "color": "purple"
+}

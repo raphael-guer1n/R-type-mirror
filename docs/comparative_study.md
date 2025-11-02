@@ -4,9 +4,9 @@
 
 | Protocol          | Pros                                         | Cons                                        | Suitable for R-Type? |
 |-------------------|----------------------------------------------|---------------------------------------------|-----------------------|
-| **TCP**           | Reliable (no loss, ordered), easy to use     | High latency, blocking issues               | ❌ Too slow |
-| **UDP (simple)**  | Very fast, low overhead                     | Unreliable (loss, out-of-order packets)     | ❌ Too risky |
-| **UDP (Quake-style)** | Fast, adds minimal reliability (ack/seq), proven in games | More complex to implement | ✅ Yes |
+| **TCP**           | Reliable (no loss, ordered), easy to use     | High latency, blocking issues               |  Too slow |
+| **UDP (simple)**  | Very fast, low overhead                     | Unreliable (loss, out-of-order packets)     |  Too risky |
+| **UDP (Quake-style)** | Fast, adds minimal reliability (ack/seq), proven in games | More complex to implement |  Yes |
 
 ---
 
@@ -14,10 +14,10 @@
 
 | Strategy              | Pros                                   | Cons                                  | Suitable for R-Type? |
 |------------------------|----------------------------------------|---------------------------------------|-----------------------|
-| **Full Snapshot**      | Very easy to implement                 | Huge bandwidth usage                   | ❌ Too heavy |
-| **Delta Snapshot**     | Bandwidth-efficient, only send changes | More complex to implement              | ✅ Yes |
-| **Raw Key States**     | Very simple (just pressed keys)        | Poor lag tolerance, hard to replay     | ❌ Not robust |
-| **UserCmd Batching**   | Robust, lag-tolerant, enables prediction | Slightly more complex                  | ✅ Yes |
+| **Full Snapshot**      | Very easy to implement                 | Huge bandwidth usage                   |  Too heavy |
+| **Delta Snapshot**     | Bandwidth-efficient, only send changes | More complex to implement              |  Yes |
+| **Raw Key States**     | Very simple (just pressed keys)        | Poor lag tolerance, hard to replay     |  Not robust |
+| **UserCmd Batching**   | Robust, lag-tolerant, enables prediction | Slightly more complex                  |  No |
 
 ---
 
@@ -25,10 +25,10 @@
 
 | Option             | Pros                                           | Cons                                | Suitable for R-Type? |
 |--------------------|-----------------------------------------------|-------------------------------------|-----------------------|
-| **POSIX Sockets**  | Full control, no dependency                   | Very low-level, verbose, error-prone | ❌ No |
-| **Boost.Asio**     | Mature, robust, widely used                   | Heavy dependency, slow compilation   | ❌ Not ideal |
-| **Asio Standalone**| Lightweight, header-only, async, cross-platform| Less popular than Boost              | ✅ Yes |
-| **ENet**           | Provides built-in UDP reliability             | Black-box, less educational          | ❌ No |
+| **POSIX Sockets**  | Full control, no dependency                   | Very low-level, verbose, error-prone |  No |
+| **Boost.Asio**     | Mature, robust, widely used                   | Heavy dependency, slow compilation   |  Not ideal |
+| **Asio Standalone**| Lightweight, header-only, async, cross-platform| Less popular than Boost              |  Yes |
+| **ENet**           | Provides built-in UDP reliability             | Black-box, less educational          |  No |
 
 ---
 
@@ -36,20 +36,20 @@
 
 | Manager          | Pros                                                                 | Cons                                                  | Suitable for R-Type? |
 |------------------|----------------------------------------------------------------------|-------------------------------------------------------|-----------------------|
-| **vcpkg**        | Cross-platform triplets, CMake toolchain, lockstep deps, easy onboarding | Requires toolchain setup, MSFT-centric docs           | ✅ **Chosen** |
-| **Conan**        | Powerful dependency graphs, profiles, reproducible builds            | More concepts to learn, server/cache management       | ✅ Possible |
-| **CPM.cmake**    | Super lightweight, fetches via CMake only                           | Fewer prebuilt binaries, relies on upstream CMake     | ✅ Possible (small projects) |
-| **Manual (git submodules)** | Full control, zero external tooling                        | Maintenance burden, no version resolution             | ❌ No |
-| **System pkg (apt/brew)** | Quick local installs                                        | Not portable across teammates/CI                      | ❌ No |
+| **vcpkg**        | Cross-platform triplets, CMake toolchain, lockstep deps, easy onboarding | Requires toolchain setup, MSFT-centric docs           |  **Chosen** |
+| **Conan**        | Powerful dependency graphs, profiles, reproducible builds            | More concepts to learn, server/cache management       |  Possible |
+| **CPM.cmake**    | Super lightweight, fetches via CMake only                           | Fewer prebuilt binaries, relies on upstream CMake     |  Possible (small projects) |
+| **Manual (git submodules)** | Full control, zero external tooling                        | Maintenance burden, no version resolution             |  No |
+| **System pkg (apt/brew)** | Quick local installs                                        | Not portable across teammates/CI                      |  No |
 
 ## 5. Game Framework / Rendering
 
 | Option          | Pros                                                      | Cons                                           | Suitable for R-Type? |
 |-----------------|-----------------------------------------------------------|------------------------------------------------|-----------------------|
-| **Raw OpenGL**  | Full control, very powerful, no extra dependency          | Very verbose, a lot of boilerplate, steep learning curve | ❌ Too complex for project |
-| **SFML**        | Simple API (graphics, input, audio), well-documented      | Less low-level control, smaller community vs SDL | ✅ Possible |
-| **SDL2**        | Cross-platform, widely used in industry, battle-tested; handles input, rendering, sound | Lower-level than SFML (you need to write more code); less "high-level sugar" | ✅ **Chosen** |
-| **Allegro**     | Simple, stable library                                    | Less popular today, smaller ecosystem          | ❌ Not ideal |
+| **Raw OpenGL**  | Full control, very powerful, no extra dependency          | Very verbose, a lot of boilerplate, steep learning curve |  Too complex for project |
+| **SFML**        | Simple API (graphics, input, audio), well-documented      | Less low-level control, smaller community vs SDL |  Possible |
+| **SDL2**        | Cross-platform, widely used in industry, battle-tested; handles input, rendering, sound | Lower-level than SFML (you need to write more code); less "high-level sugar" |  **Chosen** |
+| **Allegro**     | Simple, stable library                                    | Less popular today, smaller ecosystem          |  Not ideal |
 
 ## 6. Conclusion
 

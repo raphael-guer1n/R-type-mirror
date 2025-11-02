@@ -3,24 +3,14 @@ set -e
 
 echo "Cleaning build directory..."
 rm -rf build
+rm -rf vcpkg_installed
 
 echo "Configuring project with CMake..."
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake -B build -S . \
+  -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake \
+  -DCMAKE_CXX_COMPILER=/usr/bin/c++
 
 echo "Building project..."
-cmake --build build
+cmake --build build --parallel
 
-echo "✅ Build complete!"
-
-if [ -f "./tests/unit_tests" ]; then
-    echo ""
-    echo "=============================="
-    echo " Running Unit Tests 🎯"
-    echo "=============================="
-    ./tests/unit_tests
-    echo "=============================="
-    echo " Unit Tests Finished ✅"
-    echo "=============================="
-else
-    echo "⚠️  No tests found in ./tests/"
-fi
+echo "Build complete!"

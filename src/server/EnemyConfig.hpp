@@ -1,4 +1,3 @@
-
 /**
  * @class EnemyConfig
  * @brief Represents the configuration for an enemy entity, loaded from a JSON file.
@@ -38,7 +37,7 @@
 #include <nlohmann/json.hpp>
 #include "common/Components_client.hpp"
 #include "server/Components_ai.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 
 using json = nlohmann::json;
 

@@ -1,4 +1,4 @@
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "engine/ecs/EntityFactory.hpp"
 
 engine::entity_t spawn_projectile_basic(engine::entity_t owner, engine::registry &reg)

@@ -1,0 +1,12 @@
+{
+    "type": "enemy",
+    "hp": 3,
+    "speed": 350,
+    "behavior": "charger",
+    "hitbox": {
+        "w": 150,
+        "h": 100
+    },
+    "spells": [],
+    "color": "orange"
+}

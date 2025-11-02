@@ -2,7 +2,7 @@
 #include "Shooter.hpp"
 #include "server/EnemyConfig.hpp"
 #include "server/Server.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 
 void Enemies::Shooter::NewShooter(engine::registry &reg,
     std::unordered_set<uint32_t>& entities, std::mt19937& gen)

@@ -1,6 +1,7 @@
 #include <mutex>
 #include <iostream>
 #include "Lobby.hpp"
+#include "engine/profiling/Profiler.hpp"
 #include "server/Server.hpp"
 
 Lobby::Lobby(uint8_t id, std::string name, engine::net::NetServer &server)
@@ -83,13 +84,41 @@ void Lobby::handle_packet(const engine::net::Endpoint &sender,
 
 void Lobby::update()
 {
+    auto& profiler = Engine::Profiling::Profiler::getInstance();
+    uint32_t frameCounter = 0;
+
     if (_ready) {
-        _game.update_game_logic();
-        _game.update_spawns_and_events();
-        _game.broadcast_snapshot();
+        profiler.beginFrame();
+        PROFILE_SCOPE("Game Tick");
+        {
+            PROFILE_SCOPE("Update Game Logic");
+            _game.update_game_logic();
+        }
+        {
+            PROFILE_SCOPE("Spawns & Events");
+            _game.update_spawns_and_events();
+        }
+        {
+            PROFILE_SCOPE("Broadcast Snapshot");
+            _game.broadcast_snapshot();
+        }
         _game.getTick()++;
         if (!_game.getRunning()) {
             stop();
+        }
+        profiler.endFrame();
+        if (++frameCounter % 300 == 0) {
+            profiler.updateMemoryMetrics();
+            profiler.updateCPUMetrics();
+            profiler.setEntityCount(_game.getLiveEntities().size());
+
+            const auto& frameMetrics = profiler.getFrameMetrics();
+            const auto& memMetrics = profiler.getMemoryMetrics();
+
+            // std::cout << "[Profiling] FPS: " << std::fixed << std::setprecision(1) << frameMetrics.displayFps
+            //           << " | Frame: " << frameMetrics.displayFrameTime << "ms"
+            //           << " | Entities: " << _live_entities.size()
+            //           << " | Memory: " << (memMetrics.physicalMemoryUsed / 1024.0 / 1024.0) << "MB\n";
         }
     }
 }

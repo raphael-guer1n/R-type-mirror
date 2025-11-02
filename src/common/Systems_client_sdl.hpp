@@ -1,9 +1,8 @@
-
 #pragma once
 #include <iostream>
 #include <SDL.h>
 #include "engine/ecs/Registry.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "common/Components_client_sdl.hpp"
 #include "common/Components_client.hpp"
 #include "engine/ecs/iterator/Zipper.hpp"
@@ -183,6 +182,52 @@ inline void scroll_reset_system(engine::registry &r,
         bg1.x = bg2.x + width;
     if (bg2.x + width <= 0)
         bg2.x = bg1.x + width;
+}
+
+// Animation system for updating sprite animations
+inline void animation_system(registry &r,
+                             sparse_array<component::animation> &animations,
+                             sparse_array<component::drawable> &drawables,
+                             float deltaTime)
+{
+    for (auto &&[i, anim, draw] : indexed_zipper(animations, drawables)) {
+        if (anim.clips.empty() || anim.currentClip.empty())
+            continue;
+        
+        auto it = anim.clips.find(anim.currentClip);
+        if (it == anim.clips.end())
+            continue;
+        
+        const auto &clip = it->second;
+        anim.timer += deltaTime;
+        
+        if (anim.timer >= clip.frameTime) {
+            anim.timer = 0.f;
+            
+            if (anim.reverse) {
+                if (anim.currentFrame > 0) {
+                    anim.currentFrame--;
+                } else if (clip.loop) {
+                    anim.currentFrame = clip.frameCount - 1;
+                }
+            } else {
+                anim.currentFrame++;
+                if (anim.currentFrame >= clip.frameCount) {
+                    if (clip.loop) {
+                        anim.currentFrame = 0;
+                    } else {
+                        anim.currentFrame = clip.frameCount - 1;
+                    }
+                }
+            }
+        }
+        
+        // Update drawable rect based on current frame
+        draw.rect.pos.x = clip.startX + (anim.currentFrame * clip.frameWidth);
+        draw.rect.pos.y = clip.startY;
+        draw.rect.size.x = clip.frameWidth;
+        draw.rect.size.y = clip.frameHeight;
+    }
 }
 
 

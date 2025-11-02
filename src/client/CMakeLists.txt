@@ -8,6 +8,7 @@ add_executable(r-type_client
     Enemy.cpp
     Gameover.cpp
     Lobby.cpp
+    ../common/Accessibility.cpp
 )
 
 target_include_directories(r-type_client PRIVATE

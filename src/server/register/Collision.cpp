@@ -1,7 +1,7 @@
 #include "server/Server.hpp"
 #include "server/Components_ai.hpp"
 #include "server/System_ai.hpp"
-#include "common/Systems.hpp"
+#include "engine/ecs/Systems.hpp"
 #include "server/ServerUtils.hpp"
 #include "server/SpawnProjectile.hpp"
 #include "server/GameLogic.hpp"

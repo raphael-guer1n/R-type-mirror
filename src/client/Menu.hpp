@@ -59,12 +59,15 @@ public:
     ~Menu() = default;
 
     bool update(const std::vector<engine::R_Events::Event> &events, Rtype& rtype);
+    bool isAccessibilityEnabled() const { return _accessibilityMode; }
     void draw(Rtype& rtype);
+    void drawHelpMenu();
 
     private:
         enum class Page {
             Main,
             Settings,
+            Help,
             Lobby
         };
         engine::audio::Music _menuMusic;
@@ -86,12 +89,17 @@ public:
 
         std::shared_ptr<engine::R_Graphic::Texture> _startButton;
         std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _accessibilityButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _helpButton;
         std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
         std::shared_ptr<engine::R_Graphic::Texture> _acceptButton;
 
         std::shared_ptr<engine::R_Graphic::Texture> _backButton;
         std::shared_ptr<engine::R_Graphic::Texture> _soundButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _muteButton;
         std::shared_ptr<engine::R_Graphic::Texture> _windowButton;
+
+        engine::R_Graphic::doubleVec2 _backButtonPos;
 
         std::shared_ptr<engine::R_Graphic::Texture> _input;
         std::vector<engine::R_Graphic::Texture> _lobbiesBg;
@@ -100,6 +108,7 @@ public:
 
         bool _startPressed = false;
         bool _quitPressed = false;
+        bool _accessibilityMode = false;
 
         bool _soundEnabled = true;
         bool _fullscreen = false;

@@ -1,0 +1,25 @@
+{
+  "visual": {
+    "contrast_mode": true,
+    "mode_daltonien": "deuteranopie"
+  },
+  "audio": {
+    "indicateurs_visuals_audio": true,
+    "volume_general": 0.2
+  },
+  "enter": {
+    "key_remap": {
+      "move_left": "LEFT",
+      "move_right": "RIGHT",
+      "move_up": "UP",
+      "move_down": "DOWN",
+      "shoot": "RETURN",
+      "special": "RSHIFT"
+    },
+    "auto_shoot": false
+  },
+  "cognitive": {
+    "less_movement": true,
+    "speed_game": 0.5
+  }
+}

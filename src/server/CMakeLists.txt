@@ -3,6 +3,8 @@ find_package(Threads REQUIRED)
 add_executable(r-type_server
     Server.cpp
     ServerUtils.cpp
+    LevelManager.cpp
+    ../common/Accessibility.cpp
     Main.cpp
     SpawnProjectile.cpp
     GameLogic.cpp
@@ -20,14 +22,11 @@ add_executable(r-type_server
     HandleInput.cpp
 )
 
-find_package(asio CONFIG REQUIRED)
 target_include_directories(r-type_server PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    # Path to asio if it’s standalone, otherwise system headers
 )
 
 target_link_libraries(r-type_server PRIVATE
     engine
     Threads::Threads
-    asio::asio
 )
