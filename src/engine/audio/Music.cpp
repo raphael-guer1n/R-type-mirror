@@ -83,5 +83,4 @@ void Music::resume() {
     if (!_isLoaded || _muted) return;
     ma_sound_start(&_sound);
 }
-
 } // namespace engine::audio

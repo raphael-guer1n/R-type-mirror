@@ -1,25 +1,26 @@
 {
-  "visual": {
-    "contrast_mode": true,
-    "mode_daltonien": "deuteranopie"
-  },
-  "audio": {
-    "indicateurs_visuals_audio": true,
-    "volume_general": 0.2
-  },
-  "enter": {
-    "key_remap": {
-      "move_left": "LEFT",
-      "move_right": "RIGHT",
-      "move_up": "UP",
-      "move_down": "DOWN",
-      "shoot": "RETURN",
-      "special": "RSHIFT"
+    "visual": {
+        "contrast_mode": true,
+        "mode_daltonien": "deuteranopia"
     },
-    "auto_shoot": false
-  },
-  "cognitive": {
-    "less_movement": true,
-    "speed_game": 0.5
-  }
+    "audio": {
+        "indicateurs_visuals_audio": true,
+        "volume_general": 0.7
+    },
+    "enter": {
+        "auto_shoot": true,
+        "key_remap": {
+            "move_up": "w",
+            "move_down": "s",
+            "move_left": "a",
+            "move_right": "d",
+            "shoot": "space",
+            "special": "rshift",
+            "pause": "escape"
+        }
+    },
+    "cognitive": {
+        "less_movement": false,
+        "speed_game": 0.5
+    }
 }
