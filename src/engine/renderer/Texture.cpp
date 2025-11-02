@@ -79,6 +79,25 @@ void engine::R_Graphic::Texture::draw(R_Graphic::Window& window, R_Graphic::text
     }
 }
 
+void engine::R_Graphic::Texture::drawAt(R_Graphic::Window &window, double x, double y, R_Graphic::textureRect *srcrect)
+{
+    SDL_Rect dst = {
+        static_cast<int>(x),
+        static_cast<int>(y),
+        _size.x, _size.y
+    };
+
+    if (!srcrect) {
+        SDL_RenderCopy(window.getRenderer(), _texture, nullptr, &dst);
+    } else {
+        SDL_Rect rect = {
+            srcrect->pos.x, srcrect->pos.y,
+            srcrect->size.x, srcrect->size.y
+        };
+        SDL_RenderCopy(window.getRenderer(), _texture, &rect, &dst);
+    }
+}
+
 void engine::R_Graphic::Texture::changeColors(int r, int g, int b)
 {
     SDL_SetTextureColorMod(_texture, r, g, b);

@@ -11,9 +11,9 @@
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
-#define PLAYER_SPEED 400.0f
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
+#include "engine/network/NetServer.hpp"
+#include "Lobby/Lobby.hpp"
+#include "Lobby/LobbyManager.hpp"
 /**
  * @class server
  * @brief Main server class for managing game state, networking, and player entities.
@@ -29,81 +29,27 @@
  * - Spawns and manages player and projectile entities.
  * - Centralizes entity removal logic to maintain ECS pipeline integrity.
  *
- * @section Usage
- * Instantiate with an ASIO io_context and optional port, then call run() to start the server loop.
- *
- * @section Members
- * - _registry: ECS registry for managing entities and components.
- * - _socket: UDP socket for network communication.
- * - _players: List of connected players and their associated entities.
- * - _live_entities: Set of currently active entities.
- * - _tick: Current server tick for synchronization.
- * - _gen: Random number generator for entity spawning and game logic.
  */
-struct PlayerInfo
-{
-    engine::net::Endpoint endpoint;
-    engine::entity_t entityId;
-};
 class server
 {
-    public:
-    server(engine::net::IoContext &ctx, unsigned short port = 4242);
+public:
+    server(unsigned short port = 4242);
+    ~server();
     void run();
     void stop();
 
 private:
-    // Initialization / registration
-    void register_components();
-    void setup_systems();
-
-    // Sub-registrations (split from setup_systems)
-    void register_health_and_spawn_systems();
-    void register_projectile_movement_system();
-    void register_gravity_system();
-    void register_collision_system();
-    void register_bounds_system();
-    void register_area_effect_system();
-
-    // Game loop phases
-    void wait_for_players();
-    void process_network_inputs();
-    void game_handler();
-    void broadcast_snapshot();
-    void broadcast_game_over(uint32_t winnerEntityId);
-    void check_game_over();
-
-    // Spawning helpers
-    engine::entity_t spawn_player(engine::net::Endpoint endpoint, std::size_t index);
-    engine::entity_t spawn_projectile(engine::entity_t owner);
-    engine::entity_t spawn_projectile_basic(engine::entity_t owner);
-    engine::entity_t spawn_projectile_alt(engine::entity_t owner);
-    engine::entity_t spawn_projectile_charged(engine::entity_t owner, uint32_t heldTicks);
-    engine::entity_t spawn_projectile_bomb(engine::entity_t owner);
-    engine::entity_t spawn_missile_explosion(float x, float y, int damage, float radius);
-
-    // Internal utility: ensure an entity is scheduled for removal by setting/adding despawn_tag.
-    // Centralises logic so systems never call kill_entity directly (uniform ECS pipeline).
+    void tick_loop();
 private:
-    bool _running = true;
+    bool _running = false;
+    bool _ready = false;
     engine::registry _registry;
 
-    engine::net::UdpSocket _socket;
-    engine::net::IoContext &_io;
-    unsigned short _port;
+    engine::net::NetServer _netServer;
+    LobbyManager _lobbyManager;
+    std::thread _tickThread;
 
-
-    std::unordered_set<uint32_t> _live_entities;
     std::vector<PlayerInfo> _players;
-    std::unique_ptr<LevelManager> _levelManager;
 
     uint32_t _tick = 0;
-
-    std::random_device rd;
-    std::mt19937 _gen{rd()};
-
-    // Input edge state per player
-    std::unordered_map<uint32_t, bool> _prevSpace;
-    std::unordered_map<uint32_t, bool> _prevC;
-    std::unordered_map<uint32_t, uint32_t> _pressTick;
 };

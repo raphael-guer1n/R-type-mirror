@@ -6,6 +6,20 @@ add_executable(r-type_server
     LevelManager.cpp
     ../common/Accessibility.cpp
     Main.cpp
+    SpawnProjectile.cpp
+    GameLogic.cpp
+    enemies/Boss.cpp
+    enemies/Crawler.cpp
+    enemies/Shooter.cpp
+    register/AreaEffect.cpp
+    register/Bounds.cpp
+    register/Collision.cpp
+    register/Gravity.cpp
+    register/HealthAndSpawn.cpp
+    register/ProjectileMovement.cpp
+    Lobby/Lobby.cpp
+    Lobby/LobbyManager.cpp
+    HandleInput.cpp
 )
 
 target_include_directories(r-type_server PRIVATE

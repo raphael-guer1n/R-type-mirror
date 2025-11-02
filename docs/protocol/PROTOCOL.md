@@ -35,22 +35,38 @@ Conventions:
 Type identifiers (enum):
 - 1 = CONNECT_REQ
 - 2 = CONNECT_ACK
-- 3 = INPUT
+- 3 = INPUT_PKT
 - 4 = SNAPSHOT
-- 5 = EVENT
+- 5 = EVENT_PKT
 - 6 = PING
 - 7 = PONG
+- 8 = GAME_OVER
+- 9 = LIST_LOBBIES
+- 10 = LOBBY_LIST_RESPONSE
+- 11 = CREATE_LOBBY
+- 12 = JOIN_LOBBY
+- 13 = LOBBY_JOINED
+- 14 = LEVEL_START
+- 15 = LEVEL_END
 
 Packet summary:
 
-| Type | Name         | Direction            | Payload overview                                      |
-|------|--------------|----------------------|--------------------------------------------------------|
-| 1    | CONNECT_REQ  | Client → Server      | clientId                                              |
-| 2    | CONNECT_ACK  | Server → Client      | serverId, tickRate, playerEntityId                    |
-| 3    | INPUT        | Client → Server      | clientId, tick, keyCount, keys[keyCount]              |
-| 4    | SNAPSHOT     | Server → Client      | tick, entityCount, entities[entityCount]              |
-| 5    | EVENT        | Server → Client      | tick, eventType, entityId                             |
-| 6/7  | PING/PONG    | Bidirectional        | timestamp                                             |
+| Type | Name                   | Direction            | Payload overview                                      |
+|------|------------------------|----------------------|-------------------------------------------------------|
+| 1    | CONNECT_REQ            | Client → Server      | clientId                                              |
+| 2    | CONNECT_ACK            | Server → Client      | serverId, tickRate, playerEntityId                    |
+| 3    | INPUT                  | Client → Server      | clientId, tick, keyCount, keys[keyCount]              |
+| 4    | SNAPSHOT               | Server → Client      | tick, entityCount, entities[entityCount]              |
+| 5    | EVENT                  | Server → Client      | tick, eventType, entityId                             |
+| 6/7  | PING/PONG              | Bidirectional        | timestamp                                             |
+| 8    | GAME_OVER              | Server → Client      | winnerEntityId                                        |
+| 9    | LIST_LOBBIES           | Client → Server      |                                                       |
+| 10   | LOBBY_LIST_RESPONSE    | Server → Client      | count, lobbies[4]                                     |
+| 11   | CREATE_LOBBY           | Client → Server      | name                                                  |
+| 12   | JOIN_LOBBY             | Client → Server      | lobbyId                                               |
+| 13   | LOBBY_JOINED           | Server → Client      | lobbyId                                               |
+| 14   | LEVEL_START            | Server → Client      | level                                                 |
+| 15   | LEVEL_END              | Server → Client      | level                                                 |
 
 ### 3.1 CONNECT_REQ (Client → Server)
 Type = 1
@@ -124,6 +140,86 @@ Payload fields:
 - timestamp (8 bytes, unsigned): Monotonic timestamp (format implementation-defined)
 
 Purpose: Measure latency and keep the connection alive.
+
+### 3.7 LIST_LOBBIES (Client → Server)
+Type = 9
+Payload: none
+Purpose: Requests the server to send the current list of active lobbies.
+
+### 3.8 LOBBY_LIST_RESPONSE (Server → Client)
+Type = 10
+Payload fields:
+- count (1 byte, unsigned): Number of lobbies returned (max 4)
+- lobbies[4]:
+  - id (1 byte, unsigned)
+  - playerCount (1 byte, unsigned)
+  - maxPlayers (1 byte, unsigned)
+  - name[32] (char array, zero-terminated)
+
+Purpose: Responds to a LIST_LOBBIES request with information about existing lobbies.
+
+#### Example Payload (2 lobbies):
+- count = 0x02
+- lobbies[0]:
+    - id = 0x01
+    - playerCount = 0x01
+    - maxPlayers = 0x02
+    - name = "AlphaLobby" + '\0' padding
+- lobbies[1]:
+    - id = 0x02
+    - playerCount = 0x02
+    - maxPlayers = 0x02
+    - name = "BetaLobby" + '\0' padding
+
+### 3.9 CREATE_LOBBY (Client → Server)
+Type = 11
+Payload fields:
+- name[32] (char array, zero-terminated)
+
+Purpose: Requests the server to create a new lobby. Name length is limited to 31 characters + null terminator.
+
+#### Example Payload:
+- name = "GammaLobby" + '\0' padding to 32 bytes
+
+### 3.10 JOIN_LOBBY (Client → Server)
+Type = 12
+Payload fields:
+- lobbyId (1 byte, unsigned)
+
+Purpose: Requests to join an existing lobby.
+
+#### Example Payload:
+- lobbyId = 0x02
+
+### 3.11 LOBBY_JOINED (Server → Client)
+Type = 13
+Payload fields:
+- lobbyId (1 byte, unsigned)
+
+Purpose: Confirms the client has successfully joined the specified lobby.
+
+#### Example Payload:
+- lobbyId = 0x02
+
+### 3.12 LEVEL_START (Server → Client)
+Type = 14
+Payload fields:
+- level (4 bytes, unsigned)
+
+Purpose: Signals the start of a level. The client should transition from LOADING to PLAYING, trigger fade-in effects, and start HUD animations.
+
+#### Example Payload:
+- level = 0x00000001 (Level 1)
+
+### 3.13 LEVEL_END (Server → Client)
+Type = 15
+Payload fields:
+- level (4 bytes, unsigned)
+
+Purpose: Signals the end of a level. The client should transition back to LOADING, reset fade effects, and prepare the next level.
+
+#### Example Payload:
+- level = 0x00000001 (Level 1 ended)
 
 ## 4. Binary Example
 Example of an INPUT packet (2 keys pressed: 'q' and 'z'):

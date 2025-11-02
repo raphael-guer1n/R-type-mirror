@@ -1,8 +1,11 @@
-#include "Menu.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <string>
+#include <sstream>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include "Menu.hpp"
+#include "Rtype.hpp"
 #include "engine/audio/Music.hpp"
 #include "common/Accessibility.hpp"
 #include "engine/audio/AudioManager.hpp"
@@ -71,6 +74,13 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::intVec2(_buttonWidth, _buttonHeight)
     );
 
+    _input = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/input.png",
+        engine::R_Graphic::doubleVec2(620, 10),
+        engine::R_Graphic::intVec2(550, 150)
+    );
+
     _quitButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(), "./Assets/Menu/quit_btn.png",
         engine::R_Graphic::doubleVec2(_centerX, quitY),
@@ -92,6 +102,20 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
     _backButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(), "./Assets/Menu/back_btn.png",
         _backButtonPos, engine::R_Graphic::intVec2(optionSize, optionSize)
+    );
+
+    _refresh = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/refresh_btn.png",
+        engine::R_Graphic::doubleVec2(1770, 10),
+        engine::R_Graphic::intVec2(optionSize, optionSize)
+    );
+
+    _acceptButton = std::make_shared<engine::R_Graphic::Texture>(
+        _app.getWindow(),
+        "./Assets/Menu/accept_btn.png",
+        engine::R_Graphic::doubleVec2(1200, 10),
+        engine::R_Graphic::intVec2(optionSize, optionSize)
     );
 
     _soundButton = std::make_shared<engine::R_Graphic::Texture>(
@@ -137,9 +161,13 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
     } else {
         std::cerr << "[AUDIO] Failed to load Menu.wav\n";
     }
+    _font = TTF_OpenFont("./Assets/fonts/arial.ttf", 64);
+    if (!_font)
+        std::cerr << "Failed to load font\n";
 }
 
-bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
+bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
+    Rtype& rtype)
 {
     for (auto &ev : events) {
         if (ev.type == engine::R_Events::Type::Quit ||
@@ -152,6 +180,15 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
             SDL_Quit();
             std::exit(0);
         }
+        if (_typing && ev.type == engine::R_Events::Type::KeyDown &&
+            !_lobbyName.empty() &&
+            ev.key.code == engine::R_Events::Key::Backspace) {
+            _lobbyName.pop_back();
+        } else if (ev.type == engine::R_Events::Type::KeyDown &&
+            static_cast<int>(ev.key.code) >= 32 &&
+            static_cast<int>(ev.key.code) <= 126) {
+            _lobbyName.push_back(static_cast<char>(ev.key.code));
+        }
         if (ev.type != engine::R_Events::Type::MouseButtonDown)
             continue;
         int x = ev.mouse.x;
@@ -163,15 +200,9 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
             const int quitY  = _winH / 2 + 300;
             const int accY   = _winH / 2 + 450;
             if (hit(x, y, _centerX, startY, _buttonWidth, _buttonHeight)) {
-                _startPressed = true;
-                _menuMusic.stop();
-                if (_gameMusic.load("./Assets/Music/Game.wav")) {
-                    _gameMusic.setMuted(!_soundEnabled);
-                    if (_soundEnabled) _gameMusic.play(true);
-                } else {
-                    std::cerr << "[AUDIO] Failed to load Game.wav\n";
-                }
-                return true;
+                _currentPage = Page::Lobby;
+                rtype.requestLobbyList();
+                return false;
             }
             if (hit(x, y, _centerX, settY, _buttonWidth, _buttonHeight)) {
                 _currentPage = Page::Settings;
@@ -231,23 +262,71 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events)
                 }
                 return false;
             }
-        }
-        else if (_currentPage == Page::Help)
-        {
+        } else if (_currentPage == Page::Help) {
             if (ev.type == engine::R_Events::Type::MouseButtonDown)
             {
                 _currentPage = Page::Main;
+            }
+        } else if (_currentPage == Page::Lobby) {
+            if (x >= 0 && x <= 150 && y >= 10 && y <= 160) {
+                _currentPage = Page::Main;
+            }
+            if (x >= 620 && x <= 1170 && y >= 10 && y <= 160) {
+                _typing = true;
+            } else {
+                _typing = false;
+            }
+            if (x >= 1200 && x <= 1350 && y >= 10 && y <= 160) {
+                if (!_lobbyName.empty()) {
+                    rtype.createLobby(_lobbyName);
+                    _menuMusic.stop();
+                    if (_gameMusic.load("./Assets/Music/Game.wav")) {
+                        _gameMusic.setMuted(!_soundEnabled);
+                        if (_soundEnabled) _gameMusic.play(true);
+                    } else {
+                        std::cerr << "[AUDIO] Failed to load Game.wav\n";
+                    }
+                    return true;
+                }
+            }
+            if (x >= 1770 && x <= 1920 && y >= 10 && y <= 160) {
+                rtype.requestLobbyList();
+            }
+            auto lobbies = rtype.getLobbies();
+            if (lobbies.empty())
+                break;
+            float lobX = 620;
+            float lobY = 240;
+            for (auto lobby : lobbies) {
+                if (x >= lobX && x <= x + 150 &&
+                    y >= lobY && y <= lobY + 150) {
+                    rtype.joinLobby(lobby.id);
+                    _menuMusic.stop();
+                    if (_gameMusic.load("./Assets/Music/Game.wav")) {
+                        _gameMusic.setMuted(!_soundEnabled);
+                        if (_soundEnabled) _gameMusic.play(true);
+                    } else {
+                        std::cerr << "[AUDIO] Failed to load Game.wav\n";
+                    }
+                    return true;
+                }
+                lobY += 220;
             }
         }
     }
     return false;
 }
 
-void R_Type::Menu::draw()
+void R_Type::Menu::draw(Rtype& rtype)
 {
-    if (_currentPage == Page::Main)       drawMainMenu();
-    else if (_currentPage == Page::Settings) drawSettingsMenu();
-    else if (_currentPage == Page::Help)     drawHelpMenu();
+    if (_currentPage == Page::Main)
+        drawMainMenu();
+    else if (_currentPage == Page::Settings)
+        drawSettingsMenu();
+    else if (_currentPage == Page::Lobby)
+        drawLobbyMenu(rtype);
+    else if (_currentPage == Page::Help)
+        drawHelpMenu();
 }
 
 void R_Type::Menu::drawMainMenu()
@@ -335,4 +414,67 @@ void R_Type::Menu::drawHelpMenu()
 
     TTF_CloseFont(fontTitle);
     TTF_CloseFont(fontBody);
+}
+
+
+void R_Type::Menu::drawLobbyMenu(Rtype& rtype)
+{
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Color yellow = {240, 225, 60, 255};
+
+    _background->draw(_app.getWindow(), nullptr);
+    _refresh->draw(_app.getWindow(), nullptr);
+    _backButton->setPosition(0, 10);
+    _backButton->draw(_app.getWindow(), nullptr);
+    _input->draw(_app.getWindow(), nullptr);
+    _acceptButton->draw(_app.getWindow(), nullptr);
+    if (!_lobbyName.empty()) {
+        if (!_typing)
+            drawText(_app.getWindow().getRenderer(), _lobbyName, 650, 44, white);
+        else
+            drawText(_app.getWindow().getRenderer(), _lobbyName, 650, 44, yellow);
+    }
+    drawLobby(rtype);
+}
+
+void R_Type::Menu::drawLobby(Rtype& rtype)
+{
+    auto lobbies = rtype.getLobbies();
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Renderer* renderer = rtype.getApp().getWindow().getRenderer();
+    float x = 620;
+    float y = 240.0;
+    if (lobbies.empty())
+        return;
+    for (auto lobby : lobbies) {
+        std::stringstream ss;
+        ss << lobby.name << " " << (int)lobby.playerCount << "/" << (int)lobby.maxPlayers;
+        _input->drawAt(_app.getWindow(), x, y - 30, nullptr);
+        drawText(renderer, ss.str(), x + 20, y, white);
+        ss.clear();
+        y += 220;
+    }
+}
+
+void R_Type::Menu::drawText(SDL_Renderer *renderer, const std::string &text, int x, int y, SDL_Color color)
+{
+    if (!_font) return;
+
+    SDL_Surface* surface = TTF_RenderText_Solid(_font, text.c_str(), color);
+    if (!surface) {
+        std::cerr << "RenderText failed: " << TTF_GetError() << std::endl;
+        return;
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!texture) {
+        SDL_FreeSurface(surface);
+        return;
+    }
+
+    SDL_Rect destRect = { x, y, surface->w, surface->h };
+    SDL_RenderCopy(renderer, texture, nullptr, &destRect);
+
+    SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
 }

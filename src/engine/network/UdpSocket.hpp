@@ -6,6 +6,7 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 #include "engine/network/Endpoint.hpp"
 #include "engine/network/IoContext.hpp"
@@ -15,6 +16,16 @@ namespace engine::net
 {
 
     class UdpSocketImpl; // hidden implementation using Asio
+
+    struct PendingPacket
+    {
+        PacketHeader header;
+        std::vector<uint8_t> payload;
+        Endpoint target;
+        std::chrono::steady_clock::time_point lastSent;
+        uint32_t retryCount;
+    };
+
 
     class UdpSocket
     {
@@ -27,12 +38,18 @@ namespace engine::net
         UdpSocket(const UdpSocket &) = delete;
         UdpSocket &operator=(const UdpSocket &) = delete;
 
-        // Send raw bytes to a remote endpoint
-        void sendRaw(const void *data, std::size_t size, const Endpoint &endpoint);
-
         // Send header + payload convenience
         void send(const PacketHeader &header, const std::vector<std::uint8_t> &payload,
                   const Endpoint &endpoint);
+
+
+        bool PollPacket(PacketHeader& outHeader, std::vector<uint8_t>& outPayload, Endpoint& outSender);
+        void acknowledge(uint32_t seq);
+        void update_reliable();
+
+        void send_reliable(const PacketHeader &header,
+            const std::vector<uint8_t> &payload,
+            const Endpoint &endpoint);
 
         // Non-blocking receive; returns header+payload when data is available.
         // Fills 'sender' with the packet source.

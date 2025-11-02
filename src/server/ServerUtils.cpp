@@ -103,57 +103,85 @@ void apply_damage_with_cooldown(
     collisions[entityIndex]->collided = true;
 }
 
-void try_add_entity(uint32_t entityId, std::vector<EntityState> &out,
+void try_add_entity(uint32_t entityId,
+                    std::vector<EntityState> &out,
                     SnapshotBuilderContext &ctx,
-                    std::unordered_set<uint32_t> &inserted, std::size_t limit) {
-  if (out.size() >= limit)
-    return;
-  if (inserted.find(entityId) != inserted.end())
-    return;
+                    std::unordered_set<uint32_t> &inserted,
+                    std::size_t limit)
+{
+    if (out.size() >= limit)
+        return;
+    if (inserted.find(entityId) != inserted.end())
+        return;
 
-  size_t idx = static_cast<size_t>(entityId);
-  if (idx >= ctx.positions.size() || !ctx.positions[idx])
-    return;
+    size_t idx = static_cast<size_t>(entityId);
+    if (idx >= ctx.positions.size() || !ctx.positions[idx])
+        return;
 
-  EntityState es{};
-  es.entityId = entityId;
-  es.x = ctx.positions[idx]->x;
-  es.y = ctx.positions[idx]->y;
+    EntityState es{};
+    es.entityId = entityId;
+    es.x = ctx.positions[idx]->x;
+    es.y = ctx.positions[idx]->y;
 
-  if (idx < ctx.velocities.size() && ctx.velocities[idx]) {
-    es.vx = ctx.velocities[idx]->vx;
-    es.vy = ctx.velocities[idx]->vy;
-  } else {
-    es.vx = 0.f;
-    es.vy = 0.f;
-  }
+    if (idx < ctx.velocities.size() && ctx.velocities[idx]) {
+        es.vx = ctx.velocities[idx]->vx;
+        es.vy = ctx.velocities[idx]->vy;
+    } else {
+        es.vx = 0.f;
+        es.vy = 0.f;
+    }
 
-  if (idx < ctx.kinds.size() && ctx.kinds[idx])
-    es.type = static_cast<uint8_t>(ctx.kinds[idx].value());
-  else
-    es.type = static_cast<uint8_t>(component::entity_kind::unknown);
+    if (idx < ctx.kinds.size() && ctx.kinds[idx])
+        es.type = static_cast<uint8_t>(ctx.kinds[idx].value());
+    else
+        es.type = static_cast<uint8_t>(component::entity_kind::unknown);
 
-  if (idx < ctx.healths.size() && ctx.healths[idx])
-    es.hp = ctx.healths[idx]->hp;
-  else
-    es.hp = 100;
+    if (idx < ctx.healths.size() && ctx.healths[idx])
+        es.hp = ctx.healths[idx]->hp;
+    else
+        es.hp = 100;
 
-  es.collided = (idx < ctx.collisions.size() && ctx.collisions[idx] &&
-                 ctx.collisions[idx]->collided)
-                    ? 1
-                    : 0;
+    es.collided = (idx < ctx.collisions.size() && ctx.collisions[idx] &&
+                   ctx.collisions[idx]->collided)
+                      ? 1
+                      : 0;
 
-  if (idx < ctx.hitboxes.size() && ctx.hitboxes[idx]) {
-    es.hb_w = ctx.hitboxes[idx]->width;
-    es.hb_h = ctx.hitboxes[idx]->height;
-    es.hb_ox = ctx.hitboxes[idx]->offset_x;
-    es.hb_oy = ctx.hitboxes[idx]->offset_y;
-  } else {
-    es.hb_w = 0.f; es.hb_h = 0.f; es.hb_ox = 0.f; es.hb_oy = 0.f;
-  }
-
-  out.push_back(es);
-  inserted.insert(entityId);
+    if (idx < ctx.hitboxes.size() && ctx.hitboxes[idx]) {
+        es.hb_w = ctx.hitboxes[idx]->width;
+        es.hb_h = ctx.hitboxes[idx]->height;
+        es.hb_ox = ctx.hitboxes[idx]->offset_x;
+        es.hb_oy = ctx.hitboxes[idx]->offset_y;
+    } else {
+        es.hb_w = 0.f;
+        es.hb_h = 0.f;
+        es.hb_ox = 0.f;
+        es.hb_oy = 0.f;
+    }
+    if (es.type == static_cast<uint8_t>(component::entity_kind::enemy)) {
+        if (idx < ctx.ai.size() && ctx.ai[idx]) {
+            const std::string &behavior = ctx.ai[idx]->behavior;
+            if (behavior == "crawler" || behavior == "zigzag")
+                es.enemyType = 0;
+            else if (behavior == "straight_shooter" || behavior == "shooter")
+                es.enemyType = 1;
+            else if (behavior == "charger")
+                es.enemyType = 2;
+            else if (behavior == "spinner")
+                es.enemyType = 3;
+            else if (behavior == "boss")
+                es.enemyType = 4;
+            else if (behavior == "boss_laser")
+                es.enemyType = 5;
+            else
+                es.enemyType = 255;
+        } else {
+            es.enemyType = 255;
+        }
+    } else {
+        es.enemyType = 255;
+    }
+    out.push_back(es);
+    inserted.insert(entityId);
 }
 
 }
