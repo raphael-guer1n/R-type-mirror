@@ -59,6 +59,7 @@ struct EntityState
     float x, y;
     float vx, vy;
     uint8_t type;
+    uint8_t enemyType;
     uint8_t hp;
     bool collided;
 
