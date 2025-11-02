@@ -55,11 +55,13 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::doubleVec2(0, 0),
         engine::R_Graphic::intVec2(winW, winH)
     );
+
     _startButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(), "./Assets/Menu/start_btn.png",
         engine::R_Graphic::doubleVec2(_centerX, startY),
         engine::R_Graphic::intVec2(_buttonWidth, _buttonHeight)
     );
+
     _settingsButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(), "./Assets/Menu/settings_btn.png",
         engine::R_Graphic::doubleVec2(_centerX, settY),
@@ -84,6 +86,7 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         engine::R_Graphic::doubleVec2(_centerX, quitY),
         engine::R_Graphic::intVec2(_buttonWidth, _buttonHeight)
     );
+
     _accessibilityButton = std::make_shared<engine::R_Graphic::Texture>(
         _app.getWindow(), "./Assets/Menu/accessibility_btn.png",
         engine::R_Graphic::doubleVec2(_centerX, accY),
@@ -152,7 +155,6 @@ R_Type::Menu::Menu(engine::R_Graphic::App &app)
         );
         _titleLetters.push_back(tex);
     }
-
     if (_menuMusic.load("./Assets/Music/Menu.wav")) {
         _menuMusic.setMuted(!_soundEnabled);
         if (_soundEnabled) _menuMusic.play(true);
@@ -189,17 +191,14 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
         }
         if (ev.type != engine::R_Events::Type::MouseButtonDown)
             continue;
-
         int x = ev.mouse.x;
         int y = ev.mouse.y;
-
         if (_currentPage == Page::Main) {
             const int startY = _winH / 2 - 150;
             const int settY  = _winH / 2;
             const int helpY  = _winH / 2 + 150;
             const int quitY  = _winH / 2 + 300;
             const int accY   = _winH / 2 + 450;
-
             if (hit(x, y, _centerX, startY, _buttonWidth, _buttonHeight)) {
                 _currentPage = Page::Lobby;
                 rtype.requestLobbyList();
@@ -219,19 +218,10 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
                 std::exit(0);
             }
             if (hit(x, y, _centerX, accY, _buttonWidth, _buttonHeight)) {
-                if (AccessibilityConfig::enabled) {
-                    AccessibilityConfig::enabled = false;
-                    engine::audio::AudioManager::instance().setMusicVolume(1.0f);
-                    engine::audio::AudioManager::instance().setSFXVolume(1.0f);
-                    std::cout << "[Accessibility] Disabled - volume reset to 1.0\n";
-                } else {
-                    AccessibilityConfig::load_from_json("configs/accessibility_config.json");
-                    AccessibilityConfig::enabled = true;
-                    float vol = AccessibilityConfig::volume_general;
-                    engine::audio::AudioManager::instance().setMusicVolume(vol);
-                    engine::audio::AudioManager::instance().setSFXVolume(vol);
-                    std::cout << "[Accessibility] Enabled - volume set to " << vol << "\n";
-                }
+                AccessibilityConfig::load_from_json("configs/accessibility_config.json");
+                AccessibilityConfig::enabled = true;
+                engine::audio::AudioManager::instance().setMusicVolume(AccessibilityConfig::volume_general);
+                engine::audio::AudioManager::instance().setSFXVolume(AccessibilityConfig::volume_general);
                 return false;
             }
         }
@@ -272,15 +262,55 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
                 }
                 return false;
             }
-        }
-        else if (_currentPage == Page::Help)
-        {
+        } else if (_currentPage == Page::Help) {
             if (ev.type == engine::R_Events::Type::MouseButtonDown)
+            {
                 _currentPage = Page::Main;
             }
         } else if (_currentPage == Page::Lobby) {
             if (x >= 0 && x <= 150 && y >= 10 && y <= 160) {
                 _currentPage = Page::Main;
+            }
+            if (x >= 620 && x <= 1170 && y >= 10 && y <= 160) {
+                _typing = true;
+            } else {
+                _typing = false;
+            }
+            if (x >= 1200 && x <= 1350 && y >= 10 && y <= 160) {
+                if (!_lobbyName.empty()) {
+                    rtype.createLobby(_lobbyName);
+                    _menuMusic.stop();
+                    if (_gameMusic.load("./Assets/Music/Game.wav")) {
+                        _gameMusic.setMuted(!_soundEnabled);
+                        if (_soundEnabled) _gameMusic.play(true);
+                    } else {
+                        std::cerr << "[AUDIO] Failed to load Game.wav\n";
+                    }
+                    return true;
+                }
+            }
+            if (x >= 1770 && x <= 1920 && y >= 10 && y <= 160) {
+                rtype.requestLobbyList();
+            }
+            auto lobbies = rtype.getLobbies();
+            if (lobbies.empty())
+                break;
+            float lobX = 620;
+            float lobY = 240;
+            for (auto lobby : lobbies) {
+                if (x >= lobX && x <= x + 150 &&
+                    y >= lobY && y <= lobY + 150) {
+                    rtype.joinLobby(lobby.id);
+                    _menuMusic.stop();
+                    if (_gameMusic.load("./Assets/Music/Game.wav")) {
+                        _gameMusic.setMuted(!_soundEnabled);
+                        if (_soundEnabled) _gameMusic.play(true);
+                    } else {
+                        std::cerr << "[AUDIO] Failed to load Game.wav\n";
+                    }
+                    return true;
+                }
+                lobY += 220;
             }
         }
     }
@@ -325,8 +355,10 @@ void R_Type::Menu::drawSettingsMenu()
 void R_Type::Menu::drawHelpMenu()
 {
     _settingsBackground->draw(_app.getWindow(), nullptr);
+
     SDL_Renderer* ren = _app.getWindow().getRenderer();
     SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+
     SDL_SetRenderDrawColor(ren, 0, 0, 0, 200);
     SDL_Rect overlay = {0, 0, 1920, 1080};
     SDL_RenderFillRect(ren, &overlay);
@@ -337,13 +369,14 @@ void R_Type::Menu::drawHelpMenu()
     if (!fontTitle || !fontBody) {
         if (fontTitle) TTF_CloseFont(fontTitle);
         if (fontBody)  TTF_CloseFont(fontBody);
+        _backButton->draw(_app.getWindow(), nullptr);
         return;
     }
 
     SDL_Color white  = {255, 255, 255, 255};
     SDL_Color yellow = {255, 220, 80, 255};
 
-    SDL_Surface* titleSurf = TTF_RenderUTF8_Blended(fontTitle, "=== Player's Guide ===", yellow);
+    SDL_Surface* titleSurf = TTF_RenderUTF8_Blended(fontTitle, "=== PLayer's Rules ===", yellow);
     if (titleSurf) {
         SDL_Texture* titleTex = SDL_CreateTextureFromSurface(ren, titleSurf);
         SDL_Rect dst = {500, 100, titleSurf->w, titleSurf->h};
@@ -354,21 +387,28 @@ void R_Type::Menu::drawHelpMenu()
 
     const char* helpText =
         "MAIN CONTROLS:\n"
-        "  → Movement: Arrow keys\n"
+        "  → Movement: Arrow keys (or your custom keys if remapped)\n"
         "  → Normal shot: Space bar\n"
         "  → Special shot: Right Shift (hold to charge)\n"
         "  → Quit game: ESC key\n"
         "\n"
-        "ACCESSIBILITY:\n"
-        "  • High contrast mode for visibility\n"
-        "  • Adjustable game speed\n"
-        "  • Automatic global volume adaptation\n"
-        "  • Remappable controls via 'configs/accessibility_config.json'\n"
+        "ACCESSIBILITY FEATURES:\n"
+        "  • High contrast mode for better visibility of sprites and backgrounds.\n"
+        "  • Color-blind mode (Daltonian filter) to help distinguish important colors.\n"
+        "  • Adjustable game speed for a slower or more comfortable gameplay pace.\n"
+        "  • Global sound volume automatically adjusted according to your settings.\n"
+        "  • Remappable controls — you can redefine every key in 'configs/accessibility_config.json'.\n"
+        "  • All options are saved and reloaded at startup for consistency.\n"
         "\n"
         "TIPS:\n"
-        "  • Enable accessibility in the main menu.\n"
-        "  • Exit anytime with 'ESC'.\n"
-        "  • The HUD can resize automatically.\n"
+        "  • Activate accessibility mode from the main menu to enable these features.\n"
+        "  • You can quit the game anytime using 'ESC'.\n"
+        "\n"
+        "CLIENT REGISTRATION:\n"
+        "  • When launching the client, a 'R-TYPE' registration panel will appear.\n"
+        "  • You must register or enter your player name there before joining the game.\n"
+        "  • This step ensures your client is properly connected to the multiplayer server.\n"
+        "\n"
         "Click anywhere to return to the main menu.";
     SDL_Surface* bodySurf = TTF_RenderUTF8_Blended_Wrapped(fontBody, helpText, white, 1600);
     if (bodySurf) {
@@ -381,4 +421,67 @@ void R_Type::Menu::drawHelpMenu()
 
     TTF_CloseFont(fontTitle);
     TTF_CloseFont(fontBody);
+}
+
+
+void R_Type::Menu::drawLobbyMenu(Rtype& rtype)
+{
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Color yellow = {240, 225, 60, 255};
+
+    _background->draw(_app.getWindow(), nullptr);
+    _refresh->draw(_app.getWindow(), nullptr);
+    _backButton->setPosition(0, 10);
+    _backButton->draw(_app.getWindow(), nullptr);
+    _input->draw(_app.getWindow(), nullptr);
+    _acceptButton->draw(_app.getWindow(), nullptr);
+    if (!_lobbyName.empty()) {
+        if (!_typing)
+            drawText(_app.getWindow().getRenderer(), _lobbyName, 650, 44, white);
+        else
+            drawText(_app.getWindow().getRenderer(), _lobbyName, 650, 44, yellow);
+    }
+    drawLobby(rtype);
+}
+
+void R_Type::Menu::drawLobby(Rtype& rtype)
+{
+    auto lobbies = rtype.getLobbies();
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Renderer* renderer = rtype.getApp().getWindow().getRenderer();
+    float x = 620;
+    float y = 240.0;
+    if (lobbies.empty())
+        return;
+    for (auto lobby : lobbies) {
+        std::stringstream ss;
+        ss << lobby.name << " " << (int)lobby.playerCount << "/" << (int)lobby.maxPlayers;
+        _input->drawAt(_app.getWindow(), x, y - 30, nullptr);
+        drawText(renderer, ss.str(), x + 20, y, white);
+        ss.clear();
+        y += 220;
+    }
+}
+
+void R_Type::Menu::drawText(SDL_Renderer *renderer, const std::string &text, int x, int y, SDL_Color color)
+{
+    if (!_font) return;
+
+    SDL_Surface* surface = TTF_RenderText_Solid(_font, text.c_str(), color);
+    if (!surface) {
+        std::cerr << "RenderText failed: " << TTF_GetError() << std::endl;
+        return;
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!texture) {
+        SDL_FreeSurface(surface);
+        return;
+    }
+
+    SDL_Rect destRect = { x, y, surface->w, surface->h };
+    SDL_RenderCopy(renderer, texture, nullptr, &destRect);
+
+    SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
 }
