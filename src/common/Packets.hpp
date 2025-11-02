@@ -67,7 +67,8 @@ struct EntityState
     uint8_t type;
     uint8_t enemyType;
     uint8_t hp;
-    uint32_t score;
+    uint32_t score;   
+    uint32_t health;
     bool collided;
 
     float hb_w;
@@ -81,7 +82,6 @@ struct Snapshot
 {
     uint32_t tick;
     uint16_t entityCount;
-    // followed by `EntityState[entityCount]`
 };
 /**    * @brief Event packet structure.
     */

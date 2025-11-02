@@ -59,7 +59,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
 
     _registry.add_component(e, component::position{barX, barY});
     _registry.add_component(e, component::beam_charge{0.0f, false});
-    _registry.add_component(e, component::score{15200, 99999});
+    _registry.add_component(e, component::score{15200});
     _registry.add_component(e, component::hud_tag{});
 
     auto bar = std::make_shared<engine::R_Graphic::Texture>(
@@ -85,7 +85,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     _barHeight = 20;
 
     int scoreValue = 200;
-    std::string scoreText = "1P " + std::to_string(_score);
+    std::string scoreText = "1P " + std::to_string(scoreValue);
     float startY = 55.0f;
     float totalWidth = scoreText.size() * 33.0f;
     float startX = winW - totalWidth - 110.0f;
@@ -213,9 +213,4 @@ void R_Type::Hud::drawText(std::string &text, float hudScale, float x, float y,
         engine::R_Graphic::textureRect rectDigit(0, 0, 128, 128);
         _registry.emplace_component<component::drawable>(digitEntity, tex, rectDigit, layers::HudText);
     }
-}
-
-void R_Type::Hud::setScore(int score)
-{
-    _score = score;
 }

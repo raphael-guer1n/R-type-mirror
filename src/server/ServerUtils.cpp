@@ -1,5 +1,4 @@
 #include "server/ServerUtils.hpp"
-#include "engine/ecs/Components.hpp"
 #include "common/Packets.hpp"
 #include <algorithm>
 
@@ -124,11 +123,9 @@ void try_add_entity(uint32_t entityId,
     es.x = ctx.positions[idx]->x;
     es.y = ctx.positions[idx]->y;
 
-    if (idx < ctx.scores.size() && ctx.scores[idx])
-    es.score = ctx.scores[idx]->current;
-    else
-    es.score = 0;
-
+    es.health = ctx.healths[idx] ? ctx.healths[idx]->hp : 0;
+    es.score = ctx.scores[idx] ? ctx.scores[idx]->value : 0; 
+  
     if (idx < ctx.velocities.size() && ctx.velocities[idx]) {
         es.vx = ctx.velocities[idx]->vx;
         es.vy = ctx.velocities[idx]->vy;

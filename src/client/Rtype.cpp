@@ -300,6 +300,7 @@ void R_Type::Rtype::receiveSnapshot()
             Snapshot snap{};
             std::memcpy(&snap, spayload.data(), sizeof(Snapshot));
 
+            
             auto &positions = _registry.get_components<component::position>();
             auto &velocities = _registry.get_components<component::velocity>();
             auto &drawables = _registry.get_components<component::drawable>();
@@ -342,11 +343,7 @@ void R_Type::Rtype::receiveSnapshot()
                 for (size_t i = 0; i < n; ++i)
                 {
                     const EntityState &es = entities[i];
-
-                    if (es.entityId == _player && _hud)
-                    {
-                        _hud->setScore(es.score);
-                    }
+                    std::cout<<"print score"<<es.score<<std::endl;
                     size_t idLocal;
                     auto it = _entityMap.find(es.entityId);
                     if (it == _entityMap.end())

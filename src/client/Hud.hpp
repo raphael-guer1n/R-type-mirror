@@ -38,13 +38,10 @@ namespace R_Type
         void startLevelAnimation(int level, engine::registry &registry);
         void drawText(std::string &text, float hudScale, float x, float y,
             R_Type::Rtype &rtype, bool level = false);
-        void setScore(int score);
 
     private:
         std::optional<size_t> _chargeFillLocalId;
         engine::registry _registry;
-        uint8_t _life = 0;
-        int _score = 0;
         float _chargeLevel = 0.f;
         int _barOriginX = 0;
         int _barOriginY = 0;
