@@ -76,7 +76,6 @@ void LevelManager::spawnEntities(const json &levelJson)
                 sb.spells = cfg.spells;
                 _registry.add_component<component::spellbook>(e, std::move(sb));
             }
-
             std::cout << "[LEVEL " << _currentLevel << "] Spawned " << cfgPath << " at x=" << x << ", y=" << y << "\n";
         }
         catch (const std::exception &ex)
