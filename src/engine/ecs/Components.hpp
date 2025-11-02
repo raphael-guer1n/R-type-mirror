@@ -82,6 +82,12 @@ namespace component
         health() = default;
         explicit health(std::uint8_t h) : hp(h) {}
     };
+    struct score
+    {
+        std::uint32_t value{0};
+        score() = default;
+        explicit score(std::uint32_t v) : value(v) {}
+    };
     /**
      * @brief Simple drawable component for rendering entities.
      */

@@ -67,6 +67,7 @@ struct EntityState
     uint8_t type;
     uint8_t enemyType;
     uint8_t hp;
+    uint32_t score;
     bool collided;
 
     float hb_w;

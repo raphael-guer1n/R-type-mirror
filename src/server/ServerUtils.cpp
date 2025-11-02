@@ -1,4 +1,5 @@
 #include "server/ServerUtils.hpp"
+#include "common/Components.hpp"
 #include "common/Packets.hpp"
 #include <algorithm>
 
@@ -179,6 +180,12 @@ void try_add_entity(uint32_t entityId,
         }
     } else {
         es.enemyType = 255;
+    }
+    if (ctx.registry.has<component::score>(entityId)) {
+    const auto &sc = ctx.registry.get<component::score>(entityId);
+    es.score = sc.value;
+    } else {
+        es.score = 0;
     }
     out.push_back(es);
     inserted.insert(entityId);

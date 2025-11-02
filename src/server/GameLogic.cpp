@@ -179,6 +179,7 @@ void GameLogic::register_components()
   _registry.register_component<component::controllable>();
   _registry.register_component<component::collision_state>();
   _registry.register_component<component::health>();
+  _registry.register_component<component::score>();
   _registry.register_component<component::damage>();
   _registry.register_component<component::spawn_request>();
   _registry.register_component<component::entity_kind>();
