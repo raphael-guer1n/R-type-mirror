@@ -101,10 +101,11 @@ int main(int argc, char **argv)
         std::cout << "Server: waiting for client handshake (CONNECT_REQ)" << std::endl;
 
         while (!connected) {
+            io.poll();
             engine::net::Endpoint ep;
-            if (auto pkt = sock.receive(ep)) {
-                auto [hdr, payload] = *pkt;
-                if (hdr.type == CONNECT_REQ && payload.size() >= sizeof(ConnectReq)) {
+            PacketHeader inHdr; std::vector<uint8_t> inPayload;
+            while (sock.PollPacket(inHdr, inPayload, ep)) {
+                if (inHdr.type == CONNECT_REQ && inPayload.size() >= sizeof(ConnectReq)) {
                     connected = true;
                     lastSender = ep;
                     lastClientActivity = clock::now();
@@ -114,6 +115,7 @@ int main(int argc, char **argv)
                     PacketHeader ah{CONNECT_ACK, static_cast<uint16_t>(buf.size()), 0};
                     try { sock.send(ah, buf, lastSender); } catch (...) {}
                     std::cout << "Server: client connected, sent CONNECT_ACK" << std::endl;
+                    break;
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -134,15 +136,15 @@ int main(int argc, char **argv)
             if (dt > 0.05f)
                 dt = 0.05f;
 
+            io.poll();
             engine::net::Endpoint senderEndpoint;
-            if (auto pkt = sock.receive(senderEndpoint)) {
-                auto [hdr, payload] = *pkt;
-
+            PacketHeader inHdr; std::vector<uint8_t> inPayload;
+            while (sock.PollPacket(inHdr, inPayload, senderEndpoint)) {
                 constexpr bool VERBOSE = false;
                 if (VERBOSE)
-                    std::cout << "Server: recv packet type=" << int(hdr.type) << " size=" << hdr.size << std::endl;
+                    std::cout << "Server: recv packet type=" << int(inHdr.type) << " size=" << inHdr.size << std::endl;
                 lastSender = senderEndpoint;
-                if (hdr.type == CONNECT_REQ && payload.size() >= sizeof(ConnectReq)) {
+                if (inHdr.type == CONNECT_REQ && inPayload.size() >= sizeof(ConnectReq)) {
                     connected = true;
                     lastSender = senderEndpoint;
                     lastClientActivity = clock::now();
@@ -152,13 +154,13 @@ int main(int argc, char **argv)
                     PacketHeader ah{CONNECT_ACK, static_cast<uint16_t>(buf.size()), 0};
                     try { sock.send(ah, buf, lastSender); } catch (...) {}
                 }
-                else if (hdr.type == INPUT_PKT && payload.size() >= sizeof(InputPacket)) {
+                else if (inHdr.type == INPUT_PKT && inPayload.size() >= sizeof(InputPacket)) {
                     lastClientActivity = clock::now();
                     InputPacket inp{};
-                    std::memcpy(&inp, payload.data(), sizeof(InputPacket));
+                    std::memcpy(&inp, inPayload.data(), sizeof(InputPacket));
                     const size_t expected = sizeof(InputPacket) + static_cast<size_t>(inp.keyCount) * sizeof(int32_t);
-                    if (payload.size() >= expected) {
-                        const int32_t *keys = reinterpret_cast<const int32_t *>(payload.data() + sizeof(InputPacket));
+                    if (inPayload.size() >= expected) {
+                        const int32_t *keys = reinterpret_cast<const int32_t *>(inPayload.data() + sizeof(InputPacket));
                         auto &controls = reg.get_components<component::controllable>();
                         if (controls[player] && controls[player].has_value()) {
                             auto &c = controls[player].value();

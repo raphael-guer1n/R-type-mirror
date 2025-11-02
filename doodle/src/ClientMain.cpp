@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
         float cameraYPrev = 0.0f;
 
         while (running) {
+            io.poll();
             auto events = window.pollEvents(running);
             for (auto &ev : events) {
                 if (ev.type == engine::R_Events::Type::Quit) {
@@ -124,11 +125,9 @@ int main(int argc, char **argv) {
             }
 
             engine::net::Endpoint senderEndpoint;
-            while (true) {
-                auto pkt_opt = sock.receive(senderEndpoint);
-                if (!pkt_opt)
-                    break;
-                auto [hdr, payload] = *pkt_opt;
+            PacketHeader hdr;
+            std::vector<uint8_t> payload;
+            while (sock.PollPacket(hdr, payload, senderEndpoint)) {
                 if (VERBOSE)
                     std::cout << "Client: received packet type=" << int(hdr.type) << " size=" << hdr.size << std::endl;
                 if (hdr.type == CONNECT_ACK && payload.size() >= sizeof(ConnectAck)) {
