@@ -479,6 +479,7 @@ void server::broadcast_snapshot()
   auto &collisions = _registry.get_components<component::collision_state>();
   auto &healths = _registry.get_components<component::health>();
   auto &velocities = _registry.get_components<component::velocity>();
+  auto &ai = _registry.get_components<component::ai_controller>();
 
   constexpr std::size_t SNAPSHOT_LIMIT = 10000;
   std::vector<EntityState> states;
@@ -486,7 +487,7 @@ void server::broadcast_snapshot()
   std::unordered_set<uint32_t> inserted;
 
   auto &hitboxes = _registry.get_components<component::hitbox>();
-  SnapshotBuilderContext ctx{positions, velocities, kinds, collisions, healths, hitboxes};
+  SnapshotBuilderContext ctx{positions, velocities, kinds, collisions, healths, hitboxes, ai};
   for (auto &pInfo : _players)
   {
     try_add_entity(static_cast<uint32_t>(pInfo.entityId), states, ctx, inserted,
