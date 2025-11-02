@@ -204,9 +204,8 @@ void R_Type::Rtype::update(float deltaTime,
     }
 
     static uint32_t spaceHoldTicks = 0;
-    auto shootKeyStr = AccessibilityConfig::key_remap["shoot"];
-    auto shootKey = stringToKey(shootKeyStr);
-    bool spaceHeld = _pressedKeys.count(shootKey) > 0;
+    auto shootKeyEnum = static_cast<engine::R_Events::Key>(AccessibilityConfig::keyBindings["shoot"]);
+    bool spaceHeld = _pressedKeys.count(shootKeyEnum) > 0;
     int numKeys = 0;
     const Uint8 *state = SDL_GetKeyboardState(&numKeys);
     if (state && SDL_SCANCODE_SPACE < numKeys)
@@ -528,7 +527,12 @@ void R_Type::Rtype::draw()
     auto &drawables = _registry.get_components<component::drawable>();
     auto &kinds = _registry.get_components<component::entity_kind>();
     auto &velocities = _registry.get_components<component::velocity>();
-
+    if (AccessibilityConfig::enabled && AccessibilityConfig::contrast_mode) {
+        SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ren, 255, 255, 255, 50);
+        SDL_Rect screen = {0, 0, 1920, 1080};
+        SDL_RenderFillRect(ren, &screen);
+    }
     draw_system(_registry, positions, drawables, _app.getWindow());
 
     if (_showHitboxes) {
