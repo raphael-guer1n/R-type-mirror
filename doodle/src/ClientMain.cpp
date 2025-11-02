@@ -9,6 +9,7 @@
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
 #include "engine/renderer/Texture.hpp"
+#include "engine/audio/AudioManager.hpp"
 
 using namespace engine;
 using namespace engine::R_Graphic;
@@ -22,8 +23,10 @@ int main(int argc, char **argv) {
         if (argc > 2)
             serverPort = static_cast<unsigned short>(std::atoi(argv[2]));
 
-        Window window("Doodle - Client", 480, 800);
+    Window window("Doodle - Client", 480, 800);
         Renderer renderer(window);
+
+    engine::audio::AudioManager::instance().loadConfig("./assets/audio/audio_config.json");
 
     std::shared_ptr<engine::R_Graphic::Texture> texPlayer, texTileRegular, texTileMoving, texTileGhost, texPlayerProj, texDecor, texMonster, texTrampoline;
     texPlayer = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle.png");
@@ -63,7 +66,13 @@ int main(int argc, char **argv) {
         uint32_t lastParseLogMs = SDL_GetTicks();
         float cameraYPrev = 0.0f;
 
-        while (running) {
+        bool monstersLoopPlaying = false;
+        float prevVy = 0.0f;
+        float prevY = 0.0f;
+        bool havePrevKinematics = false;
+        uint32_t lastFallSoundMs = 0;
+
+    while (running) {
             io.poll();
             auto events = window.pollEvents(running);
             for (auto &ev : events) {
@@ -72,6 +81,9 @@ int main(int argc, char **argv) {
                 }
                 if (ev.type == engine::R_Events::Type::KeyDown) {
                     pressed.insert(static_cast<int32_t>(ev.key.code));
+                    if (ev.key.code == engine::R_Events::Key::Space) {
+                        engine::audio::AudioManager::instance().playSound("shoot");
+                    }
                 }
                 if (ev.type == engine::R_Events::Type::KeyUp) {
                     pressed.erase(static_cast<int32_t>(ev.key.code));
@@ -250,12 +262,54 @@ int main(int argc, char **argv) {
             auto &hitboxes = reg.get_components<component::hitbox>();
             auto &platforms = reg.get_components<component::platform>();
             auto &kinds = reg.get_components<component::entity_kind>();
+            auto &velocities = reg.get_components<component::velocity>();
             ssize_t playerIdx = -1;
             for (size_t i = 0; i < kinds.size(); ++i) {
                 if (kinds[i] && kinds[i].has_value() && kinds[i].value() == component::entity_kind::player) {
                     playerIdx = static_cast<ssize_t>(i);
                     break;
                 }
+            }
+
+            size_t enemyCount = 0;
+            for (size_t i = 0; i < kinds.size(); ++i) {
+                if (kinds[i] && kinds[i].has_value() && kinds[i].value() == component::entity_kind::enemy)
+                    ++enemyCount;
+            }
+            if (enemyCount > 0 && !monstersLoopPlaying) {
+                engine::audio::AudioManager::instance().playMusic("monsters", true);
+                monstersLoopPlaying = true;
+            } else if (enemyCount == 0 && monstersLoopPlaying) {
+                engine::audio::AudioManager::instance().stopMusic();
+                monstersLoopPlaying = false;
+            }
+
+            if (playerIdx >= 0 && static_cast<size_t>(playerIdx) < velocities.size() && velocities[playerIdx] && positions[playerIdx]) {
+                float vy = velocities[playerIdx].value().vy;
+                float y = positions[playerIdx].value().y;
+
+                if (havePrevKinematics) {
+                    if (prevVy > -100.0f && vy <= -800.0f) {
+                        if (vy <= -1100.0f) {
+                            engine::audio::AudioManager::instance().playSound("trampoline");
+                        } else {
+                            engine::audio::AudioManager::instance().playSound("jump");
+                        }
+                    }
+
+                    if (prevVy < 0.0f && std::abs(vy) < 1.0f && (y - prevY) > 60.0f) {
+                        engine::audio::AudioManager::instance().playSound("monster-crash");
+                    }
+
+                    uint32_t nowMs = SDL_GetTicks();
+                    if (vy > 600.0f && (y - prevY) > 40.0f && (nowMs - lastFallSoundMs) > 1500u) {
+                        engine::audio::AudioManager::instance().playSound("fall");
+                        lastFallSoundMs = nowMs;
+                    }
+                }
+                prevVy = vy;
+                prevY = y;
+                havePrevKinematics = true;
             }
 
             const int SCREEN_W = 480;
