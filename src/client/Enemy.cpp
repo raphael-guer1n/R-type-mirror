@@ -49,12 +49,12 @@ void R_Type::Enemy::setType(const std::string &type)
     if (type == "crawler") {
         path = "./Assets/sprites/r-typesheet23.gif";
         rect = engine::R_Graphic::textureRect(5, 6, 28, 32);
-        scale = 3.6f;
+        scale = 4.6f;
     }
     else if (type == "shooter") {
         path = "./Assets/sprites/r-typesheet5.gif";
         rect = engine::R_Graphic::textureRect(5, 6, 23, 24);
-        scale = 3.5f;
+        scale = 5.5f;
     }
     else if (type == "boss") {
         path = "./Assets/sprites/r-typesheet14.gif";
@@ -64,17 +64,17 @@ void R_Type::Enemy::setType(const std::string &type)
     else if (type == "spinner") {
         path = "./Assets/sprites/r-typesheet8.gif";
         rect = engine::R_Graphic::textureRect(5, 6, 28, 32);
-        scale = 3.5f;
+        scale = 4.5f;
     }
     else if (type == "charger") {
         path = "./Assets/sprites/r-typesheet31.gif";
         rect = engine::R_Graphic::textureRect(5, 6, 29, 40);
-        scale = 3.5f;
+        scale = 4.5f;
     }
     else if (type == "boss_laser") {
         path = "./Assets/sprites/r-typesheet9.gif";
         rect = engine::R_Graphic::textureRect(4, 5, 45, 52);
-        scale = 8.5f;
+        scale = 9.0f;
     }
     else {
         std::cerr << "[Enemy] Unknown type '" << type << "', using default sprite.\n";

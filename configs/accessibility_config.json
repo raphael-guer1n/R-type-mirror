@@ -1,12 +1,9 @@
 {
     "visual": {
         "contrast_mode": true,
-        "mode_daltonien": "none",
-        "flash_effect": false,
-        "taille_hud": 1.0
+        "mode_daltonien": "deuteranopia"
     },
     "audio": {
-        "subtitles": false,
         "indicateurs_visuals_audio": true,
         "volume_general": 0.7
     },
@@ -24,6 +21,6 @@
     },
     "cognitive": {
         "less_movement": false,
-        "speed_game": 0.8
+        "speed_game": 0.5
     }
 }

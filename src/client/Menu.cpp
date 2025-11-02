@@ -398,7 +398,6 @@ void R_Type::Menu::drawHelpMenu()
         "  • Adjustable game speed for a slower or more comfortable gameplay pace.\n"
         "  • Global sound volume automatically adjusted according to your settings.\n"
         "  • Remappable controls — you can redefine every key in 'configs/accessibility_config.json'.\n"
-        "  • All options are saved and reloaded at startup for consistency.\n"
         "\n"
         "TIPS:\n"
         "  • Activate accessibility mode from the main menu to enable these features.\n"

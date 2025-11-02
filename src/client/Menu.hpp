@@ -1,10 +1,45 @@
 /**
  * @file Menu.hpp
- * @brief Declaration of the Menu class used to manage the R-Type main menu and its submenus.
+ * @brief Declaration of the Menu class managing the main game menu in R-Type.
  *
- * The Menu class handles rendering, interaction, and navigation between the different
- * menu pages (Main, Settings, Help). It also manages button textures, menu music,
- * and accessibility options.
+ * The **Menu** class handles the graphical and interactive components
+ * of the R-Type main menu, including background, title letters, and
+ * interactive buttons such as *Start*, *Settings*, and *Quit*.
+ * It also manages background music playback and transitions between
+ * menu and in-game audio.
+ *
+ * @details
+ * The class:
+ * - Initializes and displays all visual elements of the main menu.
+ * - Processes user events such as mouse clicks to navigate options.
+ * - Controls background music:
+ *    - Plays `Menu.ogg` when the menu is active.
+ *    - Stops it and starts `Game.ogg` when the player launches the game.
+ * - Uses the R-Type rendering engine for texture and event handling.
+ *
+ * ### Example usage:
+ * @code
+ * engine::R_Graphic::App app("R-Type", 1920, 1080);
+ * R_Type::Menu menu(app);
+ *
+ * while (true) {
+ *     auto events = app.getWindow().pollEvents();
+ *     if (menu.update(events))
+ *         break; // Start button pressed
+ *     menu.draw();
+ * }
+ * @endcode
+ *
+ * @namespace R_Type
+ * Namespace grouping all components of the R-Type game.
+ *
+ * @class R_Type::Menu
+ * @brief Class managing the display, input, and music of the main menu.
+ *
+ * @see engine::R_Graphic::App
+ * @see engine::R_Graphic::Texture
+ * @see engine::R_Events::Event
+ * @see engine::audio::Music
  */
 
 #pragma once
@@ -17,31 +52,10 @@
 
 namespace R_Type {
 
-/**
- * @class Menu
- * @brief Represents the user interface menu system for the R-Type game.
- *
- * The Menu class is responsible for displaying and managing the game's main menu system.
- * It includes logic for handling user input events, rendering buttons, toggling fullscreen mode,
- * controlling music playback, and providing accessibility options.
- *
- * @note The Menu interacts directly with the rendering engine through @ref engine::R_Graphic::App
- * and uses @ref engine::audio::Music for managing background and gameplay music.
- */
+class Rtype;
 class Menu {
 public:
-    /**
-     * @brief Constructs a new Menu instance.
-     *
-     * Initializes menu resources and associates the menu with the rendering application.
-     *
-     * @param app Reference to the main rendering application.
-     */
     explicit Menu(engine::R_Graphic::App &app);
-
-    /**
-     * @brief Default destructor for the Menu class.
-     */
     ~Menu() = default;
 
     bool update(const std::vector<engine::R_Events::Event> &events, Rtype& rtype);
@@ -66,10 +80,8 @@ public:
         void drawText(SDL_Renderer* renderer,
             const std::string& text, int x, int y, SDL_Color color);
 
-    /**
-     * @brief Music used during gameplay, preloaded from the menu.
-     */
-    engine::audio::Music _gameMusic;
+        engine::R_Graphic::App &_app;
+        Page _currentPage = Page::Main;
 
         std::shared_ptr<engine::R_Graphic::Texture> _background;
         std::shared_ptr<engine::R_Graphic::Texture> _refresh;
@@ -82,64 +94,31 @@ public:
         std::shared_ptr<engine::R_Graphic::Texture> _quitButton;
         std::shared_ptr<engine::R_Graphic::Texture> _acceptButton;
 
-    /**
-     * @brief Reference to the rendering application used for drawing.
-     */
-    engine::R_Graphic::App &_app;
+        std::shared_ptr<engine::R_Graphic::Texture> _backButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _soundButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _muteButton;
+        std::shared_ptr<engine::R_Graphic::Texture> _windowButton;
 
-    /**
-     * @brief Current active page in the menu.
-     */
-    Page _currentPage = Page::Main;
+        engine::R_Graphic::doubleVec2 _backButtonPos;
 
         std::shared_ptr<engine::R_Graphic::Texture> _input;
         std::vector<engine::R_Graphic::Texture> _lobbiesBg;
 
         std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
 
-    /** @name Button Textures */
-    ///@{
-    std::shared_ptr<engine::R_Graphic::Texture> _startButton;          /**< Start game button. */
-    std::shared_ptr<engine::R_Graphic::Texture> _settingsButton;       /**< Open settings button. */
-    std::shared_ptr<engine::R_Graphic::Texture> _accessibilityButton;  /**< Toggle accessibility mode button. */
-    std::shared_ptr<engine::R_Graphic::Texture> _helpButton;           /**< Open help menu button. */
-    std::shared_ptr<engine::R_Graphic::Texture> _quitButton;           /**< Quit game button. */
+        bool _startPressed = false;
+        bool _quitPressed = false;
+        bool _accessibilityMode = false;
 
-    std::shared_ptr<engine::R_Graphic::Texture> _backButton;           /**< Return/back navigation button. */
-    std::shared_ptr<engine::R_Graphic::Texture> _soundButton;          /**< Toggle sound button. */
-    std::shared_ptr<engine::R_Graphic::Texture> _muteButton;           /**< Mute/unmute button. */
-    std::shared_ptr<engine::R_Graphic::Texture> _windowButton;         /**< Toggle fullscreen/windowed mode button. */
-    ///@}
+        bool _soundEnabled = true;
+        bool _fullscreen = false;
+        int _buttonWidth = 0;
+        int _buttonHeight = 0;
+        int _centerX = 0;
+        int _winH = 0;
 
-    /**
-     * @brief Position of the back button on screen.
-     */
-    engine::R_Graphic::doubleVec2 _backButtonPos;
-
-    /**
-     * @brief Vector containing textures for each letter of the game title.
-     */
-    std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
-
-    /** @name Menu State Flags */
-    ///@{
-    bool _startPressed = false;        /**< True if the Start button was pressed. */
-    bool _quitPressed = false;         /**< True if the Quit button was pressed. */
-    bool _accessibilityMode = false;   /**< Accessibility mode flag. */
-    ///@}
-
-    /** @name Settings Flags */
-    ///@{
-    bool _soundEnabled = true;         /**< Indicates if sound is enabled. */
-    bool _fullscreen = false;          /**< Indicates if the game is in fullscreen mode. */
-    ///@}
-
-    /** @name UI Layout Parameters */
-    ///@{
-    int _buttonWidth = 0;              /**< Width of the buttons. */
-    int _buttonHeight = 0;             /**< Height of the buttons. */
-    int _centerX = 0;                  /**< X coordinate of the screen center. */
-    int _winH = 0;                     /**< Height of the window. */
-    ///@}
+        std::string _lobbyName = "Rtype";
+        TTF_Font *_font = nullptr;
+        bool _typing = false;
 };
 }
