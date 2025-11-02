@@ -410,24 +410,18 @@ void R_Type::Rtype::receiveSnapshot()
                         break;
                     case component::entity_kind::enemy:
                     {
-                        const uint32_t id = es.entityId;
-
-                        if (id % 9 == 0)
-                            _enemyData->setType("boss_laser");
-                        else if (id % 7 == 0)
-                            _enemyData->setType("boss");
-                        else if (id % 5 == 0)
-                            _enemyData->setType("spinner");
-                        else if (id % 4 == 0)
-                            _enemyData->setType("charger");
-                        else if (id % 3 == 0)
-                            _enemyData->setType("shooter");
-                        else
-                            _enemyData->setType("crawler");
-
+                        switch (es.enemyType)
+                            {
+                                case 0: _enemyData->setType("crawler"); break;
+                                case 1: _enemyData->setType("shooter"); break;
+                                case 2: _enemyData->setType("charger"); break;
+                                case 3: _enemyData->setType("spinner"); break;
+                                case 4: _enemyData->setType("boss"); break;
+                                case 5: _enemyData->setType("boss_laser"); break;
+                                default: _enemyData->setType("crawler"); break;
+                            }
                         tex = _enemyData->enemyTexture;
                         rect = _enemyData->enemyRect;
-
                         ensure_slot(hitboxes, idLocal, component::hitbox{152, 100});
                         ensure_slot(drawables, idLocal, component::drawable{tex, rect, layers::Enemies});
                         break;
