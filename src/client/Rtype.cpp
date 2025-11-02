@@ -23,7 +23,7 @@ R_Type::Rtype::Rtype()
     : _app("R-Type", 1920, 1080)
 {
     engine::audio::AudioManager::instance().loadConfig("./configs/audio_config.json");
- 
+
     _profilerOverlay = std::make_unique<Engine::Profiling::ProfilerOverlay>();
     if (_profilerOverlay->initialize(_app.getWindow().getRenderer(), "Assets/fonts/arial.ttf")) {
         Engine::Profiling::ProfilerDisplayConfig config;
@@ -75,6 +75,12 @@ R_Type::Rtype::Rtype()
             }
             if (hdr.type == LOBBY_JOINED && payload.size() >= sizeof(LobbyJoinedResponse)) {
                 handleLobbyJoined(payload);
+            }
+            if (hdr.type == LEVEL_START && payload.size() >= sizeof(LevelStartPayload)) {
+                handleLevelStart(payload);
+            }
+            if (hdr.type == LEVEL_END && payload.size() >= sizeof(LevelEndPayload)) {
+                handleLevelEnd(payload);
             }
         });
         _client->start();
@@ -253,9 +259,9 @@ void R_Type::Rtype::update(float deltaTime,
 
 void R_Type::Rtype::receiveSnapshot()
 {
-    _client->poll();
     if (_state == GameState::LOADING)
         return;
+    _client->poll();
     for (auto &[shdr, spayload]: _pendingSnapshots) {
         if (_state == GameState::LOADING && shdr.type == SNAPSHOT)
             continue;
@@ -270,27 +276,6 @@ void R_Type::Rtype::receiveSnapshot()
             audio.stopMusic();
 
             continue;
-        }
-        if (shdr.type == LEVEL_START && spayload.size() >= sizeof(LevelStartPayload))
-        {
-            LevelStartPayload p{};
-            memcpy(&p, spayload.data(), sizeof(LevelStartPayload));
-            _state = GameState::PLAYING;
-            _fadeAlpha = 255.0f;
-            std::cout << "[CLIENT] Leaving LOADING state" << std::endl;
-            std::cout << "[CLIENT] LEVEL_START : " << p.level << std::endl;
-
-            _hud->startLevelAnimation(p.level, _registry);
-        }
-        if (shdr.type == LEVEL_END && spayload.size() >= sizeof(LevelEndPayload))
-        {
-            LevelEndPayload p{};
-            memcpy(&p, spayload.data(), sizeof(LevelEndPayload));
-            _state = GameState::LOADING;
-            _fadeAlpha = 0.0f;
-            _background->changeTheme(p.level + 1);
-            std::cout << "[CLIENT] LEVEL_END : " << p.level << std::endl;
-            std::cout << "[CLIENT] Entering LOADING state" << std::endl;
         }
         if (shdr.type == SNAPSHOT && spayload.size() >= sizeof(Snapshot))
         {

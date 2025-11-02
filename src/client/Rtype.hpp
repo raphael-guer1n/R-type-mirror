@@ -85,9 +85,12 @@ namespace R_Type
          */
         void waiting_connection();
         
+        // Handle when receiving packets
         void handle_collision(engine::registry &reg, size_t i, size_t j);
         void handleListLobby(const std::vector<uint8_t> &payload);
         void handleLobbyJoined(const std::vector<uint8_t> &payload);
+        void handleLevelStart(const std::vector<uint8_t> &payload);
+        void handleLevelEnd(const std::vector<uint8_t> &payload);
 
     private:
         enum class GameState {
