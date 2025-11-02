@@ -184,7 +184,7 @@ namespace component
         // 0 = regular
         // 1 = moving
         // 2 = fragile (breaks)
-        // 3 = bounce (high jump)
+        // 3 = bounce (trampoline)
         std::uint8_t kind{0};
         platform() = default;
         explicit platform(std::uint8_t k) : kind(k) {}
