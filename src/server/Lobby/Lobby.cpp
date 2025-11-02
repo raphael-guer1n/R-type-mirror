@@ -33,8 +33,9 @@ void Lobby::stop()
 
 bool Lobby::has_player(const engine::net::Endpoint &ep) const
 {
-    std::lock_guard<std::mutex> lock(_playerMtx);
+    // std::lock_guard<std::mutex> lock(_playerMtx);
     return std::any_of(_players.begin(), _players.end(), [&](const auto &p) {
+        std::cout << p.address << " " << ep.address << " " << p.port << " " << ep.port << std::endl;
         return p.address == ep.address && p.port == ep.port;
     });
 }
@@ -59,21 +60,22 @@ void Lobby::run_thread()
 
 void Lobby::add_player(const engine::net::Endpoint &ep)
 {
-    std::lock_guard<std::mutex> lock(_playerMtx);
+    // std::lock_guard<std::mutex> lock(_playerMtx);
     if (_players.size() >= _maxPlayers)
         return;
     if (has_player(ep))
         return;
-
     _players.push_back(ep);
-    PacketHeader hdr{CONNECT_ACK, 0, 0};
-    _server.send(hdr, {}, ep);
+    if (_players.size() == _maxPlayers)
+        _ready = true;
+    // PacketHeader hdr{CONNECT_ACK, 0, 0};
+    // _server.send(hdr, {}, ep);
     std::cout << "[Lobby " << _id << "] Player joined (" << _players.size() << "/" << _maxPlayers << ")\n";
 }
 
 void Lobby::remove_player(const engine::net::Endpoint &ep)
 {
-    std::lock_guard<std::mutex> lock(_playerMtx);
+    // std::lock_guard<std::mutex> lock(_playerMtx);
     _players.erase(std::remove_if(_players.begin(), _players.end(),
         [&](const auto &p)
         { return p.address == ep.address && p.port == ep.port; }),
@@ -95,9 +97,11 @@ void Lobby::handle_packet(const engine::net::Endpoint &sender,
 
 void Lobby::update()
 {
-    std::lock_guard<std::mutex> lock(_playerMtx);
+    // std::lock_guard<std::mutex> lock(_playerMtx);
 
-    _game.update_game_logic();
-    _game.update_spawns_and_events();
-    _game.broadcast_snapshot();
+    if (_ready) {
+        _game.update_game_logic();
+        _game.update_spawns_and_events();
+        _game.broadcast_snapshot();
+    }
 }

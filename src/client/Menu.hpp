@@ -59,7 +59,7 @@ public:
     ~Menu() = default;
 
     bool update(const std::vector<engine::R_Events::Event> &events, Rtype& rtype);
-    void draw();
+    void draw(Rtype& rtype);
 
     private:
         enum class Page {
@@ -72,7 +72,8 @@ public:
 
         void drawMainMenu();
         void drawSettingsMenu();
-        void drawLobbyMenu();
+        void drawLobbyMenu(Rtype& rtype);
+        void drawLobby(Rtype& rtype);
         void drawText(SDL_Renderer* renderer,
             const std::string& text, int x, int y, SDL_Color color);
 
@@ -93,6 +94,7 @@ public:
         std::shared_ptr<engine::R_Graphic::Texture> _windowButton;
 
         std::shared_ptr<engine::R_Graphic::Texture> _input;
+        std::vector<engine::R_Graphic::Texture> _lobbiesBg;
 
         std::vector<std::shared_ptr<engine::R_Graphic::Texture>> _titleLetters;
 

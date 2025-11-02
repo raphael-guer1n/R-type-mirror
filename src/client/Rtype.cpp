@@ -79,6 +79,7 @@ void R_Type::Rtype::update(float deltaTime,
     if (_inMenu)
     {
         bool start = _menu->update(events, *this);
+        _client->poll();
         if (start)
         {
             _inMenu = false;
@@ -395,7 +396,7 @@ void R_Type::Rtype::draw()
 {
     if (_inMenu)
     {
-        _menu->draw();
+        _menu->draw(*this);
         return;
     }
     if (!_connected)

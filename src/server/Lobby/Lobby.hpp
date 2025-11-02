@@ -49,8 +49,9 @@ class Lobby
 
         uint8_t _id;
         std::string _name;
-        uint8_t _maxPlayers = 4;
+        uint8_t _maxPlayers = MAX_PLAYERS;
         std::atomic<bool> _running{false};
+        bool _ready = false;
 
         engine::net::NetServer &_server;
         std::vector<engine::net::Endpoint> _players;

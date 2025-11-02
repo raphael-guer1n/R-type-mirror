@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <sstream>
 #include "Menu.hpp"
 #include "Rtype.hpp"
 #include "engine/audio/Music.hpp"
@@ -245,8 +246,10 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
                 _typing = false;
             }
             if (x >= 1200 && x <= 1350 && y >= 10 && y <= 160) {
-                if (!_lobbyName.empty())
+                if (!_lobbyName.empty()) {
                     rtype.createLobby(_lobbyName);
+                    std::cout << "lobbiessss" << std::endl;
+                }
             }
             if (x >= 1770 && x <= 1920 && y >= 10 && y <= 160) {
                 std::cout << "REQ LOBBY" << std::endl;
@@ -257,14 +260,14 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
     return false;
 }
 
-void R_Type::Menu::draw()
+void R_Type::Menu::draw(Rtype& rtype)
 {
     if (_currentPage == Page::Main)
         drawMainMenu();
     else if (_currentPage == Page::Settings)
         drawSettingsMenu();
     else if (_currentPage == Page::Lobby)
-        drawLobbyMenu();
+        drawLobbyMenu(rtype);
 }
 
 void R_Type::Menu::drawMainMenu()
@@ -285,7 +288,7 @@ void R_Type::Menu::drawSettingsMenu()
     _windowButton->draw(_app.getWindow(), nullptr);
 }
 
-void R_Type::Menu::drawLobbyMenu()
+void R_Type::Menu::drawLobbyMenu(Rtype& rtype)
 {
     SDL_Color white = {255, 255, 255, 255};
     SDL_Color yellow = {240, 225, 60, 255};
@@ -301,6 +304,26 @@ void R_Type::Menu::drawLobbyMenu()
             drawText(_app.getWindow().getRenderer(), _lobbyName, 650, 44, white);
         else
             drawText(_app.getWindow().getRenderer(), _lobbyName, 650, 44, yellow);
+    }
+    drawLobby(rtype);
+}
+
+void R_Type::Menu::drawLobby(Rtype& rtype)
+{
+    auto lobbies = rtype.getLobbies();
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Renderer* renderer = rtype.getApp().getWindow().getRenderer();
+    float x = 620;
+    float y = 240.0;
+    if (lobbies.empty())
+        return;
+    for (auto lobby : lobbies) {
+        std::stringstream ss;
+        ss << lobby.name << " " << (int)lobby.playerCount << "/" << (int)lobby.maxPlayers;
+        _input->drawAt(_app.getWindow(), x, y - 30, nullptr);
+        drawText(renderer, ss.str(), x + 20, y, white);
+        ss.clear();
+        y += 220;
     }
 }
 

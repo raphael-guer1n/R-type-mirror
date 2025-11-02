@@ -26,14 +26,14 @@ LobbyManager::~LobbyManager()
 
 void LobbyManager::tick_all()
 {
-    std::lock_guard<std::mutex> lock(_mtx);
+    // std::lock_guard<std::mutex> lock(_mtx);
     for (auto &[id, lobby] : _lobbies)
         lobby->update();
 }
 
 void LobbyManager::shutdown()
 {
-    std::lock_guard<std::mutex> lock(_mtx);
+    // std::lock_guard<std::mutex> lock(_mtx);
     for (auto &[id, lobby] : _lobbies)
         lobby->stop();
     _lobbies.clear();
@@ -66,11 +66,11 @@ void LobbyManager::on_packet(const engine::net::Endpoint &sender,
 void LobbyManager::send_lobby_list(const engine::net::Endpoint &sender)
 {
     LobbyListResponse resp{};
-    std::lock_guard<std::mutex> lock(_mtx);
+    // std::lock_guard<std::mutex> lock(_mtx);
     uint8_t count = 0;
     for (auto &[id, lobby] : _lobbies)
     {
-        if (count >= 16)
+        if (count >= 4)
             break;
         auto &info = resp.lobbies[count++];
         info.id = id;
@@ -122,7 +122,7 @@ void LobbyManager::join_lobby(const engine::net::Endpoint &sender,
     LobbyJoinRequest req{};
     std::memcpy(&req, payload.data(), sizeof(req));
 
-    std::lock_guard<std::mutex> lock(_mtx);
+    // std::lock_guard<std::mutex> lock(_mtx);
     auto it = _lobbies.find(req.lobbyId);
     if (it != _lobbies.end()) {
         it->second->add_player(sender);
@@ -132,7 +132,7 @@ void LobbyManager::join_lobby(const engine::net::Endpoint &sender,
 
 void LobbyManager::leave_lobby(const engine::net::Endpoint &sender)
 {
-    std::lock_guard<std::mutex> lock(_mtx);
+    // std::lock_guard<std::mutex> lock(_mtx);
     std::string key = endpoint_key(sender);
     auto it = _playerToLobby.find(key);
     if (it == _playerToLobby.end())
@@ -157,7 +157,7 @@ void LobbyManager::route_to_lobby(const engine::net::Endpoint &sender,
     const PacketHeader &hdr,
     const std::vector<uint8_t> &payload)
 {
-    std::lock_guard<std::mutex> lock(_mtx);
+    // std::lock_guard<std::mutex> lock(_mtx);
     std::string key = endpoint_key(sender);
     auto it = _playerToLobby.find(key);
     if (it == _playerToLobby.end())

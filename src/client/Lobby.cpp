@@ -1,3 +1,4 @@
+#include <iostream>
 #include "Rtype.hpp"
 
 void R_Type::Rtype::requestLobbyList()

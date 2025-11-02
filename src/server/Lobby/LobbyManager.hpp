@@ -37,5 +37,5 @@ class LobbyManager
         std::unordered_map<uint8_t, std::shared_ptr<Lobby>> _lobbies;
         std::unordered_map<std::string, uint8_t> _playerToLobby;
         engine::net::NetServer &_netServer;
-        std::atomic<uint8_t> _nextId{1};
+        uint8_t _nextId{1};
 };
