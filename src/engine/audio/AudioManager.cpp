@@ -85,11 +85,12 @@ void AudioManager::playSound(const std::string& name) {
 }
 
 void AudioManager::setMusicVolume(float volume) {
-    _musicVolume = volume;
+    _musicVolume = std::clamp(volume, 0.0f, 1.0f);
+    ma_engine_set_volume(&_engine, _musicVolume);
 }
 
 void AudioManager::setSFXVolume(float volume) {
-    _sfxVolume = volume;
+    _sfxVolume = std::clamp(volume, 0.0f, 1.0f);
 }
 
 } // namespace engine::audio

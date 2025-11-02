@@ -185,28 +185,42 @@ void R_Type::Rtype::update(float deltaTime,
     prevCombo = combo;
     {
         PROFILE_SCOPE("Network Send");
+        std::unordered_set<engine::R_Events::Key> effectiveKeys;
+
+        for (auto k : _pressedKeys)
+            effectiveKeys.insert(k);
+
+        if (AccessibilityConfig::enabled) {
+            std::unordered_set<engine::R_Events::Key> remapped;
+            for (auto &[action, keycode] : AccessibilityConfig::keyBindings) {
+                auto mappedKey = static_cast<engine::R_Events::Key>(keycode);
+                if (_pressedKeys.count(mappedKey))
+                    remapped.insert(mappedKey);
+            }
+            effectiveKeys = remapped;
+        }
         InputPacket inp{};
         inp.clientId = _player;
         inp.tick = _tick++;
-        inp.keyCount = static_cast<uint16_t>(_pressedKeys.size());
+        inp.keyCount = static_cast<uint16_t>(effectiveKeys.size());
         const uint16_t keyCount = inp.keyCount;
         std::vector<int32_t> keys;
         keys.reserve(keyCount);
-        for (auto k : _pressedKeys)
+        for (auto k : effectiveKeys)
             keys.push_back(static_cast<int32_t>(k));
+
         const uint16_t payloadSize = sizeof(InputPacket) + keyCount * sizeof(int32_t);
         PacketHeader ihdr{INPUT_PKT, payloadSize, _tick};
         std::vector<uint8_t> ibuf(payloadSize);
         std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
         if (keyCount > 0)
             std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keyCount * sizeof(int32_t));
+
         _client->send(ihdr, ibuf);
     }
-
     static uint32_t spaceHoldTicks = 0;
-    auto shootKeyStr = AccessibilityConfig::key_remap["shoot"];
-    auto shootKey = stringToKey(shootKeyStr);
-    bool spaceHeld = _pressedKeys.count(shootKey) > 0;
+    auto shootKeyEnum = static_cast<engine::R_Events::Key>(AccessibilityConfig::keyBindings["shoot"]);
+    bool spaceHeld = _pressedKeys.count(shootKeyEnum) > 0;
     int numKeys = 0;
     const Uint8 *state = SDL_GetKeyboardState(&numKeys);
     if (state && SDL_SCANCODE_SPACE < numKeys)
@@ -237,25 +251,29 @@ void R_Type::Rtype::update(float deltaTime,
     auto &hitboxes = _registry.get_components<component::hitbox>();
     {
         PROFILE_SCOPE("Game Systems");
-        float adjustedDelta = deltaTime * (AccessibilityConfig::enabled ? AccessibilityConfig::speed_game : 1.0f);
+        float speedFactor = 1.0f;
+        if (AccessibilityConfig::enabled) {
+            speedFactor = AccessibilityConfig::speed_game;
+            if (speedFactor < 0.2f) speedFactor = 0.2f;
+            if (speedFactor > 3.0f) speedFactor = 3.0f;
+        }
+        float adjustedDelta = deltaTime * speedFactor;
         position_system(_registry, positions, velocities, adjustedDelta);
         control_system(_registry, velocities, controls);
-        scroll_reset_system(_registry, positions, kinds, _app);
         animation_system(_registry, animations, drawables, adjustedDelta);
+        scroll_reset_system(_registry, positions, kinds, _app);
         hitbox_system(_registry, positions, hitboxes, [this](size_t i, size_t j)
                     { this->handle_collision(_registry, i, j); });
         lifetime_system(_registry, adjustedDelta);
         _registry.run_systems();
-        _background->update(deltaTime);
+        _background->update(adjustedDelta);
     }
-    // Update world metrics
     auto playerPos = (_player < positions.size() && positions[_player])
                      ? positions[_player].value()
                      : component::position{0, 0};
     profiler.setWorldPosition(playerPos.x, playerPos.y);
     profiler.setEntityCount(_activeEntities.size());
 }
-
 
 void R_Type::Rtype::receiveSnapshot()
 {
@@ -528,13 +546,11 @@ void R_Type::Rtype::draw()
     SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
     SDL_RenderClear(ren);
 
-    auto &positions = _registry.get_components<component::position>();
-    auto &drawables = _registry.get_components<component::drawable>();
-    auto &kinds = _registry.get_components<component::entity_kind>();
+    auto &positions  = _registry.get_components<component::position>();
+    auto &drawables  = _registry.get_components<component::drawable>();
+    auto &kinds      = _registry.get_components<component::entity_kind>();
     auto &velocities = _registry.get_components<component::velocity>();
-
     draw_system(_registry, positions, drawables, _app.getWindow());
-
     if (_showHitboxes) {
         SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
         auto &hitboxes = _registry.get_components<component::hitbox>();
@@ -542,14 +558,38 @@ void R_Type::Rtype::draw()
     }
     if (_hud)
         _hud->drawOverlay(*this);
-    if (AccessibilityConfig::enabled) {
+    if (AccessibilityConfig::enabled)
+    {
+        SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+
+        if (AccessibilityConfig::contrast_mode) {
+            SDL_SetRenderDrawColor(ren, 255, 255, 255, 60);
+            SDL_Rect screen = {0, 0, 1920, 1080};
+            SDL_RenderFillRect(ren, &screen);
+        }
+
+        if (AccessibilityConfig::mode_daltonien != "none") {
+            SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+            SDL_Color tint{255, 255, 255, 0};
+
+            if (AccessibilityConfig::mode_daltonien == "protanopia")
+                tint = {255, 200, 200, 40};
+            else if (AccessibilityConfig::mode_daltonien == "deuteranopia")
+                tint = {200, 255, 200, 40};
+            else if (AccessibilityConfig::mode_daltonien == "tritanopia")
+                tint = {200, 200, 255, 40};
+
+            SDL_SetRenderDrawColor(ren, tint.r, tint.g, tint.b, tint.a);
+            SDL_Rect overlay = {0, 0, 1920, 1080};
+            SDL_RenderFillRect(ren, &overlay);
+        }
         SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(ren, 40, 40, 40, 220);
         SDL_Rect banner = {0, 0, 1920, 80};
         SDL_RenderFillRect(ren, &banner);
         if (_uiFont) {
-            SDL_Color white = {255, 255, 255, 255};
-            SDL_Surface* surf = TTF_RenderUTF8_Blended(_uiFont, "Accessibility mode on", white);
+            SDL_Color white = {255, 255, 255, 200};
+            SDL_Surface* surf = TTF_RenderUTF8_Blended(_uiFont, "Accessibility mode ON", white);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(ren, surf);
                 SDL_Rect dst = {40, 20, surf->w, surf->h};
