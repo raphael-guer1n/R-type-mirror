@@ -201,7 +201,7 @@ void R_Type::Player::playerUpdateAnimation(std::unordered_map<uint32_t, size_t>&
 
             bool charging = pressedKeys.count(Key::Space) > 0;
             ensureChargeOverlay(registry, localId, charging);
-            if (charging && !_wasShooting) {
+            if (charging) {
                 updateChargeOverlayPosition(registry, localId);
                 auto &anims = registry.get_components<component::animation>();
                 if (chargeOverlayLocalId.has_value()) {

@@ -141,7 +141,6 @@ namespace systems
           dy /= len;
           float speedVal =
               std::sqrt(s.speedX * s.speedX + s.speedY * s.speedY);
-          std::cout << "projectile size " << s.width << "x" << s.height << "\n";
           auto proj = server_spawn_projectile(
               r,
               e,

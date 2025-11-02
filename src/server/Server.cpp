@@ -40,6 +40,8 @@
 #include <nlohmann/json.hpp>
 #include <random>
 #include <thread>
+#include <poll.h>
+#include <unistd.h>
 
 #include "common/Components_client.hpp"
 #include "engine/ecs/Systems.hpp"
@@ -57,6 +59,7 @@ server::server(engine::net::IoContext &ctx, unsigned short port)
     : _socket(ctx, port), _io(ctx), _port(port)
 {
   register_components();
+  setupConsoleCommands();
 }
 
 // Default components
@@ -93,6 +96,152 @@ void server::register_components()
   setup_systems();
 }
 
+void server::setupConsoleCommands()
+{
+    // Game-specific server commands only - no CVars
+    _console.registerCommand("stop", [this](const std::vector<std::string>&) {
+        _console.print("Stopping server...");
+        stop();
+    }, "Stop the server");
+    
+    _console.registerCommand("status", [this](const std::vector<std::string>&) {
+        _console.print("=== Server Status ===");
+        _console.print("Players: " + std::to_string(_players.size()));
+        _console.print("Active Entities: " + std::to_string(_live_entities.size()));
+        _console.print("Tick: " + std::to_string(_tick));
+        _console.print("Running: " + std::string(_running ? "Yes" : "No"));
+    }, "Show server status");
+    
+    _console.registerCommand("players", [this](const std::vector<std::string>&) {
+        if (_players.empty()) {
+            _console.print("No players connected");
+            return;
+        }
+        _console.print("Connected Players:");
+        for (size_t i = 0; i < _players.size(); ++i) {
+            auto& p = _players[i];
+            auto& healths = _registry.get_components<component::health>();
+            int hp = 0;
+            if (static_cast<size_t>(p.entityId) < healths.size() && healths[p.entityId]) {
+                hp = healths[p.entityId]->hp;
+            }
+            _console.print("  [" + std::to_string(i) + "] Entity: " + std::to_string(p.entityId) + 
+                          " HP: " + std::to_string(hp) + " @ " + p.endpoint.address + ":" + std::to_string(p.endpoint.port));
+        }
+    }, "List connected players");
+    
+    _console.registerCommand("heal", [this](const std::vector<std::string>& args) {
+        if (args.empty()) {
+            // Heal all players
+            auto& healths = _registry.get_components<component::health>();
+            for (auto& p : _players) {
+                if (static_cast<size_t>(p.entityId) < healths.size() && healths[p.entityId]) {
+                    healths[p.entityId]->hp = 20;
+                }
+            }
+            _console.print("All players healed to full HP");
+        } else {
+            try {
+                int playerIndex = std::stoi(args[0]);
+                if (playerIndex < 0 || playerIndex >= static_cast<int>(_players.size())) {
+                    _console.print("Invalid player index");
+                    return;
+                }
+                auto& healths = _registry.get_components<component::health>();
+                auto eid = _players[playerIndex].entityId;
+                if (static_cast<size_t>(eid) < healths.size() && healths[eid]) {
+                    healths[eid]->hp = 20;
+                    _console.print("Player " + std::to_string(playerIndex) + " healed");
+                }
+            } catch (...) {
+                _console.print("Usage: heal [player_index]");
+            }
+        }
+    }, "Heal player(s): heal [player_index]");
+    
+    _console.registerCommand("kill", [this](const std::vector<std::string>& args) {
+        if (args.empty()) {
+            _console.print("Usage: kill <player_index>");
+            return;
+        }
+        try {
+            int playerIndex = std::stoi(args[0]);
+            if (playerIndex < 0 || playerIndex >= static_cast<int>(_players.size())) {
+                _console.print("Invalid player index");
+                return;
+            }
+            auto& healths = _registry.get_components<component::health>();
+            auto eid = _players[playerIndex].entityId;
+            if (static_cast<size_t>(eid) < healths.size() && healths[eid]) {
+                healths[eid]->hp = 0;
+                _console.print("Player " + std::to_string(playerIndex) + " killed");
+            }
+        } catch (...) {
+            _console.print("Usage: kill <player_index>");
+        }
+    }, "Kill a player: kill <player_index>");
+    
+    _console.registerCommand("spawn", [this](const std::vector<std::string>& args) {
+        if (args.empty()) {
+            _console.print("Usage: spawn <enemy_type>");
+            _console.print("Types: crawler, shooter, boss");
+            return;
+        }
+        try {
+            std::string configPath = "configs/enemy/" + args[0] + ".json";
+            EnemyConfig cfg = EnemyConfig::load_enemy_config(configPath);
+            auto e = _registry.spawn_entity();
+            _live_entities.insert((uint32_t)e);
+            
+            _registry.add_component(e, component::position{1800.f, 400.f});
+            _registry.add_component(e, component::velocity{0, 0});
+            _registry.add_component<component::hitbox>(e, std::move(cfg.hitbox));
+            _registry.add_component(e, component::entity_kind::enemy);
+            _registry.add_component(e, component::collision_state{false});
+            _registry.add_component(e, component::health{(uint8_t)cfg.hp});
+            
+            component::ai_controller ai;
+            ai.behavior = cfg.behavior;
+            ai.speed = cfg.speed;
+            _registry.add_component<component::ai_controller>(e, std::move(ai));
+            
+            if (!cfg.spells.empty()) {
+                component::spellbook sb;
+                sb.spells = cfg.spells;
+                _registry.add_component<component::spellbook>(e, std::move(sb));
+            }
+            
+            _console.print("Spawned " + args[0] + " enemy");
+        } catch (std::exception& ex) {
+            _console.print("Failed to spawn enemy: " + std::string(ex.what()));
+        }
+    }, "Spawn an enemy: spawn <enemy_type>");
+    
+    _console.registerCommand("clear", [this](const std::vector<std::string>&) {
+        auto& kinds = _registry.get_components<component::entity_kind>();
+        std::vector<engine::entity_t> toKill;
+        
+        for (auto entityId : _live_entities) {
+            size_t idx = static_cast<size_t>(entityId);
+            if (idx < kinds.size() && kinds[idx] && kinds[idx].value() == component::entity_kind::enemy) {
+                toKill.push_back(_registry.entity_from_index(idx));
+            }
+        }
+        
+        for (auto e : toKill) {
+            _live_entities.erase(static_cast<uint32_t>(e));
+            _registry.kill_entity(e);
+        }
+        
+        _console.print("Cleared " + std::to_string(toKill.size()) + " enemies");
+    }, "Clear all enemies");
+}
+
+void server::checkConsoleInput()
+{
+    _console.checkInput();
+}
+
 void server::run()
 {
   wait_for_players();
@@ -113,6 +262,8 @@ void server::run()
       PROFILE_SCOPE("Network Input");
       process_network_inputs();
     }
+
+    checkConsoleInput();
 
     auto now = clock::now();
     if (now - last_tick >= tick_duration)
@@ -151,18 +302,11 @@ void server::run()
 
     profiler.endFrame();
     
+    // Update metrics periodically but don't print to console
     if (++frameCounter % 300 == 0) {
       profiler.updateMemoryMetrics();
       profiler.updateCPUMetrics();
       profiler.setEntityCount(_live_entities.size());
-      
-      const auto& frameMetrics = profiler.getFrameMetrics();
-      const auto& memMetrics = profiler.getMemoryMetrics();
-      
-      std::cout << "[Profiling] FPS: " << std::fixed << std::setprecision(1) << frameMetrics.displayFps
-                << " | Frame: " << frameMetrics.displayFrameTime << "ms"
-                << " | Entities: " << _live_entities.size()
-                << " | Memory: " << (memMetrics.physicalMemoryUsed / 1024.0 / 1024.0) << "MB\n";
     }
   }
 }
@@ -181,6 +325,7 @@ void server::setup_systems()
 
 void server::register_health_and_spawn_systems()
 {
+  // Use standard health system without CVars
   _registry.add_system<component::health, component::damage>(health_system);
   _registry.add_system<component::spawn_request>(spawn_system);
 }
@@ -495,15 +640,13 @@ void server::game_handler()
       ai.behavior = cfg.behavior;
       ai.speed = cfg.speed;
       _registry.add_component<component::ai_controller>(e, std::move(ai));
-      std::cout << "Enemy spawned with behavior=" << ai.behavior
-                << " speed=" << ai.speed << "\n";
+      
       if (!cfg.spells.empty())
       {
         component::spellbook sb;
         sb.spells = cfg.spells;
         _registry.add_component<component::spellbook>(e, std::move(sb));
       }
-      std::cout << "Spawned Shooter enemy\n";
     }
     catch (std::exception &ex)
     {
@@ -536,8 +679,6 @@ void server::game_handler()
           sb.spells = cfg.spells;
           _registry.add_component<component::spellbook>(boss, std::move(sb));
       }
-
-      std::cout << "Boss spawned! HP: " << cfg.hp << " Behavior: " << ai.behavior << "\n";
     }
     catch (std::exception &ex)
     {
@@ -600,7 +741,6 @@ void server::broadcast_game_over(uint32_t winnerEntityId)
   std::memcpy(data.data(), &payload, sizeof(payload));
   for (auto &p : _players)
     _socket.send(hdr, data, p.endpoint);
-  std::cout << "Game Over! Winner entity id: " <<  winnerEntityId << std::endl;
 }
 
 void server::check_game_over()
@@ -633,7 +773,10 @@ void server::wait_for_players()
 
   while (_players.size() < 2)
   {
-engine::net::Endpoint sender;
+    // Check console input while waiting for players
+    checkConsoleInput();
+    
+    engine::net::Endpoint sender;
     auto pkt_opt = _socket.receive(sender);
     if (pkt_opt)
     {
@@ -661,6 +804,9 @@ engine::net::Endpoint sender;
         broadcast_snapshot();
       }
     }
+    
+    // Add small sleep to prevent busy waiting
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 }
 

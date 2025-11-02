@@ -22,6 +22,7 @@
 #include "engine/events/Events.hpp"
 #include "engine/profiling/Profiler.hpp"
 #include "engine/profiling/ProfilerOverlay.hpp"
+#include "engine/console/Console.hpp"
 
 namespace Engine {
     // Subsystem availability checks
@@ -31,4 +32,5 @@ namespace Engine {
     constexpr bool HasECS() { return true; }
     constexpr bool HasEvents() { return true; }
     constexpr bool HasProfiling() { return true; }
+    constexpr bool HasConsole() { return true; }
 }

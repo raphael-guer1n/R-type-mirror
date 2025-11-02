@@ -10,6 +10,7 @@
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
+#include "engine/console/Console.hpp"
 
 #define PLAYER_SPEED 400.0f
 #define SCREEN_WIDTH 1920
@@ -47,6 +48,9 @@ public:
     void run();
     void stop();
 
+    // Console access
+    engine::console::TerminalConsole& getConsole() { return _console; }
+
 private:
     // Initialization / registration
     void register_components();
@@ -77,8 +81,9 @@ private:
     engine::entity_t spawn_projectile_bomb(engine::entity_t owner);
     engine::entity_t spawn_missile_explosion(float x, float y, int damage, float radius);
 
-    // Internal utility: ensure an entity is scheduled for removal by setting/adding despawn_tag.
-    // Centralises logic so systems never call kill_entity directly (uniform ECS pipeline).
+    void setupConsoleCommands();
+    void checkConsoleInput();
+
 private:
     bool _running = true;
     engine::registry _registry;
@@ -105,4 +110,7 @@ private:
     std::unordered_map<uint32_t, bool> _prevSpace;
     std::unordered_map<uint32_t, bool> _prevC;
     std::unordered_map<uint32_t, uint32_t> _pressTick;
+
+    // Engine console
+    engine::console::TerminalConsole _console;
 };
