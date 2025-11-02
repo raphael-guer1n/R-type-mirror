@@ -61,14 +61,18 @@ namespace {
                              engine::net::UdpSocket &sock,
                              const engine::net::Endpoint &serverEndpoint)
     {
-        if (connected) return;
-        if (nowMs - lastConnReqMs < 1000u) return;
+        if (connected)
+            return;
+        if (nowMs - lastConnReqMs < 1000u)
+            return;
         lastConnReqMs = nowMs;
         ConnectReq req{0u};
         std::vector<uint8_t> buf(sizeof(ConnectReq));
         std::memcpy(buf.data(), &req, sizeof(ConnectReq));
         PacketHeader h{CONNECT_REQ, static_cast<uint16_t>(buf.size()), 0};
-        try { sock.send(h, buf, serverEndpoint); if (VERBOSE) std::cout << "Client: sent CONNECT_REQ" << std::endl; } catch (...) {}
+        try { sock.send(h, buf, serverEndpoint);
+            if (VERBOSE) std::cout << "Client: sent CONNECT_REQ" << std::endl;
+        } catch (...) {}
     }
 
     void maybeSendInput(bool connected,
@@ -79,25 +83,31 @@ namespace {
                         engine::net::UdpSocket &sock,
                         const engine::net::Endpoint &serverEndpoint)
     {
-        if (!connected) return;
-        if (nowMs - lastInputSendMs < INPUT_SEND_MS) return;
+        if (!connected)
+            return;
+        if (nowMs - lastInputSendMs < INPUT_SEND_MS)
+            return;
         lastInputSendMs = nowMs;
         InputPacket inp{};
         inp.clientId = 0;
         inp.tick = tick++;
         inp.keyCount = static_cast<uint16_t>(pressed.size());
         std::vector<int32_t> keys; keys.reserve(pressed.size());
-        for (auto k : pressed) keys.push_back(static_cast<int32_t>(k));
+        for (auto k : pressed)
+            keys.push_back(static_cast<int32_t>(k));
         const uint16_t payloadSize = static_cast<uint16_t>(sizeof(InputPacket) + keys.size() * sizeof(int32_t));
         std::vector<uint8_t> ibuf(payloadSize);
         std::memcpy(ibuf.data(), &inp, sizeof(InputPacket));
-        if (!keys.empty()) std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keys.size() * sizeof(int32_t));
+        if (!keys.empty())
+            std::memcpy(ibuf.data() + sizeof(InputPacket), keys.data(), keys.size() * sizeof(int32_t));
         PacketHeader outh{INPUT_PKT, static_cast<uint16_t>(ibuf.size()), inp.tick};
         try {
             sock.send(outh, ibuf, serverEndpoint);
-            if (VERBOSE) std::cout << "Client: sent input keyCount=" << inp.keyCount << " tick=" << inp.tick << std::endl;
+            if (VERBOSE)
+                std::cout << "Client: sent input keyCount=" << inp.keyCount << " tick=" << inp.tick << std::endl;
         } catch (const std::exception &ex) {
-            if (VERBOSE) std::cerr << "Client: send error: " << ex.what() << std::endl;
+            if (VERBOSE)
+                std::cerr << "Client: send error: " << ex.what() << std::endl;
         }
     }
 
@@ -128,29 +138,41 @@ namespace {
             for (size_t i = 0; i < usable; ++i) {
                 const EntityState &es = states[i];
                 size_t idx = es.entityId;
-                if (idx >= present.size()) present.resize(idx + 1, 0);
+                if (idx >= present.size())
+                    present.resize(idx + 1, 0);
                 present[idx] = 1;
-                if (idx >= positions.size()) positions.insert_at(idx, component::position{});
-                if (idx >= velocities.size()) velocities.insert_at(idx, component::velocity{});
-                if (idx >= hitboxes.size()) hitboxes.insert_at(idx, component::hitbox{});
-                if (idx >= platforms.size()) platforms.insert_at(idx, component::platform{});
-                if (idx >= kinds.size()) kinds.insert_at(idx, component::entity_kind{});
+                if (idx >= positions.size())
+                    positions.insert_at(idx, component::position{});
+                if (idx >= velocities.size())
+                    velocities.insert_at(idx, component::velocity{});
+                if (idx >= hitboxes.size())
+                    hitboxes.insert_at(idx, component::hitbox{});
+                if (idx >= platforms.size())
+                    platforms.insert_at(idx, component::platform{});
+                if (idx >= kinds.size())
+                    kinds.insert_at(idx, component::entity_kind{});
                 positions[idx] = component::position{es.x, es.y};
                 velocities[idx] = component::velocity{es.vx, es.vy};
                 hitboxes[idx] = component::hitbox{ es.hb_w, es.hb_h, es.hb_ox, es.hb_oy };
                 kinds[idx] = static_cast<component::entity_kind>(es.type);
                 platforms[idx] = component::platform{es.platformType};
-                if (kinds[idx] == component::entity_kind::player) ++playerCount;
+                if (kinds[idx] == component::entity_kind::player)
+                    ++playerCount;
             }
             size_t maxSize = positions.size();
             for (size_t i = 0; i < maxSize; ++i) {
                 bool isPresent = (i < present.size()) ? (present[i] != 0) : false;
                 if (!isPresent) {
-                    if (i < positions.size()) positions.erase(i);
-                    if (i < velocities.size()) velocities.erase(i);
-                    if (i < hitboxes.size()) hitboxes.erase(i);
-                    if (i < platforms.size()) platforms.erase(i);
-                    if (i < kinds.size()) kinds.erase(i);
+                    if (i < positions.size())
+                        positions.erase(i);
+                    if (i < velocities.size())
+                        velocities.erase(i);
+                    if (i < hitboxes.size())
+                        hitboxes.erase(i);
+                    if (i < platforms.size())
+                        platforms.erase(i);
+                    if (i < kinds.size())
+                        kinds.erase(i);
                 }
             }
         };
@@ -159,7 +181,8 @@ namespace {
             applyStates(n);
         } else {
             size_t usable = std::min(n, countWithPlatform);
-            if (usable > 0) applyStates(usable);
+            if (usable > 0)
+                applyStates(usable);
             if (VERBOSE)
                 std::cerr << "Client: snapshot size mismatch (hdr.entityCount=" << n
                           << ", bytes=" << payloadEntitiesBytes << ") parsed=" << usable << " entries" << std::endl;
@@ -180,7 +203,8 @@ namespace {
     {
         engine::net::Endpoint senderEndpoint; PacketHeader hdr; std::vector<uint8_t> payload;
         while (sock.PollPacket(hdr, payload, senderEndpoint)) {
-            if (VERBOSE) std::cout << "Client: received packet type=" << int(hdr.type) << " size=" << hdr.size << std::endl;
+            if (VERBOSE)
+                std::cout << "Client: received packet type=" << int(hdr.type) << " size=" << hdr.size << std::endl;
             if (hdr.type == CONNECT_ACK && payload.size() >= sizeof(ConnectAck)) {
                 connected = true;
                 if (VERBOSE) {
@@ -218,12 +242,14 @@ namespace {
     {
         auto &velocities = const_cast<registry&>(reg).get_components<component::velocity>();
         auto &positions = const_cast<registry&>(reg).get_components<component::position>();
-        if (playerIdx < 0 || static_cast<size_t>(playerIdx) >= velocities.size() || !velocities[playerIdx] || !positions[playerIdx]) return;
+        if (playerIdx < 0 || static_cast<size_t>(playerIdx) >= velocities.size() || !velocities[playerIdx] || !positions[playerIdx])
+            return;
         float vy = velocities[playerIdx].value().vy;
         float y = positions[playerIdx].value().y;
         if (havePrevKinematics) {
             if (prevVy > -100.0f && vy <= -800.0f) {
-                if (vy <= -1100.0f) engine::audio::AudioManager::instance().playSound("trampoline");
+                if (vy <= -1100.0f)
+                    engine::audio::AudioManager::instance().playSound("trampoline");
                 else engine::audio::AudioManager::instance().playSound("jump");
             }
             if (prevVy < 0.0f && std::abs(vy) < 1.0f && (y - prevY) > 60.0f) {
@@ -270,7 +296,10 @@ namespace {
 
         ssize_t playerIdx = -1;
         for (size_t i = 0; i < kinds.size(); ++i) {
-            if (kinds[i] && kinds[i].has_value() && kinds[i].value() == component::entity_kind::player) { playerIdx = static_cast<ssize_t>(i); break; }
+            if (kinds[i] && kinds[i].has_value() && kinds[i].value() == component::entity_kind::player) {
+                playerIdx = static_cast<ssize_t>(i);
+                break;
+            }
         }
 
         auto drawPlatformWithOverlay = [&](size_t i) {
@@ -310,13 +339,17 @@ namespace {
         };
 
         for (size_t i = 0; i < positions.size(); ++i) {
-            if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value())) continue;
-            if (kinds[i].value() != component::entity_kind::decor) continue;
+            if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value()))
+                continue;
+            if (kinds[i].value() != component::entity_kind::decor)
+                continue;
             drawPlatformWithOverlay(i);
         }
         for (size_t i = 0; i < positions.size(); ++i) {
-            if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value())) continue;
-            if (kinds[i].value() != component::entity_kind::enemy) continue;
+            if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value()))
+                continue;
+            if (kinds[i].value() != component::entity_kind::enemy)
+                continue;
             auto p = positions[i].value(); auto hb = hitboxes[i].value(); auto useTex = tex.monster;
             if (useTex) {
                 auto size = useTex->getSize();
@@ -332,8 +365,10 @@ namespace {
             }
         }
         for (size_t i = 0; i < positions.size(); ++i) {
-            if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value())) continue;
-            if (kinds[i].value() != component::entity_kind::player) continue;
+            if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value()))
+                continue;
+            if (kinds[i].value() != component::entity_kind::player)
+                continue;
             auto p = positions[i].value(); auto hb = hitboxes[i].value(); auto useTex = tex.player;
             if (useTex) {
                 auto size = useTex->getSize();
@@ -347,8 +382,10 @@ namespace {
             }
         }
         for (size_t i = 0; i < positions.size(); ++i) {
-            if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value())) continue;
-            if (kinds[i].value() != component::entity_kind::playerProjectile) continue;
+            if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value()))
+                continue;
+            if (kinds[i].value() != component::entity_kind::playerProjectile)
+                continue;
             auto p = positions[i].value(); auto hb = hitboxes[i].value(); auto useTex = tex.playerProj;
             if (useTex) {
                 auto size = useTex->getSize();
@@ -363,7 +400,8 @@ namespace {
         }
 
         for (size_t i = 0; i < positions.size(); ++i) {
-            if (!(positions[i] && hitboxes[i])) continue;
+            if (!(positions[i] && hitboxes[i]))
+                continue;
             bool hasKind = (i < kinds.size() && kinds[i] && kinds[i].has_value());
             if (hasKind) {
                 auto k = kinds[i].value();
@@ -462,7 +500,13 @@ int main(int argc, char **argv) {
             processIncoming(reg, sock, connected, lastParseLogMs);
 
             auto &kinds_ref = reg.get_components<component::entity_kind>();
-            ssize_t playerIdx = -1; for (size_t i = 0; i < kinds_ref.size(); ++i) { if (kinds_ref[i] && kinds_ref[i].has_value() && kinds_ref[i].value() == component::entity_kind::player) { playerIdx = static_cast<ssize_t>(i); break; } }
+            ssize_t playerIdx = -1;
+            for (size_t i = 0; i < kinds_ref.size(); ++i) {
+                if (kinds_ref[i] && kinds_ref[i].has_value() && kinds_ref[i].value() == component::entity_kind::player) {
+                    playerIdx = static_cast<ssize_t>(i);
+                    break;
+                }
+            }
             updateMonstersMusic(reg, monstersLoopPlaying);
             updateKinematicsSounds(reg, playerIdx, prevVy, prevY, havePrevKinematics, lastFallSoundMs);
 
