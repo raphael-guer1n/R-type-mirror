@@ -1,5 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
 
+set(VCPKG_ROOT "${CMAKE_SOURCE_DIR}/../vcpkg")
+
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    if(EXISTS "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+        set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+        message(STATUS "Using vcpkg toolchain: ${CMAKE_TOOLCHAIN_FILE}")
+    elseif(DEFINED ENV{VCPKG_ROOT} AND EXISTS "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+        message(STATUS "Using vcpkg toolchain from environment: ${CMAKE_TOOLCHAIN_FILE}")
+    else()
+        message(WARNING "vcpkg not found. Some dependencies may not be available.")
+    endif()
+endif()
+
 project(DoodleJump LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
