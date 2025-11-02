@@ -15,6 +15,7 @@
     "sdl2-image",
     "sdl2-ttf",
     "asio",
-    "nlohmann-json"
+    "nlohmann-json",
+    "miniaudio"
   ]
 }
