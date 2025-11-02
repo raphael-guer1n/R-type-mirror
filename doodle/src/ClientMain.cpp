@@ -25,15 +25,12 @@ int main(int argc, char **argv) {
         Window window("Doodle - Client", 480, 800);
         Renderer renderer(window);
 
-        // Load simple sprites for doodle (no animation). If files are missing we fall back to colored rects.
     std::shared_ptr<engine::R_Graphic::Texture> texPlayer, texTileRegular, texTileMoving, texTileGhost, texPlayerProj, texDecor, texMonster, texTrampoline;
     texPlayer = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle.png");
     texTileRegular = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_regular.png");
     texTileMoving = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_moving.png");
     texTileGhost = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_ghost.png");
     texTrampoline = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/trampoline.png");
-    //texPlayerProj = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle_bullet.png");
-    //texDecor = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle_decor.png");
     texMonster = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/monster.png");
 
     engine::net::IoContext io;
@@ -159,7 +156,6 @@ int main(int argc, char **argv) {
                     auto &kinds = reg.get_components<component::entity_kind>();
 
                     if (countWithPlatform >= n) {
-                        // Track which entity IDs are present in this snapshot to prune stale client-side entities
                         std::vector<uint8_t> present;
                         const EntityState *states = reinterpret_cast<const EntityState *>(payload.data() + sizeof(Snapshot));
                         for (size_t i = 0; i < n; ++i) {
@@ -186,7 +182,6 @@ int main(int argc, char **argv) {
                                 ++playerCount;
                         }
 
-                        // Prune any local entities not present in this snapshot
                         size_t maxSize = positions.size();
                         for (size_t i = 0; i < maxSize; ++i) {
                             bool isPresent = (i < present.size()) ? (present[i] != 0) : false;
@@ -227,7 +222,6 @@ int main(int argc, char **argv) {
                                     ++playerCount;
                             }
 
-                            // Prune local entities not present in the subset parsed
                             size_t maxSize = positions.size();
                             for (size_t i = 0; i < maxSize; ++i) {
                                 bool isPresent = (i < present.size()) ? (present[i] != 0) : false;
@@ -267,7 +261,6 @@ int main(int argc, char **argv) {
 
             const int SCREEN_W = 480;
             const int SCREEN_H = 800;
-            // Toggle rendering of debug hitboxes (outlines). Set to false to disable.
             constexpr bool SHOW_HITBOXES = false;
             float cameraY = cameraYPrev;
             if (playerIdx >= 0 && playerIdx < static_cast<ssize_t>(positions.size()) && positions[playerIdx]) {
@@ -285,7 +278,6 @@ int main(int argc, char **argv) {
                 int screenX = static_cast<int>(p.x);
                 int screenY = static_cast<int>(p.y - cameraY);
 
-                // Decide which sprite (if any) to use for this entity
                 std::shared_ptr<engine::R_Graphic::Texture> useTex = nullptr;
                 uint8_t r = 0, g = 0, b = 0, a = 255;
                 if (i < kinds.size() && kinds[i] && kinds[i].has_value()) {
@@ -296,41 +288,37 @@ int main(int argc, char **argv) {
                     }
                     else if (k == component::entity_kind::playerProjectile) {
                         useTex = texPlayerProj;
-                        r = 255; g = 60; b = 60; // player bullet
+                        r = 255; g = 60; b = 60;
                     }
                     else if (k == component::entity_kind::enemy) {
                         useTex = texMonster;
                         r = 200; g = 50; b = 50;
                     }
                     else if (k == component::entity_kind::decor) {
-                        // for platforms choose specific tile based on platform kind
                         if (i < platforms.size() && platforms[i] && platforms[i].has_value()) {
                             uint8_t pk = platforms[i].value().kind;
-                            // default base tile
                             std::shared_ptr<engine::R_Graphic::Texture> baseTex = texTileRegular;
                             std::shared_ptr<engine::R_Graphic::Texture> overlayTex = nullptr;
                             switch (pk)
                             {
-                            case 1: // moving
+                            case 1:
                                 baseTex = texTileMoving ? texTileMoving : texTileRegular;
                                 r = 50; g = 130; b = 255;
                                 break;
-                            case 2: // single-use / fragile -> ghost
+                            case 2:
                                 baseTex = texTileGhost ? texTileGhost : texTileRegular;
                                 r = 210; g = 180; b = 0;
                                 break;
-                            case 3: // (unused) previously trampoline - now trampolines are separate entities
+                            case 3:
                                 baseTex = texTileRegular ? texTileRegular : texDecor;
                                 r = 255; g = 160; b = 40;
                                 break;
-                            default: // regular
+                            default:
                                 baseTex = texTileRegular ? texTileRegular : texDecor;
                                 r = 100; g = 100; b = 100;
                                 break;
                             }
                             useTex = baseTex;
-                            // store overlay in a local variable to draw after base
-                            // no immediate overlay drawing here; trampoline overlays are drawn separately below
                         }
                         else {
                             useTex = texDecor;
@@ -338,19 +326,16 @@ int main(int argc, char **argv) {
                         }
                     }
                 } else {
-                        // fallback sprite for other kinds
                         useTex = texDecor;
                         r = 255; g = 0; b = 0;
                     }
 
-                // If a texture is available, draw it centered on the hitbox; else draw the colored rect as before
                 if (useTex) {
                     auto size = useTex->getSize();
                     double texW = static_cast<double>(size.x);
                     double texH = static_cast<double>(size.y);
                     double texPosX = p.x + hb.offset_x + (hb.width * 0.5) - (texW * 0.5);
                     double texPosY = p.y + hb.offset_y + (hb.height * 0.5) - (texH * 0.5);
-                    // account for camera
                     useTex->setPosition(texPosX, texPosY - cameraY);
                     useTex->draw(window, nullptr);
                 } else {
@@ -370,7 +355,6 @@ int main(int argc, char **argv) {
                     std::cerr << "Client: WARNING - no player entity found in snapshot (drawing debug rect)" << std::endl;
                 }
             }
-            // Draw trampoline overlays on top of platforms that are marked as kind==3
             {
                 auto &plats = reg.get_components<component::platform>();
                 auto &ppos = reg.get_components<component::position>();
@@ -381,7 +365,6 @@ int main(int argc, char **argv) {
                     if (pk != 3) continue;
                     auto platP = ppos[pi].value();
                     auto platHb = phb[pi].value();
-                    // Determine base texture used to compute platform texture height
                     std::shared_ptr<engine::R_Graphic::Texture> baseTex = texTileRegular;
                     if (plats[pi] && plats[pi].has_value()) {
                         uint8_t kind = plats[pi].value().kind;

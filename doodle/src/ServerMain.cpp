@@ -9,7 +9,6 @@
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
-//#include <SDL.h>
 #include "engine/events/Events.hpp"
 #include <chrono>
 #include <thread>
@@ -48,9 +47,8 @@ int main(int argc, char **argv)
         const float PLATFORM_W = 100.0f;
         const float PLATFORM_H = 18.0f;
 
-        // Manual start platform to ensure safe spawn
         std::vector<entity_t> platforms;
-        std::vector<entity_t> enemies; // hostile mobs
+        std::vector<entity_t> enemies;
         const float START_PLATFORM_W = PLATFORM_W;
         const float START_PLATFORM_H = PLATFORM_H;
         const float START_PLATFORM_X = (SCREEN_W - START_PLATFORM_W) * 0.5f;
@@ -65,9 +63,8 @@ int main(int argc, char **argv)
 
         entity_t player = reg.spawn_entity();
         reg.add_component(player, component::hitbox{60.0f, 90.0f});
-        // Place player on top of start platform
-        float playerSpawnX = START_PLATFORM_X + (START_PLATFORM_W * 0.5f) - 14.0f; // center horizontally over platform (hb width ~28)
-        float playerSpawnY = START_PLATFORM_Y - 90.0f; // on top (hb height 36)
+        float playerSpawnX = START_PLATFORM_X + (START_PLATFORM_W * 0.5f) - 14.0f;
+        float playerSpawnY = START_PLATFORM_Y - 90.0f;
         reg.add_component(player, component::position{playerSpawnX, playerSpawnY});
         reg.add_component(player, component::velocity{0.0f, 0.0f});
         reg.add_component(player, component::controllable{});
@@ -78,11 +75,10 @@ int main(int argc, char **argv)
         std::mt19937 rng(std::random_device{}());
         std::uniform_real_distribution<float> xDist(0.0f, SCREEN_W - PLATFORM_W);
         std::uniform_real_distribution<float> spacing(80.0f, 120.0f);
-        std::uniform_int_distribution<int> enemySpawnRoll(0, 19); // ~5% chance to spawn an enemy on eligible platforms (reduced)
+        std::uniform_int_distribution<int> enemySpawnRoll(0, 19);
         std::uniform_real_distribution<float> enemyOffset01(0.0f, 1.0f);
 
         std::uniform_int_distribution<int> kindDist(0, 9);
-        // Chance to spawn a trampoline overlay above a normal platform (1 in 10)
         std::uniform_int_distribution<int> trampolineRoll(0, 9);
 
         float minPlatformY = START_PLATFORM_Y;
@@ -95,16 +91,15 @@ int main(int argc, char **argv)
         const float fixedDt = 1.0f / 60.0f;
         uint32_t tick = 0;
         uint32_t lastShootTick = 0;
-        const uint32_t SHOOT_COOLDOWN_TICKS = 8; // ~133ms @60Hz
+        const uint32_t SHOOT_COOLDOWN_TICKS = 8;
         const float ENEMY_W = 163.0f;
         const float ENEMY_H = 102.0f;
         const float ENEMY_SPEED = 35.0f;
-        const float STOMP_MULT = 1.3f; // stomp jump boost
+        const float STOMP_MULT = 1.3f;
 
         std::cout << "Doodle server listening on port " << port << std::endl;
         std::cout << "Server: waiting for client handshake (CONNECT_REQ)" << std::endl;
 
-        // Block here until a client connects (simple handshake)
         while (!connected) {
             engine::net::Endpoint ep;
             if (auto pkt = sock.receive(ep)) {
@@ -128,7 +123,6 @@ int main(int argc, char **argv)
 
         bool running = true;
         while (running) {
-            // debug heartbeat
             static int heartbeat = 0;
             if ((heartbeat++ % 3000) == 0) {
                 std::cout << "Server: loop heartbeat" << std::endl;
@@ -149,7 +143,6 @@ int main(int argc, char **argv)
                     std::cout << "Server: recv packet type=" << int(hdr.type) << " size=" << hdr.size << std::endl;
                 lastSender = senderEndpoint;
                 if (hdr.type == CONNECT_REQ && payload.size() >= sizeof(ConnectReq)) {
-                    // Mark connection established and send ACK
                     connected = true;
                     lastSender = senderEndpoint;
                     lastClientActivity = clock::now();
@@ -196,7 +189,6 @@ int main(int argc, char **argv)
                 }
             }
 
-            // Drop connection on inactivity, but keep server running and wait for a new handshake
             if (connected) {
                 auto nowC = clock::now();
                 if (nowC - lastClientActivity > clientTimeout) {
@@ -219,7 +211,6 @@ int main(int argc, char **argv)
                     auto &v = vels[player].value();
                     v.vx = c.inputX * PLAYER_MOVE_SPEED;
 
-                    // Shooting: spawn a projectile when Space is pressed with a small cooldown
                     if (c.shoot && (tick - lastShootTick >= SHOOT_COOLDOWN_TICKS)) {
                         lastShootTick = tick;
                         auto &possArr = reg.get_components<component::position>();
@@ -228,17 +219,13 @@ int main(int argc, char **argv)
                             const auto &pp = possArr[player].value();
                             const auto &phb = hbsArr[player].value();
 
-                            // Spawn projectile slightly above the player's top center
                             const float projW = 6.0f;
                             const float projH = 12.0f;
                             float spawnX = pp.x + phb.offset_x + (phb.width * 0.5f) - (projW * 0.5f);
                             float spawnY = pp.y - projH - 2.0f;
 
-                            // Spawn at the player's top without artificial clamp to avoid altitude locking
-
                             entity_t proj = reg.spawn_entity();
                             reg.add_component(proj, component::position{spawnX, spawnY});
-                            // initial velocity: shoot straight up
                             reg.add_component(proj, component::velocity{0.f, -900.f});
                             reg.add_component(proj, component::hitbox{projW, projH});
                             reg.add_component(proj, component::projectile_tag{static_cast<std::uint32_t>(player), 120u, 0.f, -1.f, 900.f, 1});
@@ -258,7 +245,6 @@ int main(int argc, char **argv)
                     }
                 }
 
-                // Update projectile lifetimes and simple cleanup when leaving bounds
                 auto &projArr = reg.get_components<component::projectile_tag>();
                 auto &posArrForProj = reg.get_components<component::position>();
                 std::vector<entity_t> toKillProj;
@@ -273,17 +259,15 @@ int main(int argc, char **argv)
                         continue;
                     }
                     if (i < posArrForProj.size() && posArrForProj[i] && posArrForProj[i].has_value()) {
-                        // Culling relative to player Y to avoid altitude locking at extreme coordinates
                             if (player < posArrForProj.size() && posArrForProj[player] && posArrForProj[player].has_value()) {
                             float pY = posArrForProj[player].value().y;
-                            const float TOP_MARGIN = 1500.0f;     // how far above player bullets can travel
-                            const float BOTTOM_MARGIN = 2500.0f;  // how far below player until cleanup
+                            const float TOP_MARGIN = 1500.0f;
+                            const float BOTTOM_MARGIN = 2500.0f;
                             float y = posArrForProj[i].value().y;
                             if (y < pY - TOP_MARGIN || y > pY + BOTTOM_MARGIN) {
                                 toKillProj.push_back(reg.entity_from_index(i));
                             }
                         } else {
-                            // Fallback absolute culling if player position is unavailable
                             if (posArrForProj[i].value().y < -10000.0f || posArrForProj[i].value().y > 10000.0f) {
                                 toKillProj.push_back(reg.entity_from_index(i));
                             }
@@ -296,7 +280,6 @@ int main(int argc, char **argv)
                 if (gameStarted) {
                     position_system(reg, poss, vels, fixedDt);
 
-                    // Horizontal wrap for player (Doodle Jump style)
                     auto &hbsAll = reg.get_components<component::hitbox>();
                     if (player < poss.size() && poss[player] && poss[player].has_value() &&
                         player < hbsAll.size() && hbsAll[player] && hbsAll[player].has_value()) {
@@ -311,7 +294,6 @@ int main(int argc, char **argv)
                         }
                     }
 
-                    // Moving platforms (kind==1) bounce within screen bounds
                     auto &platsAll = reg.get_components<component::platform>();
                     auto &velsAll = reg.get_components<component::velocity>();
                     auto &hbs = reg.get_components<component::hitbox>();
@@ -362,7 +344,6 @@ int main(int argc, char **argv)
                             pkind = 2;
                         else
                             pkind = 0;
-                        // Randomly turn some normal platforms into trampoline platforms (kind==3)
                         if (pkind == 0 && trampolineRoll(rng) == 0) {
                             pkind = 3;
                         }
@@ -377,19 +358,16 @@ int main(int argc, char **argv)
                         }
                         platforms.push_back(pe);
 
-                        // Chance to spawn a simple enemy on some platforms (avoid fragile/bounce)
                         if ((pkind == 0 || pkind == 1) && enemySpawnRoll(rng) == 0) {
                             auto &posAll = reg.get_components<component::position>();
                             auto &hbAll = reg.get_components<component::hitbox>();
                             if (posAll[pe] && posAll[pe].has_value() && hbAll[pe] && hbAll[pe].has_value()) {
                                 const auto &pp = posAll[pe].value();
-                                // Always spawn a flying enemy above the platform (never on it)
                                 float ex = enemyOffset01(rng) * (SCREEN_W - ENEMY_W);
                                 float ey = pp.y - ENEMY_H - (10.0f + enemyOffset01(rng) * 40.0f);
                                 entity_t en = reg.spawn_entity();
                                 reg.add_component(en, component::position{ex, ey});
-                                // small horizontal drift velocity so the mob floats left-right
-                                float drift = 20.0f + enemyOffset01(rng) * 20.0f; // 20..40 px/s
+                                float drift = 20.0f + enemyOffset01(rng) * 20.0f;
                                 float dir = (rng() % 2 == 0) ? 1.0f : -1.0f;
                                 reg.add_component(en, component::velocity{dir * drift, 0.0f});
                                 reg.add_component(en, component::hitbox{ENEMY_W, ENEMY_H});
@@ -400,7 +378,6 @@ int main(int argc, char **argv)
                     }
 
                     const float PRUNE_BELOW = 1200.0f;
-                    // Prune platforms
                     {
                         std::vector<entity_t> kept;
                         kept.reserve(platforms.size());
@@ -418,7 +395,6 @@ int main(int argc, char **argv)
                         }
                         platforms.swap(kept);
                     }
-                    // no separate trampoline entities to prune; trampolines are represented by platform.kind == 3
 
                     const size_t MAX_PLATFORMS = 800;
                     if (platforms.size() > MAX_PLATFORMS)
@@ -479,7 +455,6 @@ int main(int argc, char **argv)
                         }
                     }
 
-                    // Player vs enemies: stomp or head-bump
                     float prevTop = prevY;
                     float curTop = poss[player].value().y;
                     std::vector<entity_t> keptEnemies;
@@ -496,20 +471,16 @@ int main(int argc, char **argv)
                         bool head = (vels[player].value().vy < 0) && overlapX && (prevTop >= eBottom - 5.0f) && (curTop < eBottom);
 
                         if (stomp) {
-                            // Kill enemy and bounce player higher
                             reg.kill_entity(en);
                             vels[player].value().vy = PLAYER_JUMP_VELOCITY * STOMP_MULT;
                             poss[player].value().y = eTop - hbs[player].value().height;
-                            // enemy removed, don't keep in list
                         } else if (head) {
-                            // Player dies: reset to start platform and pause game
                             std::cout << "Server: player died (head bump) -> respawn and wait" << std::endl;
                             poss[player].value().x = playerSpawnX;
                             poss[player].value().y = playerSpawnY;
                             vels[player].value().vx = 0.0f;
                             vels[player].value().vy = 0.0f;
                             gameStarted = false;
-                            // clear enemies and projectiles
                             for (auto k : enemies) reg.kill_entity(k);
                             enemies.clear();
                             auto &projArrClr = reg.get_components<component::projectile_tag>();
@@ -517,7 +488,7 @@ int main(int argc, char **argv)
                                 if (projArrClr[i] && projArrClr[i].has_value()) reg.kill_entity(reg.entity_from_index(i));
                             }
                             keptEnemies.clear();
-                            break; // exit enemy loop after respawn
+                            break;
                         } else {
                             keptEnemies.push_back(en);
                         }
@@ -525,7 +496,6 @@ int main(int argc, char **argv)
                     enemies.swap(keptEnemies);
                 }
 
-                // Enemy maintenance: simplified flying behavior — bounce horizontally on screen edges
                 if (gameStarted) {
                     auto &posAll = reg.get_components<component::position>();
                     auto &hbAll = reg.get_components<component::hitbox>();
@@ -536,7 +506,6 @@ int main(int argc, char **argv)
                         auto &ep = posAll[en].value();
                         auto &ev = velAll[en].value();
                         const auto &ehb = hbAll[en].value();
-                        // Bounce horizontally within screen bounds (simple flying behavior)
                         float leftEdge = 0.0f;
                         float rightEdge = SCREEN_W - ehb.width;
                         if (ep.x < leftEdge) {
@@ -551,7 +520,6 @@ int main(int argc, char **argv)
                     enemies.swap(kept);
                 }
 
-                // Projectile vs enemies collision
                 {
                     auto &posAll = reg.get_components<component::position>();
                     auto &hbAll = reg.get_components<component::hitbox>();
@@ -564,7 +532,6 @@ int main(int argc, char **argv)
                         float eTop = posAll[en].value().y + hbAll[en].value().offset_y;
                         float eRight = eLeft + hbAll[en].value().width;
                         float eBottom = eTop + hbAll[en].value().height;
-                        // iterate all projectiles (could be optimized)
                         for (size_t i = 0; i < projAll.size(); ++i) {
                             if (!projAll[i] || !projAll[i].has_value()) continue;
                             entity_t projE = reg.entity_from_index(i);
@@ -577,12 +544,11 @@ int main(int argc, char **argv)
                             if (overlap) {
                                 deadEnemies.push_back(en);
                                 deadProjectiles.push_back(projE);
-                                break; // one projectile is enough to kill enemy
+                                break;
                             }
                         }
                     }
                     if (!deadEnemies.empty()) {
-                        // remove enemies vector entries and kill entities
                         std::vector<entity_t> kept; kept.reserve(enemies.size());
                         for (auto de : deadEnemies) reg.kill_entity(de);
                         for (auto en : enemies) {
