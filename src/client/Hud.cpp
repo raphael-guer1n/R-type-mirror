@@ -85,7 +85,7 @@ R_Type::Hud::Hud(R_Type::Rtype &rtype)
     _barHeight = 20;
 
     int scoreValue = 200;
-    std::string scoreText = "1P " + std::to_string(scoreValue);
+    std::string scoreText = "1P " + std::to_string(_score);
     float startY = 55.0f;
     float totalWidth = scoreText.size() * 33.0f;
     float startX = winW - totalWidth - 110.0f;
@@ -213,4 +213,9 @@ void R_Type::Hud::drawText(std::string &text, float hudScale, float x, float y,
         engine::R_Graphic::textureRect rectDigit(0, 0, 128, 128);
         _registry.emplace_component<component::drawable>(digitEntity, tex, rectDigit, layers::HudText);
     }
+}
+
+void R_Type::Hud::setScore(int score)
+{
+    _score = score;
 }

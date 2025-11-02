@@ -325,6 +325,10 @@ void R_Type::Rtype::receiveSnapshot()
                 {
                     const EntityState &es = entities[i];
 
+                    if (es.entityId == _player && _hud)
+                    {
+                        _hud->setScore(es.score);
+                    }
                     size_t idLocal;
                     auto it = _entityMap.find(es.entityId);
                     if (it == _entityMap.end())

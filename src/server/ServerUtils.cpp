@@ -1,5 +1,5 @@
 #include "server/ServerUtils.hpp"
-#include "common/Components.hpp"
+#include "engine/ecs/Components.hpp"
 #include "common/Packets.hpp"
 #include <algorithm>
 
@@ -124,6 +124,11 @@ void try_add_entity(uint32_t entityId,
     es.x = ctx.positions[idx]->x;
     es.y = ctx.positions[idx]->y;
 
+    if (idx < ctx.scores.size() && ctx.scores[idx])
+    es.score = ctx.scores[idx]->current;
+    else
+    es.score = 0;
+
     if (idx < ctx.velocities.size() && ctx.velocities[idx]) {
         es.vx = ctx.velocities[idx]->vx;
         es.vy = ctx.velocities[idx]->vy;
@@ -180,12 +185,6 @@ void try_add_entity(uint32_t entityId,
         }
     } else {
         es.enemyType = 255;
-    }
-    if (ctx.registry.has<component::score>(entityId)) {
-    const auto &sc = ctx.registry.get<component::score>(entityId);
-    es.score = sc.value;
-    } else {
-        es.score = 0;
     }
     out.push_back(es);
     inserted.insert(entityId);

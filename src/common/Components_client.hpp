@@ -26,11 +26,6 @@ namespace component
         bool isCharging;
     };
 
-    struct score {
-        int current;
-        int highScore;
-    };
-
     struct lifetime {
         float remaining;
     };

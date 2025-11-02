@@ -63,6 +63,8 @@ void GameLogic::broadcast_snapshot()
     auto &healths = _registry.get_components<component::health>();
     auto &velocities = _registry.get_components<component::velocity>();
     auto &ai = _registry.get_components<component::ai_controller>();
+    auto &scores = _registry.get_components<component::score>();
+
 
     constexpr std::size_t SNAPSHOT_LIMIT = 10000;
     std::vector<EntityState> states;
@@ -71,7 +73,7 @@ void GameLogic::broadcast_snapshot()
 
     auto &hitboxes = _registry.get_components<component::hitbox>();
     SnapshotBuilderContext ctx{positions, velocities, kinds,
-        collisions, healths, hitboxes, ai};
+        collisions, healths, hitboxes, ai, scores};
     for (auto &pInfo : _players) {
         try_add_entity(static_cast<uint32_t>(pInfo.entityId), states,
             ctx, inserted, SNAPSHOT_LIMIT);
