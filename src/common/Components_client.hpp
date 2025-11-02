@@ -14,6 +14,10 @@ namespace component
 
     struct hud_tag {};
 
+    struct health_tag {};
+
+    struct score_tag {};
+
     struct level_effect_tag {};
 
     // struct health {
