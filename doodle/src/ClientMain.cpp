@@ -8,6 +8,7 @@
 #include "engine/network/IoContext.hpp"
 #include "engine/network/UdpSocket.hpp"
 #include "engine/network/Endpoint.hpp"
+#include "engine/renderer/Texture.hpp"
 
 using namespace engine;
 using namespace engine::R_Graphic;
@@ -23,6 +24,16 @@ int main(int argc, char **argv) {
 
         Window window("Doodle - Client", 480, 800);
         Renderer renderer(window);
+
+        // Load simple sprites for doodle (no animation). If files are missing we fall back to colored rects.
+        std::shared_ptr<engine::R_Graphic::Texture> texPlayer, texTileRegular, texTileMoving, texTileGhost, texPlayerProj, texDecor, texMonster;
+        texPlayer = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle.png");
+        texTileRegular = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_regular.png");
+        texTileMoving = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_moving.png");
+        texTileGhost = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/tile_ghost.png");
+        //texPlayerProj = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle_bullet.png");
+        //texDecor = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/doodle_decor.png");
+        texMonster = std::make_shared<engine::R_Graphic::Texture>(window, "./assets/assets (reworked)/monster.png");
 
     engine::net::IoContext io;
     engine::net::UdpSocket sock(io, 0);
@@ -271,47 +282,68 @@ int main(int argc, char **argv) {
                 int screenX = static_cast<int>(p.x);
                 int screenY = static_cast<int>(p.y - cameraY);
 
+                // Decide which sprite (if any) to use for this entity
+                std::shared_ptr<engine::R_Graphic::Texture> useTex = nullptr;
                 uint8_t r = 0, g = 0, b = 0, a = 255;
                 if (i < kinds.size() && kinds[i] && kinds[i].has_value()) {
                     auto k = kinds[i].value();
                     if (k == component::entity_kind::player) {
-                        r = 0;
-                        g = 200;
-                        b = 0;
+                        useTex = texPlayer;
+                        r = 0; g = 200; b = 0;
                     }
                     else if (k == component::entity_kind::playerProjectile) {
+                        useTex = texPlayerProj;
                         r = 255; g = 60; b = 60; // player bullet
                     }
+                    else if (k == component::entity_kind::enemy) {
+                        useTex = texMonster;
+                        r = 200; g = 50; b = 50;
+                    }
                     else if (k == component::entity_kind::decor) {
+                        // for platforms choose specific tile based on platform kind
                         if (i < platforms.size() && platforms[i] && platforms[i].has_value()) {
                             uint8_t pk = platforms[i].value().kind;
                             switch (pk)
                             {
                             case 1: // moving
+                                useTex = texTileMoving ? texTileMoving : texTileRegular;
                                 r = 50; g = 130; b = 255;
                                 break;
-                            case 2: // fragile
+                            case 2: // single-use / fragile -> ghost
+                                useTex = texTileGhost ? texTileGhost : texTileRegular;
                                 r = 210; g = 180; b = 0;
                                 break;
-                            case 3: // bounce
-                                r = 0; g = 200; b = 200;
-                                break;
                             default: // regular
+                                useTex = texTileRegular ? texTileRegular : texDecor;
                                 r = 100; g = 100; b = 100;
                                 break;
                             }
                         }
                         else {
+                            useTex = texDecor;
                             r = 0; g = 0; b = 0;
                         }
                     } else {
-                        r = 255;
-                        g = 0;
-                        b = 0;
+                        // fallback sprite for other kinds
+                        useTex = texDecor;
+                        r = 255; g = 0; b = 0;
                     }
                 }
-                renderer.setDrawColor(r, g, b, a);
-                renderer.fillRect(screenX, screenY, static_cast<int>(hb.width), static_cast<int>(hb.height));
+
+                // If a texture is available, draw it centered on the hitbox; else draw the colored rect as before
+                if (useTex) {
+                    auto size = useTex->getSize();
+                    double texW = static_cast<double>(size.x);
+                    double texH = static_cast<double>(size.y);
+                    double texPosX = p.x + hb.offset_x + (hb.width * 0.5) - (texW * 0.5);
+                    double texPosY = p.y + hb.offset_y + (hb.height * 0.5) - (texH * 0.5);
+                    // account for camera
+                    useTex->setPosition(texPosX, texPosY - cameraY);
+                    useTex->draw(window, nullptr);
+                } else {
+                    renderer.setDrawColor(r, g, b, a);
+                    renderer.fillRect(screenX, screenY, static_cast<int>(hb.width), static_cast<int>(hb.height));
+                }
 
                 if (static_cast<ssize_t>(i) == playerIdx) {
                     renderer.setDrawColor(0, 255, 0, 255);
