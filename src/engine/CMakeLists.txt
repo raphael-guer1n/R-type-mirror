@@ -5,6 +5,7 @@ if(DEFINED ENGINE_MODULES)
     string(FIND "${ENGINE_MODULES}" "ecs" HAS_ECS)
     string(FIND "${ENGINE_MODULES}" "events" HAS_EVENTS)
     string(FIND "${ENGINE_MODULES}" "profiling" HAS_PROFILING)
+    string(FIND "${ENGINE_MODULES}" "console" HAS_CONSOLE)
 
     if(HAS_RENDERER GREATER_EQUAL 0)
         set(ENGINE_RENDERER ON)
@@ -41,6 +42,12 @@ if(DEFINED ENGINE_MODULES)
     else()
         set(ENGINE_PROFILING OFF)
     endif()
+
+    if(HAS_CONSOLE GREATER_EQUAL 0)
+        set(ENGINE_CONSOLE ON)
+    else()
+        set(ENGINE_CONSOLE OFF)
+    endif()
 endif()
 
 option(ENGINE_RENDERER "Enable renderer subsystem (SDL-based graphics)" ON)
@@ -49,6 +56,7 @@ option(ENGINE_NETWORK "Enable network subsystem (ASIO-based)" ON)
 option(ENGINE_ECS "Enable ECS subsystem" ON)
 option(ENGINE_EVENTS "Enable events subsystem" ON)
 option(ENGINE_PROFILING "Enable profiling subsystem (metrics and benchmarking)" ON)
+option(ENGINE_CONSOLE "Enable console subsystem (developer console)" ON)
 
 set(ENGINE_CORE_SOURCES)
 
@@ -111,6 +119,14 @@ if(ENGINE_PROFILING)
     message(STATUS "Engine: Profiling subsystem enabled")
 endif()
 
+if(ENGINE_CONSOLE)
+    list(APPEND ENGINE_SOURCES
+        console/Console.cpp
+    )
+    
+    message(STATUS "Engine: Console subsystem enabled")
+endif()
+
 add_library(engine ${ENGINE_CORE_SOURCES} ${ENGINE_SOURCES})
 
 target_include_directories(engine
@@ -171,4 +187,8 @@ endif()
 
 if(ENGINE_PROFILING)
     target_compile_definitions(engine PUBLIC ENGINE_HAS_PROFILING)
+endif()
+
+if(ENGINE_CONSOLE)
+    target_compile_definitions(engine PUBLIC ENGINE_HAS_CONSOLE)
 endif()
