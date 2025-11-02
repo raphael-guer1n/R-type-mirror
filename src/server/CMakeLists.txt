@@ -17,7 +17,7 @@ add_executable(r-type_server
     register/ProjectileMovement.cpp
     Lobby/Lobby.cpp
     Lobby/LobbyManager.cpp
-    PacketHandle/HandleInput.cpp
+    HandleInput.cpp
 )
 
 find_package(asio CONFIG REQUIRED)

@@ -29,7 +29,8 @@ enum PacketType : uint16_t
     LIST_LOBBIES,
     LOBBY_LIST_RESPONSE,
     CREATE_LOBBY,
-    JOIN_LOBBY
+    JOIN_LOBBY,
+    LOBBY_JOINED
 };
 /**    * @brief Connect request packet structure.
     */  
@@ -133,5 +134,12 @@ struct LobbyJoinRequest
 {
     uint8_t lobbyId;
 };
+/**
+ * @brief Send confirmation of creation.
+ */
+struct LobbyJoinedResponse {
+    uint8_t lobbyId;
+};
+
 
 #pragma pack(pop)

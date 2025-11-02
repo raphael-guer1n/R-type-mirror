@@ -91,6 +91,7 @@ namespace R_Type
         void waiting_connection();
         void handle_collision(engine::registry &reg, size_t i, size_t j);
         void handleListLobby(const std::vector<uint8_t> &payload);
+        void handleLobbyJoined(const std::vector<uint8_t> &payload);
 
     private:
         std::unique_ptr<engine::net::NetClient> _client;
@@ -113,6 +114,8 @@ namespace R_Type
         bool _connected = false;
         bool _gameOver = false;
         bool _won = false;
+        bool _inLobby = false;
+        int _currentLobbyId = -1;
         std::unordered_map<size_t, int> _playerIndexByLocalId;
         bool _showHitboxes = false;
         int _hitboxOverlayThickness = 3;

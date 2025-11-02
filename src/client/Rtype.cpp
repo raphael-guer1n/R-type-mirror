@@ -47,6 +47,9 @@ R_Type::Rtype::Rtype()
             if (hdr.type == LOBBY_LIST_RESPONSE && payload.size() >= sizeof(LobbyListResponse)) {
                 handleListLobby(payload);
             }
+            if (hdr.type == LOBBY_JOINED && payload.size() >= sizeof(LobbyJoinedResponse)) {
+                handleLobbyJoined(payload);
+            }
         });
         _client->start();
         _registry.register_component<component::drawable>();
@@ -83,14 +86,11 @@ void R_Type::Rtype::update(float deltaTime,
         if (start)
         {
             _inMenu = false;
-            // _client->start();
-            // std::cout << "Sent CONNECT_REQ\n";
         }
         return;
     }
     if (!_connected && !_inMenu)
     {
-        // waiting_connection();
         return;
     }
     for (auto &ev : events)
@@ -160,7 +160,7 @@ void R_Type::Rtype::update(float deltaTime,
     scroll_reset_system(_registry, positions, kinds, _app);
     animation_system(_registry, animations, drawables, deltaTime);
     hitbox_system(_registry, positions, hitboxes, [this](size_t i, size_t j)
-                  { this->handle_collision(_registry, i, j); });
+        { this->handle_collision(_registry, i, j); });
     lifetime_system(_registry, deltaTime);
     _registry.run_systems();
 }
@@ -466,9 +466,9 @@ void R_Type::Rtype::handle_collision(engine::registry &reg, size_t i, size_t j)
         component::animation anim = _playerData->explosionAnimation;
         reg.add_component(explosion, component::lifetime{0.8f});
         reg.add_component(explosion, component::drawable{
-                                         _playerData->playerTexture,
-                                         _playerData->explosionRect,
-                                         layers::Effects});
+            _playerData->playerTexture,
+            _playerData->explosionRect,
+            layers::Effects});
         reg.add_component(explosion, component::animation{anim});
         return;
     }

@@ -33,6 +33,11 @@ class GameLogic
         void broadcast_snapshot();
         void handle_input(const engine::net::Endpoint &sender,
             const std::vector<uint8_t> &payload);
+        std::vector<PlayerInfo>& getPlayers() {return _players;}
+        engine::entity_t spawn_player(engine::net::Endpoint endpoint, std::size_t index);
+        std::unordered_set<uint32_t>& getLiveEntities() {return _live_entities;}
+        uint32_t &getTick() {return _tick;}
+        bool &getRunning() {return _running;}
     private:
         // Initialization / registration
         void register_components();
@@ -50,8 +55,6 @@ class GameLogic
         void broadcast_game_over(uint32_t winnerEntityId);
         void check_game_over();
 
-        // Spawning helpers
-        engine::entity_t spawn_player(engine::net::Endpoint endpoint, std::size_t index);
     private:
         bool _running = false;
         engine::registry _registry;

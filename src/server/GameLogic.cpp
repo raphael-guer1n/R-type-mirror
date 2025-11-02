@@ -69,8 +69,9 @@ void GameLogic::broadcast_snapshot()
         sizeof(EntityState) * states.size());
     PacketHeader hdr{SNAPSHOT, static_cast<uint16_t>(buf.size()), _tick};
 
-    for (auto &p : _players)
+    for (auto &p : _players) {
         _server.send(hdr, buf, p.endpoint);
+    }
 }
 
 void GameLogic::broadcast_game_over(uint32_t winnerEntityId)

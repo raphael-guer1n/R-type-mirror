@@ -10,7 +10,7 @@ void R_Type::Rtype::requestLobbyList()
 
 void R_Type::Rtype::createLobby(const std::string &name)
 {
-    if (name.size() >= 32)
+    if (name.size() >= 32 || _inLobby)
         return;
     LobbyCreateRequest req{};
     std::strncpy(req.name, name.c_str(), sizeof(req.name) - 1);
@@ -50,4 +50,16 @@ void R_Type::Rtype::handleListLobby(const std::vector<uint8_t> &payload)
         info.name[sizeof(info.name) - 1] = '\0';
         _lobbies.push_back(info);
     }
+}
+
+void R_Type::Rtype::handleLobbyJoined(const std::vector<uint8_t> &payload)
+{
+    if (payload.size() < sizeof(LobbyJoinedResponse))
+        return;
+
+    LobbyJoinedResponse resp{};
+    std::memcpy(&resp, payload.data(), sizeof(resp));
+
+    _inLobby = true;
+    _currentLobbyId = resp.lobbyId;
 }

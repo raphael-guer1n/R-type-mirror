@@ -169,17 +169,7 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
             if (x >= _centerX && x <= _centerX + _buttonWidth &&
                 y >= _winH / 2 - 150 && y <= _winH / 2 - 150 + _buttonHeight) {
                 _currentPage = Page::Lobby;
-                // _startPressed = true;
-
-                // _menuMusic.stop();
-
-                // if (_gameMusic.load("./Assets/Music/Game.ogg")) {
-                //     _gameMusic.play(true);
-                // } else {
-                //     std::cerr << "[AUDIO] Failed to load Game.ogg\n";
-                // }
-
-                // return true;
+                rtype.requestLobbyList();
             }
 
             if (x >= _centerX && x <= _centerX + _buttonWidth &&
@@ -248,12 +238,36 @@ bool R_Type::Menu::update(const std::vector<engine::R_Events::Event> &events,
             if (x >= 1200 && x <= 1350 && y >= 10 && y <= 160) {
                 if (!_lobbyName.empty()) {
                     rtype.createLobby(_lobbyName);
-                    std::cout << "lobbiessss" << std::endl;
+                    _menuMusic.stop();
+                    if (_gameMusic.load("./Assets/Music/Game.ogg")) {
+                        _gameMusic.play(true);
+                    } else {
+                        std::cerr << "[AUDIO] Failed to load Game.ogg\n";
+                    }
+                    return true;
                 }
             }
             if (x >= 1770 && x <= 1920 && y >= 10 && y <= 160) {
-                std::cout << "REQ LOBBY" << std::endl;
                 rtype.requestLobbyList();
+            }
+            auto lobbies = rtype.getLobbies();
+            if (lobbies.empty())
+                break;
+            float lobX = 620;
+            float lobY = 240;
+            for (auto lobby : lobbies) {
+                if (x >= lobX && x <= x + 150 &&
+                    y >= lobY && y <= lobY + 150) {
+                    rtype.joinLobby(lobby.id);
+                    _menuMusic.stop();
+                    if (_gameMusic.load("./Assets/Music/Game.ogg")) {
+                        _gameMusic.play(true);
+                    } else {
+                        std::cerr << "[AUDIO] Failed to load Game.ogg\n";
+                    }
+                    return true;
+                }
+                lobY += 220;
             }
         }
     }

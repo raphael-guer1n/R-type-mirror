@@ -19,63 +19,49 @@ void Lobby::start()
     if (_running)
         return;
     _running = true;
-    // _thread = std::thread(&Lobby::run_thread, this);
     std::cout << "[Lobby " << _id << "] started\n";
 }
 
 void Lobby::stop()
 {
     _running = false;
-    // if (_thread.joinable())
-    //     _thread.join();
     std::cout << "[Lobby " << _id << "] stopped\n";
 }
 
 bool Lobby::has_player(const engine::net::Endpoint &ep) const
 {
-    // std::lock_guard<std::mutex> lock(_playerMtx);
     return std::any_of(_players.begin(), _players.end(), [&](const auto &p) {
-        std::cout << p.address << " " << ep.address << " " << p.port << " " << ep.port << std::endl;
         return p.address == ep.address && p.port == ep.port;
     });
 }
 
-void Lobby::run_thread()
-{
-    using namespace std::chrono_literals;
-    auto last_tick = std::chrono::steady_clock::now();
-    const auto tick_duration = 16ms;
-
-    while (_running)
-    {
-        auto now = std::chrono::steady_clock::now();
-        if (now - last_tick >= tick_duration)
-        {
-            update();
-            last_tick += tick_duration;
-        }
-        std::this_thread::sleep_for(1ms);
-    }
-}
-
 void Lobby::add_player(const engine::net::Endpoint &ep)
 {
-    // std::lock_guard<std::mutex> lock(_playerMtx);
     if (_players.size() >= _maxPlayers)
         return;
     if (has_player(ep))
         return;
     _players.push_back(ep);
-    if (_players.size() == _maxPlayers)
+    if (_players.size() == _maxPlayers) {
         _ready = true;
-    // PacketHeader hdr{CONNECT_ACK, 0, 0};
-    // _server.send(hdr, {}, ep);
+        _game.getRunning() = true;
+    }
+    std::size_t playerIndex = _game.getPlayers().size();
+    auto eid = _game.spawn_player(ep, playerIndex);
+    PlayerInfo pi{ep, eid};
+    _game.getLiveEntities().insert(static_cast<uint32_t>(eid));
+    _game.getPlayers().push_back(pi);
+    ConnectAck ack{1234, 60, static_cast<uint16_t>(eid)};
+    PacketHeader h{CONNECT_ACK, static_cast<uint16_t>(sizeof(ConnectAck)), 0};
+    std::vector<uint8_t> buf(sizeof(ConnectAck));
+    std::memcpy(buf.data(), &ack, sizeof(ConnectAck));
+    _server.send(h, buf, ep);
+    _game.broadcast_snapshot();
     std::cout << "[Lobby " << _id << "] Player joined (" << _players.size() << "/" << _maxPlayers << ")\n";
 }
 
 void Lobby::remove_player(const engine::net::Endpoint &ep)
 {
-    // std::lock_guard<std::mutex> lock(_playerMtx);
     _players.erase(std::remove_if(_players.begin(), _players.end(),
         [&](const auto &p)
         { return p.address == ep.address && p.port == ep.port; }),
@@ -97,11 +83,13 @@ void Lobby::handle_packet(const engine::net::Endpoint &sender,
 
 void Lobby::update()
 {
-    // std::lock_guard<std::mutex> lock(_playerMtx);
-
     if (_ready) {
         _game.update_game_logic();
         _game.update_spawns_and_events();
         _game.broadcast_snapshot();
+        _game.getTick()++;
+        if (!_game.getRunning()) {
+            stop();
+        }
     }
 }

@@ -26,14 +26,29 @@ LobbyManager::~LobbyManager()
 
 void LobbyManager::tick_all()
 {
-    // std::lock_guard<std::mutex> lock(_mtx);
-    for (auto &[id, lobby] : _lobbies)
-        lobby->update();
+    for (auto it = _lobbies.begin(); it != _lobbies.end();){
+        it->second->update();
+
+        if (!it->second->getRunning()) {
+            uint8_t lobbyId = it->first;
+
+            for (auto pit = _playerToLobby.begin(); pit != _playerToLobby.end(); )
+            {
+                if (pit->second == lobbyId)
+                    pit = _playerToLobby.erase(pit);
+                else
+                    ++pit;
+            }
+            std::cout << "[LobbyManager] Removing stopped lobby " << (int)lobbyId << "\n";
+            it = _lobbies.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void LobbyManager::shutdown()
 {
-    // std::lock_guard<std::mutex> lock(_mtx);
     for (auto &[id, lobby] : _lobbies)
         lobby->stop();
     _lobbies.clear();
@@ -47,11 +62,9 @@ void LobbyManager::on_packet(const engine::net::Endpoint &sender,
     switch (hdr.type)
     {
         case LIST_LOBBIES:
-            std::cout << "List lobby" << std::endl;
             send_lobby_list(sender);
             break;
         case CREATE_LOBBY:
-            std::cout << "Create lobby" << std::endl;
             create_lobby(sender, payload);
             break;
         case JOIN_LOBBY:
@@ -66,7 +79,6 @@ void LobbyManager::on_packet(const engine::net::Endpoint &sender,
 void LobbyManager::send_lobby_list(const engine::net::Endpoint &sender)
 {
     LobbyListResponse resp{};
-    // std::lock_guard<std::mutex> lock(_mtx);
     uint8_t count = 0;
     for (auto &[id, lobby] : _lobbies)
     {
@@ -111,6 +123,13 @@ void LobbyManager::create_lobby(const engine::net::Endpoint &sender,
     std::cout << "[LobbyManager] Created lobby '" << lobbyName
         << "' (" << (int)id << ") by " << sender.address << ":" << sender.port << "\n";
     send_lobby_list(sender);
+
+    LobbyJoinedResponse resp{};
+    resp.lobbyId = id;
+    PacketHeader hdr{LOBBY_JOINED, sizeof(resp), 0};
+    std::vector<uint8_t> buf(sizeof(resp));
+    std::memcpy(buf.data(), &resp, sizeof(resp));
+    _netServer.send(hdr, buf, sender);
 }
 
 
@@ -122,17 +141,21 @@ void LobbyManager::join_lobby(const engine::net::Endpoint &sender,
     LobbyJoinRequest req{};
     std::memcpy(&req, payload.data(), sizeof(req));
 
-    // std::lock_guard<std::mutex> lock(_mtx);
     auto it = _lobbies.find(req.lobbyId);
     if (it != _lobbies.end()) {
         it->second->add_player(sender);
         _playerToLobby[endpoint_key(sender)] = req.lobbyId;
+        LobbyJoinedResponse resp{};
+        resp.lobbyId = req.lobbyId;
+        PacketHeader hdr{LOBBY_JOINED, sizeof(resp), 0};
+        std::vector<uint8_t> buf(sizeof(resp));
+        std::memcpy(buf.data(), &resp, sizeof(resp));
+        _netServer.send(hdr, buf, sender);
     }
 }
 
 void LobbyManager::leave_lobby(const engine::net::Endpoint &sender)
 {
-    // std::lock_guard<std::mutex> lock(_mtx);
     std::string key = endpoint_key(sender);
     auto it = _playerToLobby.find(key);
     if (it == _playerToLobby.end())
@@ -157,7 +180,6 @@ void LobbyManager::route_to_lobby(const engine::net::Endpoint &sender,
     const PacketHeader &hdr,
     const std::vector<uint8_t> &payload)
 {
-    // std::lock_guard<std::mutex> lock(_mtx);
     std::string key = endpoint_key(sender);
     auto it = _playerToLobby.find(key);
     if (it == _playerToLobby.end())

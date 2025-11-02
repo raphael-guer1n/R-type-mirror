@@ -41,9 +41,7 @@ class Lobby
         const std::string &name() const { return _name; }
         uint8_t playerCount() const { return static_cast<uint8_t>(_players.size()); }
         uint8_t maxPlayers() const { return _maxPlayers; }
-
-    private:
-        void run_thread();
+        bool getRunning() const {return _running;}
 
     private:
 

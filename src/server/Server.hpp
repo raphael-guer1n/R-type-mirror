@@ -53,38 +53,7 @@ public:
     void stop();
 
 private:
-    // Initialization / registration
-    // void register_components();
-    // void setup_systems();
-
-    // Network
-    // void on_packet_received(const engine::net::Endpoint& sender,
-    //     const PacketHeader& hdr, const std::vector<uint8_t>& payload);
-    // void handle_connect(const engine::net::Endpoint& sender);
-    // void handle_input(const engine::net::Endpoint& sender,
-    //     const std::vector<uint8_t>& payload);
-
-    // Sub-registrations (split from setup_systems)
-    // void register_health_and_spawn_systems();
-    // void register_projectile_movement_system();
-    // void register_gravity_system();
-    // void register_collision_system();
-    // void register_bounds_system();
-    // void register_area_effect_system();
-
-    // Game loop phases
-    // void update_game_logic();
-    // void update_spawns_and_events();
-    // void broadcast_snapshot();
-    // void broadcast_game_over(uint32_t winnerEntityId);
-    // void check_game_over();
     void tick_loop();
-
-    // Spawning helpers
-    // engine::entity_t spawn_player(engine::net::Endpoint endpoint, std::size_t index);
-
-    // Internal utility: ensure an entity is scheduled for removal by setting/adding despawn_tag.
-    // Centralises logic so systems never call kill_entity directly (uniform ECS pipeline).
 private:
     bool _running = false;
     bool _ready = false;
@@ -106,12 +75,4 @@ private:
     std::unordered_map<uint32_t, bool> _prevSpace;
     std::unordered_map<uint32_t, bool> _prevC;
     std::unordered_map<uint32_t, uint32_t> _pressTick;
-
-    // std::vector<Lobby> _lobbies;
-    // std::unordered_map<std::string, Lobby*> _playerToLobby;
 };
-
-// struct PlayerInfo {
-//     engine::net::Endpoint endpoint;
-//     engine::entity_t entityId;
-// };
