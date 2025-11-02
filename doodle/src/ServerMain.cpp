@@ -78,10 +78,12 @@ int main(int argc, char **argv)
         std::mt19937 rng(std::random_device{}());
         std::uniform_real_distribution<float> xDist(0.0f, SCREEN_W - PLATFORM_W);
         std::uniform_real_distribution<float> spacing(80.0f, 120.0f);
-        std::uniform_int_distribution<int> enemySpawnRoll(0, 9); // 10% chance to spawn an enemy on eligible platforms
+        std::uniform_int_distribution<int> enemySpawnRoll(0, 19); // ~5% chance to spawn an enemy on eligible platforms (reduced)
         std::uniform_real_distribution<float> enemyOffset01(0.0f, 1.0f);
 
         std::uniform_int_distribution<int> kindDist(0, 9);
+        // Chance to spawn a trampoline overlay above a normal platform (1 in 10)
+        std::uniform_int_distribution<int> trampolineRoll(0, 9);
 
         float minPlatformY = START_PLATFORM_Y;
 
@@ -354,12 +356,16 @@ int main(int argc, char **argv)
                         uint8_t pkind = 0;
                         if (kd <= 5)
                             pkind = 0;
-                        else if
-                            (kd <= 7) pkind = 1;
-                        else if
-                            (kd == 8) pkind = 2;
+                        else if (kd <= 7)
+                            pkind = 1;
+                        else if (kd == 8)
+                            pkind = 2;
                         else
+                            pkind = 0;
+                        // Randomly turn some normal platforms into trampoline platforms (kind==3)
+                        if (pkind == 0 && trampolineRoll(rng) == 0) {
                             pkind = 3;
+                        }
                         reg.add_component(pe, component::platform{pkind});
                         reg.add_component(pe, component::entity_kind::decor);
                         if (pkind == 1) {
@@ -394,21 +400,25 @@ int main(int argc, char **argv)
                     }
 
                     const float PRUNE_BELOW = 1200.0f;
-                    std::vector<entity_t> kept;
-                    kept.reserve(platforms.size());
-                    auto &posArr = reg.get_components<component::position>();
-                    for (auto e : platforms) {
-                        if (e >= posArr.size() || !posArr[e] || !posArr[e].has_value())
-                            continue;
-                        float py = posArr[e].value().y;
-                        if (py > poss[player].value().y + PRUNE_BELOW) {
-                            reg.kill_entity(e);
+                    // Prune platforms
+                    {
+                        std::vector<entity_t> kept;
+                        kept.reserve(platforms.size());
+                        auto &posArr = reg.get_components<component::position>();
+                        for (auto e : platforms) {
+                            if (e >= posArr.size() || !posArr[e] || !posArr[e].has_value())
+                                continue;
+                            float py = posArr[e].value().y;
+                            if (py > poss[player].value().y + PRUNE_BELOW) {
+                                reg.kill_entity(e);
+                            }
+                            else {
+                                kept.push_back(e);
+                            }
                         }
-                        else {
-                            kept.push_back(e);
-                        }
+                        platforms.swap(kept);
                     }
-                    platforms.swap(kept);
+                    // no separate trampoline entities to prune; trampolines are represented by platform.kind == 3
 
                     const size_t MAX_PLATFORMS = 800;
                     if (platforms.size() > MAX_PLATFORMS)
@@ -450,7 +460,9 @@ int main(int argc, char **argv)
                             uint8_t pkind = 0;
                             auto &plats = reg.get_components<component::platform>();
                             if (e < plats.size() && plats[e] && plats[e].has_value()) pkind = plats[e].value().kind;
-                            if (pkind == 0) {
+                            if (pkind == 3) {
+                                vels[player].value().vy = PLAYER_JUMP_VELOCITY * 1.5f;
+                            } else if (pkind == 0) {
                                 vels[player].value().vy = PLAYER_JUMP_VELOCITY;
                             } else if (pkind == 1) {
                                 vels[player].value().vy = PLAYER_JUMP_VELOCITY;
@@ -460,8 +472,6 @@ int main(int argc, char **argv)
                             } else if (pkind == 2) {
                                 vels[player].value().vy = PLAYER_JUMP_VELOCITY;
                                 reg.kill_entity(e);
-                            } else if (pkind == 3) {
-                                vels[player].value().vy = PLAYER_JUMP_VELOCITY * 1.5f;
                             } else {
                                 vels[player].value().vy = PLAYER_JUMP_VELOCITY;
                             }
