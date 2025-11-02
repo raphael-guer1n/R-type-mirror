@@ -10,6 +10,7 @@
 #include "engine/network/Endpoint.hpp"
 #include "engine/renderer/Texture.hpp"
 #include "engine/audio/AudioManager.hpp"
+#include "common/Layers.hpp"
 
 using namespace engine;
 using namespace engine::R_Graphic;
@@ -322,67 +323,66 @@ int main(int argc, char **argv) {
                 cameraY = cameraYPrev + (targetY - cameraYPrev) * SMOOTH;
             }
 
-            for (size_t i = 0; i < positions.size(); ++i)
-            {
-                if (!(positions[i] && hitboxes[i]))
-                    continue;
+            auto getLayer = [&](component::entity_kind k) {
+                switch (k) {
+                    case component::entity_kind::decor: return layers::Platforms;
+                    case component::entity_kind::enemy: return layers::Enemies;
+                    case component::entity_kind::player: return layers::Player;
+                    case component::entity_kind::playerProjectile: return layers::PlayerProjectiles;
+                    default: return layers::Enemies;
+                }
+            };
+
+            
+
+            auto drawPlatformWithOverlay = [&](size_t i) {
                 auto p = positions[i].value();
                 auto hb = hitboxes[i].value();
-                int screenX = static_cast<int>(p.x);
-                int screenY = static_cast<int>(p.y - cameraY);
+                std::shared_ptr<engine::R_Graphic::Texture> baseTex = texTileRegular;
+                bool overlayTrampoline = false;
+                if (i < platforms.size() && platforms[i] && platforms[i].has_value()) {
+                    uint8_t pk = platforms[i].value().kind;
+                    switch (pk) {
+                        case 1: baseTex = texTileMoving ? texTileMoving : texTileRegular; break;
+                        case 2: baseTex = texTileGhost ? texTileGhost : texTileRegular; break;
+                        case 3: baseTex = texTileRegular ? texTileRegular : texDecor; overlayTrampoline = true; break;
+                        default: baseTex = texTileRegular ? texTileRegular : texDecor; break;
+                    }
+                }
+                if (baseTex) {
+                    auto size = baseTex->getSize();
+                    double texW = static_cast<double>(size.x);
+                    double texH = static_cast<double>(size.y);
+                    double texPosX = p.x + hb.offset_x + (hb.width * 0.5) - (texW * 0.5);
+                    double texPosY = p.y + hb.offset_y + (hb.height * 0.5) - (texH * 0.5);
+                    baseTex->setPosition(texPosX, texPosY - cameraY);
+                    baseTex->draw(window, nullptr);
+                    if (overlayTrampoline && texTrampoline) {
+                        auto tsize = texTrampoline->getSize();
+                        double trampW = static_cast<double>(tsize.x);
+                        double trampH = static_cast<double>(tsize.y);
+                        double platformTexTop = texPosY;
+                        double drawX = p.x + hb.offset_x + (hb.width * 0.5) - (trampW * 0.5);
+                        const double TRAMPOLINE_GAP = 0.0;
+                        double drawY = platformTexTop - trampH - TRAMPOLINE_GAP;
+                        texTrampoline->setPosition(drawX, drawY - cameraY);
+                        texTrampoline->draw(window, nullptr);
+                    }
+                }
+            };
 
-                std::shared_ptr<engine::R_Graphic::Texture> useTex = nullptr;
-                uint8_t r = 0, g = 0, b = 0, a = 255;
-                if (i < kinds.size() && kinds[i] && kinds[i].has_value()) {
-                    auto k = kinds[i].value();
-                    if (k == component::entity_kind::player) {
-                        useTex = texPlayer;
-                        r = 0; g = 200; b = 0;
-                    }
-                    else if (k == component::entity_kind::playerProjectile) {
-                        useTex = texPlayerProj;
-                        r = 255; g = 60; b = 60;
-                    }
-                    else if (k == component::entity_kind::enemy) {
-                        useTex = texMonster;
-                        r = 200; g = 50; b = 50;
-                    }
-                    else if (k == component::entity_kind::decor) {
-                        if (i < platforms.size() && platforms[i] && platforms[i].has_value()) {
-                            uint8_t pk = platforms[i].value().kind;
-                            std::shared_ptr<engine::R_Graphic::Texture> baseTex = texTileRegular;
-                            std::shared_ptr<engine::R_Graphic::Texture> overlayTex = nullptr;
-                            switch (pk)
-                            {
-                            case 1:
-                                baseTex = texTileMoving ? texTileMoving : texTileRegular;
-                                r = 50; g = 130; b = 255;
-                                break;
-                            case 2:
-                                baseTex = texTileGhost ? texTileGhost : texTileRegular;
-                                r = 210; g = 180; b = 0;
-                                break;
-                            case 3:
-                                baseTex = texTileRegular ? texTileRegular : texDecor;
-                                r = 255; g = 160; b = 40;
-                                break;
-                            default:
-                                baseTex = texTileRegular ? texTileRegular : texDecor;
-                                r = 100; g = 100; b = 100;
-                                break;
-                            }
-                            useTex = baseTex;
-                        }
-                        else {
-                            useTex = texDecor;
-                            r = 0; g = 0; b = 0;
-                        }
-                    }
-                } else {
-                        useTex = texDecor;
-                        r = 255; g = 0; b = 0;
-                    }
+            for (size_t i = 0; i < positions.size(); ++i) {
+                if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value())) continue;
+                if (kinds[i].value() != component::entity_kind::decor) continue;
+                drawPlatformWithOverlay(i);
+            }
 
+            for (size_t i = 0; i < positions.size(); ++i) {
+                if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value())) continue;
+                if (kinds[i].value() != component::entity_kind::enemy) continue;
+                auto p = positions[i].value();
+                auto hb = hitboxes[i].value();
+                auto useTex = texMonster;
                 if (useTex) {
                     auto size = useTex->getSize();
                     double texW = static_cast<double>(size.x);
@@ -392,64 +392,78 @@ int main(int argc, char **argv) {
                     useTex->setPosition(texPosX, texPosY - cameraY);
                     useTex->draw(window, nullptr);
                 } else {
-                    renderer.setDrawColor(r, g, b, a);
-                    renderer.fillRect(screenX, screenY, static_cast<int>(hb.width), static_cast<int>(hb.height));
+                    renderer.setDrawColor(200, 50, 50, 255);
+                    renderer.fillRect(static_cast<int>(p.x), static_cast<int>(p.y - cameraY), static_cast<int>(hb.width), static_cast<int>(hb.height));
                 }
+            }
 
-                if (SHOW_HITBOXES && static_cast<ssize_t>(i) == playerIdx) {
-                    renderer.setDrawColor(0, 255, 0, 255);
-                    renderer.drawRect(screenX - 2, screenY - 2, static_cast<int>(hb.width) + 4, static_cast<int>(hb.height) + 4);
+            for (size_t i = 0; i < positions.size(); ++i) {
+                if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value())) continue;
+                if (kinds[i].value() != component::entity_kind::player) continue;
+                auto p = positions[i].value();
+                auto hb = hitboxes[i].value();
+                auto useTex = texPlayer;
+                if (useTex) {
+                    auto size = useTex->getSize();
+                    double texW = static_cast<double>(size.x);
+                    double texH = static_cast<double>(size.y);
+                    double texPosX = p.x + hb.offset_x + (hb.width * 0.5) - (texW * 0.5);
+                    double texPosY = p.y + hb.offset_y + (hb.height * 0.5) - (texH * 0.5);
+                    useTex->setPosition(texPosX, texPosY - cameraY);
+                    useTex->draw(window, nullptr);
+                } else {
+                    renderer.setDrawColor(0, 200, 0, 255);
+                    renderer.fillRect(static_cast<int>(p.x), static_cast<int>(p.y - cameraY), static_cast<int>(hb.width), static_cast<int>(hb.height));
                 }
+            }
+
+            for (size_t i = 0; i < positions.size(); ++i) {
+                if (!(positions[i] && hitboxes[i] && kinds[i] && kinds[i].has_value())) continue;
+                if (kinds[i].value() != component::entity_kind::playerProjectile) continue;
+                auto p = positions[i].value();
+                auto hb = hitboxes[i].value();
+                auto useTex = texPlayerProj;
+                if (useTex) {
+                    auto size = useTex->getSize();
+                    double texW = static_cast<double>(size.x);
+                    double texH = static_cast<double>(size.y);
+                    double texPosX = p.x + hb.offset_x + (hb.width * 0.5) - (texW * 0.5);
+                    double texPosY = p.y + hb.offset_y + (hb.height * 0.5) - (texH * 0.5);
+                    useTex->setPosition(texPosX, texPosY - cameraY);
+                    useTex->draw(window, nullptr);
+                } else {
+                    renderer.setDrawColor(255, 60, 60, 255);
+                    renderer.fillRect(static_cast<int>(p.x), static_cast<int>(p.y - cameraY), static_cast<int>(hb.width), static_cast<int>(hb.height));
+                }
+            }
+
+            for (size_t i = 0; i < positions.size(); ++i) {
+                if (!(positions[i] && hitboxes[i])) continue;
+                bool hasKind = (i < kinds.size() && kinds[i] && kinds[i].has_value());
+                if (hasKind) {
+                    auto k = kinds[i].value();
+                    if (k == component::entity_kind::decor || k == component::entity_kind::enemy || k == component::entity_kind::player || k == component::entity_kind::playerProjectile)
+                        continue;
+                }
+                auto p = positions[i].value();
+                auto hb = hitboxes[i].value();
+                renderer.setDrawColor(80, 80, 80, 255);
+                renderer.fillRect(static_cast<int>(p.x), static_cast<int>(p.y - cameraY), static_cast<int>(hb.width), static_cast<int>(hb.height));
+            }
+            
+            if (SHOW_HITBOXES && playerIdx >= 0 && positions[playerIdx] && hitboxes[playerIdx]) {
+                auto p = positions[playerIdx].value();
+                auto hb = hitboxes[playerIdx].value();
+                int screenX = static_cast<int>(p.x);
+                int screenY = static_cast<int>(p.y - cameraY);
+                renderer.setDrawColor(0, 255, 0, 255);
+                renderer.drawRect(screenX - 2, screenY - 2, static_cast<int>(hb.width) + 4, static_cast<int>(hb.height) + 4);
             }
             if (playerIdx == -1) {
                 renderer.setDrawColor(255, 0, 0, 255);
                 renderer.fillRect((SCREEN_W / 2) - 40, (SCREEN_H / 2) - 40, 80, 80);
                 if (VERBOSE && SDL_GetTicks() - lastParseLogMs > 1000u) {
                     std::cerr << "Client: WARNING - no player entity found in snapshot (drawing debug rect)" << std::endl;
-                }
-            }
-            {
-                auto &plats = reg.get_components<component::platform>();
-                auto &ppos = reg.get_components<component::position>();
-                auto &phb = reg.get_components<component::hitbox>();
-                for (size_t pi = 0; pi < positions.size(); ++pi) {
-                    if (!(ppos[pi] && phb[pi] && plats[pi] && plats[pi].has_value())) continue;
-                    uint8_t pk = plats[pi].value().kind;
-                    if (pk != 3) continue;
-                    auto platP = ppos[pi].value();
-                    auto platHb = phb[pi].value();
-                    std::shared_ptr<engine::R_Graphic::Texture> baseTex = texTileRegular;
-                    if (plats[pi] && plats[pi].has_value()) {
-                        uint8_t kind = plats[pi].value().kind;
-                        if (kind == 1) baseTex = texTileMoving ? texTileMoving : texTileRegular;
-                        else if (kind == 2) baseTex = texTileGhost ? texTileGhost : texTileRegular;
-                        else baseTex = texTileRegular;
-                    }
-                    double platTexH = 0.0;
-                    if (baseTex) {
-                        auto psz = baseTex->getSize();
-                        platTexH = static_cast<double>(psz.y);
-                    }
-                    if (texTrampoline) {
-                        auto tsize = texTrampoline->getSize();
-                        double trampW = static_cast<double>(tsize.x);
-                        double trampH = static_cast<double>(tsize.y);
-                        double drawX = platP.x + platHb.offset_x + (platHb.width * 0.5) - (trampW * 0.5);
-                        const double TRAMPOLINE_GAP = 0.0;
-                        double platformTexTop = platP.y + platHb.offset_y + (platHb.height * 0.5) - (platTexH * 0.5);
-                        double drawY = platformTexTop - trampH - TRAMPOLINE_GAP;
-                        texTrampoline->setPosition(drawX, drawY - cameraY);
-                        texTrampoline->draw(window, nullptr);
-                    } else {
-                        double drawX = platP.x + platHb.offset_x;
-                        const double TRAMPOLINE_GAP = 0.0;
-                        double platformTexTop = platP.y + platHb.offset_y;
-                        double drawY = platformTexTop - TRAMPOLINE_GAP - 8.0;
-                        int w = static_cast<int>(platHb.width);
-                        int h = 8;
-                        renderer.setDrawColor(255, 160, 40, 255);
-                        renderer.fillRect(static_cast<int>(drawX), static_cast<int>(drawY - cameraY), w, h);
-                    }
                 }
             }
             renderer.display();
