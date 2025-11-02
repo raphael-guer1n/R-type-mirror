@@ -1,0 +1,62 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
+#include <chrono>
+
+#include "engine/network/Endpoint.hpp"
+#include "engine/network/IoContext.hpp"
+#include "src/common/Packets.hpp"
+
+namespace engine::net
+{
+
+    class UdpSocketImpl; // hidden implementation using Asio
+
+    struct PendingPacket
+    {
+        PacketHeader header;
+        std::vector<uint8_t> payload;
+        Endpoint target;
+        std::chrono::steady_clock::time_point lastSent;
+        uint32_t retryCount;
+    };
+
+
+    class UdpSocket
+    {
+    public:
+        // Binds a UDP socket on the given local port (0 for ephemeral)
+        UdpSocket(IoContext &ctx, unsigned short localPort);
+        ~UdpSocket();
+        UdpSocket(UdpSocket &&) noexcept;
+        UdpSocket &operator=(UdpSocket &&) noexcept;
+        UdpSocket(const UdpSocket &) = delete;
+        UdpSocket &operator=(const UdpSocket &) = delete;
+
+        // Send header + payload convenience
+        void send(const PacketHeader &header, const std::vector<std::uint8_t> &payload,
+                  const Endpoint &endpoint);
+
+
+        bool PollPacket(PacketHeader& outHeader, std::vector<uint8_t>& outPayload, Endpoint& outSender);
+        void acknowledge(uint32_t seq);
+        void update_reliable();
+
+        void send_reliable(const PacketHeader &header,
+            const std::vector<uint8_t> &payload,
+            const Endpoint &endpoint);
+
+        // Non-blocking receive; returns header+payload when data is available.
+        // Fills 'sender' with the packet source.
+        std::optional<std::pair<PacketHeader, std::vector<std::uint8_t>>> receive(Endpoint &sender);
+
+    private:
+        std::unique_ptr<UdpSocketImpl> _impl;
+    };
+
+} // namespace engine::net

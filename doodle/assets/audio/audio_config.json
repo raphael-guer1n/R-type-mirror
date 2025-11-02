@@ -1,0 +1,16 @@
+{
+  "music": {
+    "monsters": "./assets/assets (reworked)/monsters.mp3"
+  },
+  "sounds": {
+    "jump": "./assets/assets (reworked)/jump.wav",
+    "trampoline": "./assets/assets (reworked)/trampoline.mp3",
+    "monster-crash": "./assets/assets (reworked)/monster-crash.mp3",
+    "fall": "./assets/assets (reworked)/fall.mp3",
+    "shoot": "./assets/assets (reworked)/shoot.mp3"
+  },
+  "volumes": {
+    "music": 0.8,
+    "sfx": 1.0
+  }
+}
