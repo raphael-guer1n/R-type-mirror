@@ -49,6 +49,7 @@ int main(int argc, char **argv)
 
         // Manual start platform to ensure safe spawn
         std::vector<entity_t> platforms;
+        std::vector<entity_t> enemies; // hostile mobs
         const float START_PLATFORM_W = PLATFORM_W;
         const float START_PLATFORM_H = PLATFORM_H;
         const float START_PLATFORM_X = (SCREEN_W - START_PLATFORM_W) * 0.5f;
@@ -76,6 +77,8 @@ int main(int argc, char **argv)
         std::mt19937 rng(std::random_device{}());
         std::uniform_real_distribution<float> xDist(0.0f, SCREEN_W - PLATFORM_W);
         std::uniform_real_distribution<float> spacing(80.0f, 120.0f);
+        std::uniform_int_distribution<int> enemySpawnRoll(0, 9); // 10% chance to spawn an enemy on eligible platforms
+        std::uniform_real_distribution<float> enemyOffset01(0.0f, 1.0f);
 
         std::uniform_int_distribution<int> kindDist(0, 9);
 
@@ -90,6 +93,10 @@ int main(int argc, char **argv)
         uint32_t tick = 0;
         uint32_t lastShootTick = 0;
         const uint32_t SHOOT_COOLDOWN_TICKS = 8; // ~133ms @60Hz
+        const float ENEMY_W = 44.0f;
+        const float ENEMY_H = 36.0f;
+        const float ENEMY_SPEED = 35.0f;
+        const float STOMP_MULT = 1.3f; // stomp jump boost
 
         std::cout << "Doodle server listening on port " << port << std::endl;
         std::cout << "Server: waiting for client handshake (CONNECT_REQ)" << std::endl;
@@ -362,6 +369,27 @@ int main(int argc, char **argv)
                             reg.add_component(pe, component::health{1});
                         }
                         platforms.push_back(pe);
+
+                        // Chance to spawn a simple enemy on some platforms (avoid fragile/bounce)
+                        if ((pkind == 0 || pkind == 1) && enemySpawnRoll(rng) == 0) {
+                            auto &posAll = reg.get_components<component::position>();
+                            auto &hbAll = reg.get_components<component::hitbox>();
+                            if (posAll[pe] && posAll[pe].has_value() && hbAll[pe] && hbAll[pe].has_value()) {
+                                const auto &pp = posAll[pe].value();
+                                const auto &phb = hbAll[pe].value();
+                                float platLeft = pp.x + phb.offset_x;
+                                float range = std::max(0.0f, phb.width - ENEMY_W);
+                                float ex = platLeft + enemyOffset01(rng) * range;
+                                float ey = pp.y - ENEMY_H;
+                                entity_t en = reg.spawn_entity();
+                                reg.add_component(en, component::position{ex, ey});
+                                float dir = (rng() % 2 == 0) ? 1.0f : -1.0f;
+                                reg.add_component(en, component::velocity{dir * ENEMY_SPEED, 0.0f});
+                                reg.add_component(en, component::hitbox{ENEMY_W, ENEMY_H});
+                                reg.add_component(en, component::entity_kind::enemy);
+                                enemies.push_back(en);
+                            }
+                        }
                     }
 
                     const float PRUNE_BELOW = 1200.0f;
@@ -438,6 +466,145 @@ int main(int argc, char **argv)
                             }
                             break;
                         }
+                    }
+
+                    // Player vs enemies: stomp or head-bump
+                    float prevTop = prevY;
+                    float curTop = poss[player].value().y;
+                    std::vector<entity_t> keptEnemies;
+                    keptEnemies.reserve(enemies.size());
+                    for (auto en : enemies) {
+                        if (!(poss[en] && hbs[en])) { continue; }
+                        float eTop = poss[en].value().y;
+                        float eBottom = eTop + hbs[en].value().height;
+                        float eLeft = poss[en].value().x + hbs[en].value().offset_x;
+                        float eRight = eLeft + hbs[en].value().width;
+                        bool overlapX = (playerRight > eLeft + 1.0f) && (playerLeft < eRight - 1.0f);
+
+                        bool stomp = (vels[player].value().vy > 0) && overlapX && (prevBottom <= eTop + 5.0f) && (curBottom > eTop);
+                        bool head = (vels[player].value().vy < 0) && overlapX && (prevTop >= eBottom - 5.0f) && (curTop < eBottom);
+
+                        if (stomp) {
+                            // Kill enemy and bounce player higher
+                            reg.kill_entity(en);
+                            vels[player].value().vy = PLAYER_JUMP_VELOCITY * STOMP_MULT;
+                            poss[player].value().y = eTop - hbs[player].value().height;
+                            // enemy removed, don't keep in list
+                        } else if (head) {
+                            // Player dies: reset to start platform and pause game
+                            std::cout << "Server: player died (head bump) -> respawn and wait" << std::endl;
+                            poss[player].value().x = playerSpawnX;
+                            poss[player].value().y = playerSpawnY;
+                            vels[player].value().vx = 0.0f;
+                            vels[player].value().vy = 0.0f;
+                            gameStarted = false;
+                            // clear enemies and projectiles
+                            for (auto k : enemies) reg.kill_entity(k);
+                            enemies.clear();
+                            auto &projArrClr = reg.get_components<component::projectile_tag>();
+                            for (size_t i = 0; i < projArrClr.size(); ++i) {
+                                if (projArrClr[i] && projArrClr[i].has_value()) reg.kill_entity(reg.entity_from_index(i));
+                            }
+                            keptEnemies.clear();
+                            break; // exit enemy loop after respawn
+                        } else {
+                            keptEnemies.push_back(en);
+                        }
+                    }
+                    enemies.swap(keptEnemies);
+                }
+
+                // Enemy maintenance: keep them on their platform and bounce within platform bounds
+                if (gameStarted) {
+                    auto &posAll = reg.get_components<component::position>();
+                    auto &hbAll = reg.get_components<component::hitbox>();
+                    auto &velAll = reg.get_components<component::velocity>();
+                    std::vector<entity_t> kept; kept.reserve(enemies.size());
+                    for (auto en : enemies) {
+                        if (!(posAll[en] && hbAll[en] && velAll[en])) continue;
+                        auto &ep = posAll[en].value();
+                        auto &ev = velAll[en].value();
+                        const auto &ehb = hbAll[en].value();
+                        // find supporting platform (closest directly below within small epsilon)
+                        bool hasSupport = false;
+                        float bestDy = 5.0f; // tolerance
+                        float eBottom = ep.y + ehb.height;
+                        float eLeft = ep.x + ehb.offset_x;
+                        float eRight = eLeft + ehb.width;
+                        float sTop = 0.f, sLeft = 0.f, sRight = 0.f;
+                        for (auto pe : platforms) {
+                            if (!(posAll[pe] && hbAll[pe])) continue;
+                            float pTop = posAll[pe].value().y;
+                            float pLeft = posAll[pe].value().x + hbAll[pe].value().offset_x;
+                            float pRight = pLeft + hbAll[pe].value().width;
+                            // horizontal overlap required
+                            bool ovx = (eRight > pLeft + 1.0f) && (eLeft < pRight - 1.0f);
+                            float dy = std::fabs(pTop - eBottom);
+                            if (ovx && dy < bestDy) { bestDy = dy; hasSupport = true; sTop = pTop; sLeft = pLeft; sRight = pRight; }
+                        }
+                        if (!hasSupport) {
+                            // no platform under -> remove enemy
+                            reg.kill_entity(en);
+                            continue;
+                        }
+                        // Snap on top of platform
+                        ep.y = sTop - ehb.height;
+                        // bounce within [pLeft, pRight]
+                        float newLeft = ep.x + ehb.offset_x;
+                        float newRight = newLeft + ehb.width;
+                        if (newLeft < sLeft) {
+                            ep.x = sLeft - ehb.offset_x;
+                            ev.vx = std::abs(ev.vx);
+                        } else if (newRight > sRight) {
+                            ep.x = sRight - ehb.width - ehb.offset_x;
+                            ev.vx = -std::abs(ev.vx);
+                        }
+                        kept.push_back(en);
+                    }
+                    enemies.swap(kept);
+                }
+
+                // Projectile vs enemies collision
+                {
+                    auto &posAll = reg.get_components<component::position>();
+                    auto &hbAll = reg.get_components<component::hitbox>();
+                    auto &projAll = reg.get_components<component::projectile_tag>();
+                    std::vector<entity_t> deadEnemies;
+                    std::vector<entity_t> deadProjectiles;
+                    for (auto en : enemies) {
+                        if (!(posAll[en] && hbAll[en])) continue;
+                        float eLeft = posAll[en].value().x + hbAll[en].value().offset_x;
+                        float eTop = posAll[en].value().y + hbAll[en].value().offset_y;
+                        float eRight = eLeft + hbAll[en].value().width;
+                        float eBottom = eTop + hbAll[en].value().height;
+                        // iterate all projectiles (could be optimized)
+                        for (size_t i = 0; i < projAll.size(); ++i) {
+                            if (!projAll[i] || !projAll[i].has_value()) continue;
+                            entity_t projE = reg.entity_from_index(i);
+                            if (!(posAll[projE] && hbAll[projE])) continue;
+                            float pLeft = posAll[projE].value().x + hbAll[projE].value().offset_x;
+                            float pTop = posAll[projE].value().y + hbAll[projE].value().offset_y;
+                            float pRight = pLeft + hbAll[projE].value().width;
+                            float pBottom = pTop + hbAll[projE].value().height;
+                            bool overlap = !(pRight <= eLeft || pLeft >= eRight || pBottom <= eTop || pTop >= eBottom);
+                            if (overlap) {
+                                deadEnemies.push_back(en);
+                                deadProjectiles.push_back(projE);
+                                break; // one projectile is enough to kill enemy
+                            }
+                        }
+                    }
+                    if (!deadEnemies.empty()) {
+                        // remove enemies vector entries and kill entities
+                        std::vector<entity_t> kept; kept.reserve(enemies.size());
+                        for (auto de : deadEnemies) reg.kill_entity(de);
+                        for (auto en : enemies) {
+                            bool isDead = false;
+                            for (auto de : deadEnemies) { if (de == en) { isDead = true; break; } }
+                            if (!isDead) kept.push_back(en);
+                        }
+                        enemies.swap(kept);
+                        for (auto dp : deadProjectiles) reg.kill_entity(dp);
                     }
                 }
 
