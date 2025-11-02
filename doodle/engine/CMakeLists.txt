@@ -1,17 +1,59 @@
-# Engine subsystem options
+if(DEFINED ENGINE_MODULES)
+    string(FIND "${ENGINE_MODULES}" "renderer" HAS_RENDERER)
+    string(FIND "${ENGINE_MODULES}" "audio" HAS_AUDIO)
+    string(FIND "${ENGINE_MODULES}" "network" HAS_NETWORK)
+    string(FIND "${ENGINE_MODULES}" "ecs" HAS_ECS)
+    string(FIND "${ENGINE_MODULES}" "events" HAS_EVENTS)
+    string(FIND "${ENGINE_MODULES}" "profiling" HAS_PROFILING)
+
+    if(HAS_RENDERER GREATER_EQUAL 0)
+        set(ENGINE_RENDERER ON)
+    else()
+        set(ENGINE_RENDERER OFF)
+    endif()
+
+    if(HAS_AUDIO GREATER_EQUAL 0)
+        set(ENGINE_AUDIO ON)
+    else()
+        set(ENGINE_AUDIO OFF)
+    endif()
+
+    if(HAS_NETWORK GREATER_EQUAL 0)
+        set(ENGINE_NETWORK ON)
+    else()
+        set(ENGINE_NETWORK OFF)
+    endif()
+
+    if(HAS_ECS GREATER_EQUAL 0)
+        set(ENGINE_ECS ON)
+    else()
+        set(ENGINE_ECS OFF)
+    endif()
+
+    if(HAS_EVENTS GREATER_EQUAL 0)
+        set(ENGINE_EVENTS ON)
+    else()
+        set(ENGINE_EVENTS OFF)
+    endif()
+
+    if(HAS_PROFILING GREATER_EQUAL 0)
+        set(ENGINE_PROFILING ON)
+    else()
+        set(ENGINE_PROFILING OFF)
+    endif()
+endif()
+
 option(ENGINE_RENDERER "Enable renderer subsystem (SDL-based graphics)" ON)
 option(ENGINE_AUDIO "Enable audio subsystem" ON)
 option(ENGINE_NETWORK "Enable network subsystem (ASIO-based)" ON)
 option(ENGINE_ECS "Enable ECS subsystem" ON)
 option(ENGINE_EVENTS "Enable events subsystem" ON)
+option(ENGINE_PROFILING "Enable profiling subsystem (metrics and benchmarking)" ON)
 
-# Core engine sources (always included)
 set(ENGINE_CORE_SOURCES)
 
-# Conditional subsystem sources
 set(ENGINE_SOURCES)
 
-# Find packages based on enabled subsystems
 if(ENGINE_RENDERER)
     find_package(SDL2 CONFIG REQUIRED)
     find_package(SDL2_image CONFIG REQUIRED)
@@ -28,70 +70,64 @@ if(ENGINE_RENDERER)
 endif()
 
 if(ENGINE_AUDIO)
-    # Audio might need additional packages in the future
+    find_path(MINIAUDIO_INCLUDE_DIRS "miniaudio.h")
+    
     list(APPEND ENGINE_SOURCES
         audio/Music.cpp
+        audio/AudioManager.cpp
     )
     
     message(STATUS "Engine: Audio subsystem enabled")
 endif()
 
 if(ENGINE_NETWORK)
-    # Try to find header-only asio first, then fall back to config-mode package
-    find_path(ASIO_INCLUDE_DIR asio.hpp)
-    if(ASIO_INCLUDE_DIR)
-        set(ASIO_HEADER_ONLY_FOUND TRUE)
-    else()
-        find_package(asio CONFIG QUIET)
-    endif()
-    if(asio_FOUND OR ASIO_HEADER_ONLY_FOUND)
-        list(APPEND ENGINE_SOURCES
-            network/IoContext.cpp
-            network/UdpSocket.cpp
-        )
-        if(ASIO_HEADER_ONLY_FOUND)
-            set(ENGINE_ASIO_INCLUDE ${ASIO_INCLUDE_DIR})
-            message(STATUS "Engine: Network subsystem enabled (header-only asio found at ${ASIO_INCLUDE_DIR})")
-        else()
-            message(STATUS "Engine: Network subsystem enabled (asio config found)")
-        endif()
-    else()
-        message(FATAL_ERROR "asio not found: install Asio or set asio_DIR / ASIO_INCLUDE_DIR")
-    endif()
+    find_package(asio CONFIG REQUIRED)
+    
+    list(APPEND ENGINE_SOURCES
+        network/IoContext.cpp
+        network/UdpSocket.cpp
+        network/NetServer.cpp
+        network/NetClient.cpp
+)
+    
+    message(STATUS "Engine: Network subsystem enabled")
 endif()
 
 if(ENGINE_ECS)
-    # ECS is header-only, but we can still track it
     message(STATUS "Engine: ECS subsystem enabled (header-only)")
 endif()
 
 if(ENGINE_EVENTS)
-    # Events is header-only, but we can still track it
     message(STATUS "Engine: Events subsystem enabled (header-only)")
 endif()
 
-# Create the engine library
+if(ENGINE_PROFILING)
+    list(APPEND ENGINE_SOURCES
+        profiling/Profiler.cpp
+    )
+    
+    if(ENGINE_RENDERER)
+        list(APPEND ENGINE_SOURCES
+            profiling/ProfilerOverlay.cpp
+        )
+    endif()
+    
+    message(STATUS "Engine: Profiling subsystem enabled")
+endif()
+
 add_library(engine ${ENGINE_CORE_SOURCES} ${ENGINE_SOURCES})
 
-# Base include directories
 target_include_directories(engine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
-# Add top-level project include directories so engine sources inside doodle can find shared headers
-target_include_directories(engine
-    PUBLIC
-    ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/src
-)
-
-# Conditional include directories and link libraries
 if(ENGINE_RENDERER)
     target_include_directories(engine
         PUBLIC
             ${SDL2_INCLUDE_DIRS}
             ${SDL2_IMAGE_INCLUDE_DIRS}
+            ${SDL2_TTF_INCLUDE_DIRS}
     )
     
     target_link_directories(engine
@@ -111,21 +147,22 @@ if(ENGINE_RENDERER)
     target_compile_definitions(engine PUBLIC ENGINE_HAS_RENDERER)
 endif()
 
-if(ENGINE_NETWORK)
-    if(asio_FOUND)
-        target_link_libraries(engine
-            PUBLIC
-                asio::asio
-        )
-    elseif(ASIO_HEADER_ONLY_FOUND)
-        # header-only Asio: no imported target to link, just include directory
-    endif()
-
-    target_compile_definitions(engine PUBLIC ENGINE_HAS_NETWORK)
+if(ENGINE_AUDIO)
+    target_include_directories(engine
+        PUBLIC
+            ${MINIAUDIO_INCLUDE_DIRS}
+    )
+    
+    target_compile_definitions(engine PUBLIC ENGINE_HAS_AUDIO)
 endif()
 
-if(ENGINE_AUDIO)
-    target_compile_definitions(engine PUBLIC ENGINE_HAS_AUDIO)
+if(ENGINE_NETWORK)
+    target_link_libraries(engine
+        PUBLIC
+            asio::asio
+    )
+    
+    target_compile_definitions(engine PUBLIC ENGINE_HAS_NETWORK)
 endif()
 
 if(ENGINE_ECS)
@@ -136,10 +173,6 @@ if(ENGINE_EVENTS)
     target_compile_definitions(engine PUBLIC ENGINE_HAS_EVENTS)
 endif()
 
-# Print configuration summary
-message(STATUS "Engine configuration:")
-message(STATUS "  Renderer: ${ENGINE_RENDERER}")
-message(STATUS "  Audio: ${ENGINE_AUDIO}")
-message(STATUS "  Network: ${ENGINE_NETWORK}")
-message(STATUS "  ECS: ${ENGINE_ECS}")
-message(STATUS "  Events: ${ENGINE_EVENTS}")
+if(ENGINE_PROFILING)
+    target_compile_definitions(engine PUBLIC ENGINE_HAS_PROFILING)
+endif()

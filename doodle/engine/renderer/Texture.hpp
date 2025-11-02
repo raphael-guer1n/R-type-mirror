@@ -34,11 +34,14 @@ namespace engine {
                 ~Texture();
                 void setPosition(double x, double y);
                 void draw(Window &window, textureRect *srcrect);
+                void drawAt(R_Graphic::Window& window, double x, double y,
+                    R_Graphic::textureRect* srcrect);
                 void changeColors(int r, int g, int b);
                 intVec2 getSize() const;
                 doubleVec2 position;
-
-            private:
+                SDL_Texture* getSDLTexture() const { return _texture; }
+                
+                private:
                 SDL_Texture *_texture;
                 intVec2 _size;
         };
