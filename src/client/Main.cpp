@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     }
     try
     {
-        R_Type::Rtype game;
+        R_Type::Rtype game(serverIp);
 
         auto& profiler = Engine::Profiling::Profiler::getInstance();
         std::cout << "[Profiling] System enabled. Press F3 to toggle overlay.\n";

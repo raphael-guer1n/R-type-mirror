@@ -19,7 +19,7 @@
 #include "engine/profiling/Profiler.hpp"
 #include "engine/profiling/ProfilerOverlay.hpp"
 
-R_Type::Rtype::Rtype()
+R_Type::Rtype::Rtype(std::string &ip)
     : _app("R-Type", 1920, 1080)
 {
     engine::audio::AudioManager::instance().loadConfig("./configs/audio_config.json");
@@ -46,7 +46,7 @@ R_Type::Rtype::Rtype()
     _uiFont = TTF_OpenFont("Assets/fonts/arial.ttf", 28);
     try
     {
-        _client = std::make_unique<engine::net::NetClient>("127.0.0.1", 4242);
+        _client = std::make_unique<engine::net::NetClient>(ip, 4242);
         _client->set_packet_handler([this](
             const PacketHeader&hdr,
             const std::vector<uint8_t> &payload) {
