@@ -43,7 +43,7 @@ namespace R_Type
     class Rtype
     {
     public:
-        Rtype();
+        Rtype(std::string& ip);
         ~Rtype();
         
         /**
